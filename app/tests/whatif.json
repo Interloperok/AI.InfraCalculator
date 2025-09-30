@@ -1,0 +1,41 @@
+{
+  "base": {
+    "internal_users": 2000,
+    "penetration_internal": 0.4,
+    "concurrency_internal": 0.1,
+    "external_users": 0,
+    "penetration_external": 0.0,
+    "concurrency_external": 0.0,
+
+    "prompt_tokens_P": 350,
+    "answer_tokens_A": 200,
+    "rps_per_active_user_R": 0.05,
+    "session_duration_sec_t": 300,
+
+    "params_billions": 7,
+    "bytes_per_param": 2,
+    "overhead_factor": 1.15,
+    "layers_L": 32,
+    "hidden_size_H": 4096,
+    "bytes_per_kv_state": 2,
+    "paged_attention_gain_Kopt": 1.5,
+
+    "gpu_mem_gb": 80,
+    "gpus_per_server": 8,
+    "mem_reserve_fraction": 0.07,
+
+    "tps_per_instance": 1500,
+    "batching_coeff": 1.2,
+    "sla_reserve": 1.25
+  },
+  "scenarios": [
+    {
+      "name": "Higher adoption 60%",
+      "overrides": { "penetration_internal": 0.6 }
+    },
+    {
+      "name": "Model 13B",
+      "overrides": { "params_billions": 13 }
+    }
+  ]
+}
