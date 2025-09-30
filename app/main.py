@@ -5,6 +5,7 @@ import logging
 from typing import List
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, conint, confloat, validator
 
 logger = logging.getLogger("sizing")
@@ -141,6 +142,21 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     )
 
 app = FastAPI(title="GenAI Server Sizing API", version="1.0.0")
+
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,         # перечисляй явно; для prod не ставь '*'
+    allow_credentials=False,       # True только если реально шлёшь cookies/Authorization
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/healthz")
 def healthz(): return {"status":"ok"}
