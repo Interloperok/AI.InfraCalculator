@@ -1,13 +1,139 @@
 import React, { useState } from 'react';
 
 const CalculatorForm = ({ onSubmit, loading }) => {
+  // GPU data
+  const gpuData = {
+    "top_10_gpus_for_llm_deployment_2025": [
+      {
+        "rank": 1,
+        "model": "NVIDIA H100",
+        "memory_size_gb": 80,
+        "memory_type": "HBM3",
+        "memory_bandwidth_gbs": 3000,
+        "cuda_cores": null,
+        "tensor_cores": "4th Gen",
+        "fp16_tflops": 1979,
+        "tdp_watts": 700,
+        "form_factor": "SXM / PCIe"
+      },
+      {
+        "rank": 2,
+        "model": "NVIDIA A100",
+        "memory_size_gb": 80,
+        "memory_type": "HBM2e",
+        "memory_bandwidth_gbs": 2039,
+        "cuda_cores": 6912,
+        "tensor_cores": "3rd Gen",
+        "fp16_tflops": 312,
+        "tdp_watts": 400,
+        "form_factor": "SXM / PCIe"
+      },
+      {
+        "rank": 3,
+        "model": "NVIDIA H200",
+        "memory_size_gb": 141,
+        "memory_type": "HBM3e",
+        "memory_bandwidth_gbs": 4800,
+        "cuda_cores": null,
+        "tensor_cores": "4th Gen",
+        "fp16_tflops": 2000,
+        "tdp_watts": 700,
+        "form_factor": "SXM"
+      },
+      {
+        "rank": 4,
+        "model": "NVIDIA L40",
+        "memory_size_gb": 48,
+        "memory_type": "GDDR6 with ECC",
+        "memory_bandwidth_gbs": 864,
+        "cuda_cores": 18176,
+        "tensor_cores": "3rd Gen",
+        "fp16_tflops": 91,
+        "tdp_watts": 350,
+        "form_factor": "PCIe"
+      },
+      {
+        "rank": 5,
+        "model": "NVIDIA RTX 5090",
+        "memory_size_gb": 32,
+        "memory_type": "GDDR7",
+        "memory_bandwidth_gbs": 1792,
+        "cuda_cores": 21760,
+        "tensor_cores": "5th Gen",
+        "fp16_tflops": 104.8,
+        "tdp_watts": 575,
+        "form_factor": "PCIe"
+      },
+      {
+        "rank": 6,
+        "model": "NVIDIA RTX 4090",
+        "memory_size_gb": 24,
+        "memory_type": "GDDR6X",
+        "memory_bandwidth_gbs": 1008,
+        "cuda_cores": 16384,
+        "tensor_cores": "4th Gen",
+        "fp16_tflops": 82.6,
+        "tdp_watts": 450,
+        "form_factor": "PCIe"
+      },
+      {
+        "rank": 7,
+        "model": "NVIDIA RTX A6000",
+        "memory_size_gb": 48,
+        "memory_type": "GDDR6 with ECC",
+        "memory_bandwidth_gbs": 768,
+        "cuda_cores": 10752,
+        "tensor_cores": "3rd Gen",
+        "fp16_tflops": 191,
+        "tdp_watts": 300,
+        "form_factor": "PCIe"
+      },
+      {
+        "rank": 8,
+        "model": "NVIDIA RTX A4000",
+        "memory_size_gb": 16,
+        "memory_type": "GDDR6 with ECC",
+        "memory_bandwidth_gbs": 448,
+        "cuda_cores": 6144,
+        "tensor_cores": "3rd Gen",
+        "fp16_tflops": 38,
+        "tdp_watts": 140,
+        "form_factor": "PCIe"
+      },
+      {
+        "rank": 9,
+        "model": "NVIDIA T4",
+        "memory_size_gb": 16,
+        "memory_type": "GDDR6",
+        "memory_bandwidth_gbs": 320,
+        "cuda_cores": 2560,
+        "tensor_cores": "3rd Gen",
+        "fp16_tflops": 65,
+        "tdp_watts": 70,
+        "form_factor": "PCIe"
+      },
+      {
+        "rank": 10,
+        "model": "NVIDIA RTX 4060 Ti 16GB",
+        "memory_size_gb": 16,
+        "memory_type": "GDDR6",
+        "memory_bandwidth_gbs": 288,
+        "cuda_cores": 4352,
+        "tensor_cores": "4th Gen",
+        "fp16_tflops": 22,
+        "tdp_watts": 165,
+        "form_factor": "PCIe"
+      }
+    ]
+  };
+
   // Initial form values based on the SizingInput dataclass
   const [formData, setFormData] = useState({
     // Users & behavior
-    internal_users: 1000,
+    internal_users: 100,
     penetration_internal: 0.1,
     concurrency_internal: 0.2,
-    external_users: 5000,
+    external_users: 0,
     penetration_external: 0.05,
     concurrency_external: 0.1,
 
@@ -17,17 +143,19 @@ const CalculatorForm = ({ onSubmit, loading }) => {
     rps_per_active_user_R: 0.05,
     session_duration_sec_t: 300,
 
-    // Model & KV
+    // Model
     params_billions: 7,
     bytes_per_param: 2,
     overhead_factor: 1.1,
     layers_L: 32,
     hidden_size_H: 4096,
+
+    // KV
     bytes_per_kv_state: 2,
     paged_attention_gain_Kopt: 1.5,
 
     // Hardware
-    gpu_mem_gb: 80,
+    gpu_mem_gb: 0, // Changed to 0 as default (no GPU selected)
     gpus_per_server: 8,
     mem_reserve_fraction: 0.07,
 
@@ -37,24 +165,54 @@ const CalculatorForm = ({ onSubmit, loading }) => {
     sla_reserve: 1.25,
   });
 
-  // State for tracking which sections are expanded (first section expanded by default)
+  // State for model search
+  const [modelSearch, setModelSearch] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(null);
+
+  // State for tracking which sections are expanded in the Advanced tab
   const [expandedSections, setExpandedSections] = useState({
-    users: true,
-    tokens: false,
     model: false,
-    hardware: false,
+    users: false,
+    tokens: false,
+    kv: false,
     empirics: false
   });
 
+  const [activeTab, setActiveTab] = useState('basic'); // 'basic' or 'advanced'
+
   const handleChange = (name, value) => {
+    // Determine if the field should be an integer based on the API contract
+    const integerFields = [
+      'internal_users', 'external_users', 'layers_L', 'hidden_size_H', 
+      'gpus_per_server', 'bytes_per_param', 'bytes_per_kv_state'
+    ];
+    
+    const parsedValue = parseFloat(value) || 0;
+    const finalValue = integerFields.includes(name) ? Math.round(parsedValue) : parsedValue;
+    
     setFormData(prev => ({
       ...prev,
-      [name]: parseFloat(value) || 0
+      [name]: finalValue
     }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Check if a model has been selected (indicated by selectedModel not being null)
+    // and if a GPU has been selected (gpu_mem_gb > 0)
+    if (!selectedModel) {
+      alert("Please select a model before submitting.");
+      return;
+    }
+    
+    if (formData.gpu_mem_gb <= 0) {
+      alert("Please select a GPU before submitting.");
+      return;
+    }
+    
     onSubmit(formData);
   };
 
@@ -65,38 +223,159 @@ const CalculatorForm = ({ onSubmit, loading }) => {
     }));
   };
 
-  // Helper function to create slider with input
-  const renderSliderInput = (name, label, min, max, step, value, unit = '') => (
-    <div className="mb-6">
-      <div className="flex justify-between items-center mb-2">
-        <label className="block text-sm font-medium text-gray-700">{label}</label>
-        <span className="text-sm text-gray-500">{value}{unit}</span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => handleChange(name, e.target.value)}
-        className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-      />
-      <div className="flex justify-between text-xs text-gray-500 mt-1">
-        <span>{min}{unit}</span>
-        <span>{max}{unit}</span>
-      </div>
-    </div>
-  );
+  // Function to search for models on Hugging Face
+  const searchModels = async (query) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      // Using Hugging Face API to search for models
+      const response = await fetch(`https://huggingface.co/api/models?search=${encodeURIComponent(query)}&limit=10`);
+      const models = await response.json();
+      
+      // Filter models that might have relevant information for our parameters
+      const relevantModels = models.filter(model => {
+        // Check if model has relevant data in its configuration
+        return model.tags && Array.isArray(model.tags) && 
+               (model.tags.includes('transformers') || 
+                model.tags.includes('gpt') || 
+                model.tags.includes('llama') || 
+                model.tags.includes('pytorch') ||
+                model.config);
+      });
+      
+      setSearchResults(relevantModels);
+    } catch (error) {
+      console.error('Error searching for models:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // State for model warning
+  const [modelWarning, setModelWarning] = useState(null);
+
+  // Handle model selection
+  const handleModelSelect = async (model) => {
+    setSelectedModel(model);
+    setModelSearch(''); // Clear the search field after selection
+    setModelWarning(null); // Clear any previous warnings
+    
+    try {
+      // Get the model name
+      const modelId = model.modelId || model.id;
+      
+      // Fetch model info from Hugging Face API
+      const response = await fetch(`https://huggingface.co/api/models/${modelId}`);
+      const modelDetails = await response.json();
+      
+      // Update form data with extracted parameters
+      const updatedData = { ...formData };
+      
+      // Check for parameter count in safetensors info
+      if (modelDetails.safetensors && modelDetails.safetensors.parameters) {
+        // Extract parameters from safetensors info (e.g., BF16)
+        const paramsObj = modelDetails.safetensors.parameters;
+        if (paramsObj && typeof paramsObj === 'object') {
+          // Look for the first parameter count in the object
+          const paramCounts = Object.values(paramsObj);
+          if (paramCounts.length > 0) {
+            const paramCount = paramCounts[0];
+            if (typeof paramCount === 'number') {
+              // Convert to billions and round to 1 decimal place
+              const paramsInBillions = Math.round((paramCount / 1e9) * 10) / 10;
+              if (!isNaN(paramsInBillions) && paramsInBillions > 0) {
+                updatedData.params_billions = paramsInBillions;
+              }
+            }
+          }
+        }
+      }
+      
+      // If no parameters found in safetensors, try parsing from model card data
+      if (updatedData.params_billions === formData.params_billions && modelDetails.cardData && modelDetails.cardData.tags) {
+        // Look for parameter size in tags
+        const paramTag = modelDetails.cardData.tags.find(tag => 
+          (tag.includes('b') || tag.includes('m')) && !isNaN(tag.replace(/[a-zA-Z]/g, ''))
+        );
+        if (paramTag) {
+          const paramValue = parseFloat(paramTag.replace(/[a-zA-Z]/g, ''));
+          if (!isNaN(paramValue)) {
+            const unit = paramTag.toLowerCase().includes('b') ? 1 : 0.001; // billion or million
+            updatedData.params_billions = paramValue * unit;
+          }
+        }
+      }
+      
+      // If still no parameters found, try parsing from model name
+      if (updatedData.params_billions === formData.params_billions) {
+        const modelName = modelId.toLowerCase();
+        const paramMatch = modelName.match(/(\d+\.?\d*)([b|m])/i);
+        
+        if (paramMatch) {
+          const paramValue = parseFloat(paramMatch[1]);
+          const unit = paramMatch[2].toLowerCase();
+          
+          if (unit === 'b') {
+            updatedData.params_billions = paramValue;
+          } else if (unit === 'm') {
+            updatedData.params_billions = paramValue * 0.001; // Convert millions to billions
+          }
+        }
+      }
+      
+      setFormData(updatedData);
+      setSearchResults([]);
+      
+    } catch (error) {
+      console.error('Error fetching model details:', error);
+      // If detailed fetch fails, just update the form with basic selection
+      setSelectedModel(model);
+      setModelWarning("Could not automatically extract model parameters. Please adjust values manually.");
+      setSearchResults([]);
+    }
+  };
+
+  // Handle GPU selection
+  const handleGpuChange = (gpuModel) => {
+    const selectedGpu = gpuData.top_10_gpus_for_llm_deployment_2025.find(gpu => gpu.model === gpuModel);
+    if (selectedGpu) {
+      setFormData(prev => ({
+        ...prev,
+        gpu_mem_gb: selectedGpu.memory_size_gb,
+        // You can add other GPU-specific parameters here if needed
+      }));
+    }
+  };
+
+  // Handle search input change with debounce
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setModelSearch(value);
+    
+    if (value.length > 2) {
+      // Debounce the search to avoid too many API calls
+      setTimeout(() => {
+        searchModels(value);
+      }, 500);
+    } else {
+      setSearchResults([]);
+    }
+  };
 
   // Helper function to render a collapsible section
-  const renderCollapsibleSection = (key, title, color, inputs, isExpanded) => (
-    <div className={`${color}-50 rounded-lg border ${isExpanded ? 'border' + color.replace('50', '200') : 'border-gray-200'} mb-4 overflow-hidden`}>
+  const renderCollapsibleSection = (key, title, inputs, isExpanded) => (
+    <div className="bg-gray-50 rounded-lg border border-gray-200 mb-4 overflow-hidden">
       <button
         type="button"
         onClick={() => toggleSection(key)}
-        className={`w-full flex justify-between items-center p-4 text-left ${color}-800 font-medium rounded-lg hover:bg-opacity-50 transition-colors`}
+        className="w-full flex justify-between items-center p-4 text-left text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors"
       >
-        <span>{title}</span>
+        <span className="font-semibold">{title}</span>
         <svg 
           className={`w-5 h-5 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
           fill="none" 
@@ -110,7 +389,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
       <div 
         className={`transition-all duration-300 ease-in-out overflow-hidden ${
           isExpanded 
-            ? 'max-h-96 opacity-100' 
+            ? 'max-h-screen opacity-100' 
             : 'max-h-0 opacity-0'
         }`}
       >
@@ -121,20 +400,200 @@ const CalculatorForm = ({ onSubmit, loading }) => {
     </div>
   );
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <h2 className="text-2xl font-semibold text-gray-800 mb-6">Configuration Parameters</h2>
+  // Helper function to create slider with text input
+  const renderSliderInput = (name, label, min, max, step, value, unit = '') => {
+    const integerFields = [
+      'internal_users', 'external_users', 'layers_L', 'hidden_size_H', 
+      'gpus_per_server', 'bytes_per_param', 'bytes_per_kv_state'
+    ];
+    
+    const isInteger = integerFields.includes(name);
+    
+    const handleSliderChange = (e) => {
+      const newValue = isInteger ? Math.round(e.target.value) : e.target.value;
+      handleChange(name, newValue);
+    };
 
-      {/* Users & Behavior Section */}
+    const handleInputChange = (e) => {
+      let newValue = e.target.value;
+      if (newValue !== '') {
+        if (isInteger) {
+          newValue = Math.round(parseFloat(newValue) || 0);
+        } else {
+          newValue = parseFloat(newValue) || 0;
+        }
+        // Only validate bounds if the value is a valid number
+        if (!isNaN(newValue)) {
+          // Ensure value stays within bounds
+          newValue = Math.min(Math.max(newValue, min), max);
+          handleChange(name, newValue);
+        }
+      } else {
+        // If the input is empty, we can still update to 0 or let it remain as is
+        handleChange(name, 0);
+      }
+    };
+
+    return (
+      <div className="mb-6" key={name}>
+        <div className="flex justify-between items-center mb-2">
+          <label className="block text-sm font-medium text-gray-700">{label}</label>
+          <div className="flex items-center space-x-2">
+            <input
+              type="number"
+              min={min}
+              max={max}
+              step={isInteger ? 1 : "any"}
+              value={value}
+              onChange={handleInputChange}
+              className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-md text-right"
+              inputMode={isInteger ? "numeric" : "decimal"}
+            />
+            <span className="text-sm text-gray-500 font-medium">{unit}</span>
+          </div>
+        </div>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={handleSliderChange}
+          className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+        />
+        <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <span>{min}{unit}</span>
+          <span>{max}{unit}</span>
+        </div>
+      </div>
+    );
+  };
+
+  // Basic configuration inputs (internal users, external users, model, and hardware)
+  const basicInputs = (
+    <div className="space-y-6">
+      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <h3 className="text-lg font-medium text-blue-800 mb-4">Users Configuration</h3>
+        {renderSliderInput('internal_users', 'Internal Users', 0, 10000, 100, formData.internal_users)}
+        {renderSliderInput('external_users', 'External Users', 0, 50000, 1000, formData.external_users)}
+      </div>
+      
+      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+        <h3 className="text-lg font-medium text-green-800 mb-4">Model Configuration</h3>
+        
+        {/* Model search */}
+        <div className="mb-4 relative">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Search Model</label>
+          <input
+            type="text"
+            value={modelSearch}
+            onChange={handleSearchChange}
+            placeholder="Search for a model (e.g., llama, gpt, etc.)"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          />
+          
+          {isSearching && (
+            <div className="absolute right-3 top-2">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+            </div>
+          )}
+          
+          {searchResults.length > 0 && (
+            <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto">
+              {searchResults.map((model, index) => (
+                <div
+                  key={index}
+                  onClick={() => handleModelSelect(model)}
+                  className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                >
+                  <div className="font-medium">{model.modelId || model.id}</div>
+                  <div className="text-xs text-gray-500 truncate">{model.description || 'No description'}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        {selectedModel && (
+          <div className="mb-4">
+            <div className="p-3 bg-green-100 rounded-md">
+              <div className="text-sm font-medium text-green-800">Selected: {selectedModel.modelId || selectedModel.id}</div>
+            </div>
+            
+            {modelWarning && (
+              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md flex justify-between items-start">
+                <div className="text-sm text-yellow-800">{modelWarning}</div>
+                <button 
+                  type="button" 
+                  onClick={() => setModelWarning(null)}
+                  className="text-yellow-800 hover:text-yellow-900"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      
+      <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+        <h3 className="text-lg font-medium text-purple-800 mb-4">Hardware Configuration</h3>
+        
+        {/* GPU Selection */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Select GPU</label>
+          <select
+            value={formData.gpu_mem_gb} // Using memory size as the identifier
+            onChange={(e) => {
+              const selectedGpu = gpuData.top_10_gpus_for_llm_deployment_2025.find(gpu => gpu.memory_size_gb === parseInt(e.target.value));
+              if (selectedGpu) {
+                handleGpuChange(selectedGpu.model);
+              }
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value={0}>Select a GPU...</option>
+            {gpuData.top_10_gpus_for_llm_deployment_2025.map((gpu, index) => (
+              <option key={index} value={gpu.memory_size_gb}>
+                {gpu.model} ({gpu.memory_size_gb}GB)
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Other hardware parameters */}
+        {renderSliderInput('gpus_per_server', 'GPUs per Server', 1, 16, 1, formData.gpus_per_server)}
+        {renderSliderInput('mem_reserve_fraction', 'Memory Reserve (0-1)', 0, 0.2, 0.01, formData.mem_reserve_fraction)}
+      </div>
+    </div>
+  );
+
+  // Advanced configuration inputs (all other parameters)
+  const advancedInputs = (
+    <div className="space-y-6">
+      {/* Model Section */}
+      {renderCollapsibleSection(
+        'model',
+        'Model',
+        <>
+          {renderSliderInput('params_billions', 'Params (Billions)', 0.1, 100, 0.1, formData.params_billions, 'B')}
+          {renderSliderInput('bytes_per_param', 'Bytes per Param', 1, 4, 0.1, formData.bytes_per_param)}
+          {renderSliderInput('overhead_factor', 'Overhead Factor', 1.0, 2.0, 0.05, formData.overhead_factor)}
+          {renderSliderInput('layers_L', 'Layers', 1, 128, 1, formData.layers_L)}
+          {renderSliderInput('hidden_size_H', 'Hidden Size', 512, 8192, 256, formData.hidden_size_H)}
+        </>,
+        expandedSections.model
+      )}
+
+      {/* Users & Behavior (excluding internal_users and external_users) */}
       {renderCollapsibleSection(
         'users',
         'Users & Behavior',
-        'bg-blue',
         <>
-          {renderSliderInput('internal_users', 'Internal Users', 0, 10000, 100, formData.internal_users)}
           {renderSliderInput('penetration_internal', 'Internal Penetration (0-1)', 0, 1, 0.01, formData.penetration_internal)}
           {renderSliderInput('concurrency_internal', 'Internal Concurrency (0-1)', 0, 1, 0.01, formData.concurrency_internal)}
-          {renderSliderInput('external_users', 'External Users', 0, 50000, 1000, formData.external_users)}
           {renderSliderInput('penetration_external', 'External Penetration (0-1)', 0, 1, 0.01, formData.penetration_external)}
           {renderSliderInput('concurrency_external', 'External Concurrency (0-1)', 0, 1, 0.01, formData.concurrency_external)}
         </>,
@@ -145,7 +604,6 @@ const CalculatorForm = ({ onSubmit, loading }) => {
       {renderCollapsibleSection(
         'tokens',
         'Tokens & Sessions',
-        'bg-green',
         <>
           {renderSliderInput('prompt_tokens_P', 'Prompt Tokens', 0, 2000, 10, formData.prompt_tokens_P, '')}
           {renderSliderInput('answer_tokens_A', 'Answer Tokens', 0, 2000, 10, formData.answer_tokens_A, '')}
@@ -155,41 +613,21 @@ const CalculatorForm = ({ onSubmit, loading }) => {
         expandedSections.tokens
       )}
 
-      {/* Model & KV Section */}
+      {/* KV Section (split from Model & KV) */}
       {renderCollapsibleSection(
-        'model',
-        'Model & KV',
-        'bg-purple',
+        'kv',
+        'KV',
         <>
-          {renderSliderInput('params_billions', 'Params (Billions)', 0.1, 100, 0.1, formData.params_billions, 'B')}
-          {renderSliderInput('bytes_per_param', 'Bytes per Param', 1, 4, 0.1, formData.bytes_per_param)}
-          {renderSliderInput('overhead_factor', 'Overhead Factor', 1.0, 2.0, 0.05, formData.overhead_factor)}
-          {renderSliderInput('layers_L', 'Layers', 1, 128, 1, formData.layers_L)}
-          {renderSliderInput('hidden_size_H', 'Hidden Size', 512, 8192, 256, formData.hidden_size_H)}
           {renderSliderInput('bytes_per_kv_state', 'Bytes per KV State', 1, 4, 0.1, formData.bytes_per_kv_state)}
           {renderSliderInput('paged_attention_gain_Kopt', 'Paged Attention Gain', 1, 3, 0.1, formData.paged_attention_gain_Kopt)}
         </>,
-        expandedSections.model
-      )}
-
-      {/* Hardware Section */}
-      {renderCollapsibleSection(
-        'hardware',
-        'Hardware',
-        'bg-yellow',
-        <>
-          {renderSliderInput('gpu_mem_gb', 'GPU Memory (GB)', 8, 128, 1, formData.gpu_mem_gb, 'GB')}
-          {renderSliderInput('gpus_per_server', 'GPUs per Server', 1, 16, 1, formData.gpus_per_server)}
-          {renderSliderInput('mem_reserve_fraction', 'Memory Reserve (0-1)', 0, 0.2, 0.01, formData.mem_reserve_fraction)}
-        </>,
-        expandedSections.hardware
+        expandedSections.kv
       )}
 
       {/* Empirics Section */}
       {renderCollapsibleSection(
         'empirics',
         'Empirics',
-        'bg-red',
         <>
           {renderSliderInput('tps_per_instance', 'Tokens/sec per Instance', 10, 500, 10, formData.tps_per_instance)}
           {renderSliderInput('batching_coeff', 'Batching Coefficient', 1, 5, 0.1, formData.batching_coeff)}
@@ -197,17 +635,60 @@ const CalculatorForm = ({ onSubmit, loading }) => {
         </>,
         expandedSections.empirics
       )}
+    </div>
+  );
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <h2 className="text-2xl font-semibold text-gray-800 mb-6">Configuration Parameters</h2>
+
+      {/* Tab Navigation */}
+      <div className="flex border-b border-gray-200">
+        <button
+          type="button"
+          className={`py-2 px-4 font-medium text-sm ${
+            activeTab === 'basic'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          onClick={() => setActiveTab('basic')}
+        >
+          Basic Configuration
+        </button>
+        <button
+          type="button"
+          className={`py-2 px-4 font-medium text-sm ${
+            activeTab === 'advanced'
+              ? 'text-gray-600 border-b-2 border-gray-600 bg-gray-50'
+              : 'text-gray-400 hover:text-gray-600 bg-gray-50'
+          }`}
+          onClick={() => setActiveTab('advanced')}
+        >
+          Advanced
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      <div>
+        {activeTab === 'basic' && basicInputs}
+        {activeTab === 'advanced' && advancedInputs}
+      </div>
 
       <button
         type="submit"
         disabled={loading}
-        className={`w-full py-3 px-4 rounded-lg font-medium text-white ${
+        className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-colors ${
           loading 
             ? 'bg-gray-400 cursor-not-allowed' 
-            : 'bg-blue-600 hover:bg-blue-700 transition-colors'
+            : 'bg-blue-600 hover:bg-blue-700'
         }`}
       >
-        {loading ? 'Calculating...' : 'Calculate Server Requirements'}
+        {loading ? (
+          <span className="flex items-center justify-center">
+            <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+            Calculating...
+          </span>
+        ) : 'Calculate Server Requirements'}
       </button>
     </form>
   );

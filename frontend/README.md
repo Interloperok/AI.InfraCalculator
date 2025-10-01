@@ -8,6 +8,10 @@ This is a React application that provides a user interface for calculating AI se
 - Real-time calculation of server requirements
 - Visual representation of results with charts
 - Responsive design using Tailwind CSS
+- Collapsible parameter sections with smooth animations
+- Comprehensive error handling
+- Dual input controls (sliders + text fields)
+- Integer validation for specific parameters
 
 ## Prerequisites
 
@@ -39,14 +43,22 @@ This frontend connects to the backend API at http://localhost:8000. Make sure th
 
 The API endpoints used:
 - POST /v1/size - Calculate server requirements
-- POST /v1/whatif - Compare different scenarios (not yet implemented in frontend)
 - GET /v1/healthz - Health check
 
-## Components
+## Project Structure
 
-- `CalculatorForm` - Contains all the sliders and input fields for configuration
-- `ResultsDisplay` - Shows the calculation results with charts and metrics
-- `App` - Main application component
+```
+src/
+├── components/
+│   ├── Calculator.js      # Main calculator component
+│   ├── CalculatorForm.js  # Form with collapsible sections and dual inputs
+│   └── ResultsDisplay.js  # Results visualization
+├── services/
+│   └── api.js            # API service functions
+├── App.js               # Main application component
+├── App.css              # Global styles
+└── index.js             # Application entry point
+```
 
 ## Technologies Used
 
@@ -54,3 +66,44 @@ The API endpoints used:
 - Tailwind CSS
 - Recharts for data visualization
 - Axios for API communication
+
+## Configuration
+
+You can customize the backend API URL by creating a `.env` file in the root directory:
+
+```
+REACT_APP_API_URL=http://your-backend-url:port
+```
+
+## Development
+
+To run the development server:
+
+```bash
+npm start
+```
+
+To build for production:
+
+```bash
+npm run build
+```
+
+## Input Controls
+
+The calculator provides dual input controls for each parameter:
+- Sliders for visual adjustment
+- Text fields for precise numeric input
+- Integer validation for specific parameters:
+  - Internal Users
+  - External Users
+  - Prompt Tokens
+  - Answer Tokens
+  - RPS per Active User
+  - Session Duration (sec)
+  - Params (Billions)
+  - Bytes per Param
+  - Layers
+  - GPU Memory (GB)
+  - GPUs per Server
+  - Tokens/sec per Instance
