@@ -43,9 +43,15 @@ docker-compose up --build
 AI.ServerCalculationApp/
 ├── app/                    # FastAPI Backend
 │   ├── main.py            # Основной API сервер
-│   ├── contracts/         # Pydantic модели
+│   ├── models/             # Pydantic модели (новая структура)
+│   │   ├── __init__.py    # Импорты всех моделей
+│   │   ├── sizing.py      # Модели для расчета серверов
+│   │   ├── gpu.py         # Модели для GPU каталога
+│   │   └── README.md       # Документация моделей
+│   ├── gpu_scraper.py     # Скрапер GPU данных
 │   ├── requirements.txt   # Python зависимости
-│   └── Dockerfile        # Docker конфигурация
+│   ├── Dockerfile         # Docker конфигурация
+│   └── tests/             # Тесты
 ├── frontend/              # React Frontend
 │   ├── src/
 │   │   ├── components/    # React компоненты
@@ -53,7 +59,12 @@ AI.ServerCalculationApp/
 │   │   └── App.js        # Главный компонент
 │   ├── package.json      # Node.js зависимости
 │   └── Dockerfile        # Docker конфигурация
-├── docker-compose.yml     # Оркестрация сервисов
+├── nginx/                 # Nginx конфигурация
+│   ├── nginx-site.conf   # Конфигурация сайта
+│   └── certbot-setup.sh  # Скрипт SSL
+├── docker-compose.yml     # Локальная разработка
+├── docker-compose.prod.yml # Production
+├── redeploy.sh           # Скрипт деплоя
 └── README.md             # Этот файл
 ```
 
@@ -64,6 +75,10 @@ AI.ServerCalculationApp/
 - **Pydantic** - валидация данных и схемы
 - **Uvicorn** - ASGI сервер
 - **Python 3.11** - язык программирования
+- **Pandas** - обработка данных GPU
+- **Requests** - HTTP клиент для скрапинга
+- **APScheduler** - планировщик задач
+- **LXML** - парсинг HTML таблиц
 
 ### Frontend
 - **React 18** - библиотека для пользовательских интерфейсов
