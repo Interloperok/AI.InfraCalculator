@@ -1,6 +1,22 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// Определяем API URL в зависимости от окружения
+const getApiUrl = () => {
+  // Если указан явно REACT_APP_API_URL, используем его
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // В production используем относительный путь (nginx proxy)
+  if (process.env.NODE_ENV === 'production') {
+    return '/api'; // Относительный путь к API через nginx proxy
+  }
+  
+  // В development используем localhost
+  return 'http://localhost:8000';
+};
+
+const API_BASE_URL = getApiUrl();
 
 export const calculateServerRequirements = async (inputData) => {
   try {
