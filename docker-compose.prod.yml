@@ -28,7 +28,7 @@ services:
     ports:
       - "3000:80"
     environment:
-      - REACT_APP_API_URL=http://localhost:8000
+      - NODE_ENV=production # will use /api
     depends_on:
       - backend
     networks:
