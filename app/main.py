@@ -2,11 +2,23 @@ from __future__ import annotations
 
 import math
 import logging
-from typing import List
+import json
+import pandas as pd
+from datetime import datetime
+from typing import List, Optional
+import asyncio
+import threading
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, conint, confloat, validator
+
+# Import models from new structure
+from models import (
+    SizingInput, SizingOutput, WhatIfScenario, WhatIfRequest, WhatIfResponseItem,
+    GPUInfo, GPUListResponse, GPUStats, GPURefreshResponse
+)
 
 logger = logging.getLogger("sizing")
 handler = logging.StreamHandler()
@@ -14,62 +26,6 @@ formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
-
-
-class SizingInput(BaseModel):
-    internal_users: conint(ge=0)
-    penetration_internal: confloat(ge=0.0, le=1.0)
-    concurrency_internal: confloat(ge=0.0, le=1.0)
-    external_users: conint(ge=0) = 0
-    penetration_external: confloat(ge=0.0, le=1.0) = 0.0
-    concurrency_external: confloat(ge=0.0, le=1.0) = 0.0
-    prompt_tokens_P: confloat(gt=0)
-    answer_tokens_A: confloat(ge=0)
-    rps_per_active_user_R: confloat(gt=0)
-    session_duration_sec_t: confloat(gt=0)
-    params_billions: confloat(gt=0)
-    bytes_per_param: confloat(gt=0)
-    overhead_factor: confloat(ge=1.0)
-    layers_L: conint(gt=0)
-    hidden_size_H: conint(gt=0)
-    bytes_per_kv_state: confloat(gt=0)
-    paged_attention_gain_Kopt: confloat(ge=1.0)
-    gpu_mem_gb: confloat(gt=0)
-    gpus_per_server: conint(gt=0)
-    mem_reserve_fraction: confloat(ge=0.0, lt=1.0) = 0.07
-    tps_per_instance: confloat(gt=0)
-    batching_coeff: confloat(gt=0) = 1.2
-    sla_reserve: confloat(gt=0) = 1.25
-
-
-class SizingOutput(BaseModel):
-    total_active_users: float
-    T_tokens_per_request: float
-    required_RPS: float
-    tokens_per_session_TS: float
-    model_mem_gb: float
-    gpus_per_instance: int
-    instances_per_server: int
-    kv_per_session_gb_no_opt: float
-    kv_per_session_gb_opt: float
-    kv_free_per_instance_gb: float
-    sessions_per_instance: int
-    sessions_per_server: int
-    servers_by_memory: int
-    rps_per_instance: float
-    rps_per_server: float
-    servers_by_compute: int
-    servers_final: int
-
-
-class WhatIfScenario(BaseModel):
-    name: str
-    overrides: dict = {}
-
-
-class WhatIfRequest(BaseModel):
-    base: SizingInput
-    scenarios: List[WhatIfScenario]
 
 
 def calc_total_active(iu, pin, cin, eu, pex, cex):
@@ -134,6 +90,47 @@ def calc_servers_by_compute(required_rps, rps_per_server, sla_reserve):
     return math.ceil((required_rps / rps_per_server) * sla_reserve)
 
 
+# GPU Data Management
+def refresh_gpu_data_internal():
+    """Внутренняя функция для обновления данных GPU"""
+    try:
+        logger.info("🔄 Начинаем обновление данных GPU...")
+        from gpu_scraper import main as scrape_gpus
+        
+        # Запускаем скрапер
+        scrape_gpus()
+        
+        logger.info("✅ Данные GPU успешно обновлены")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Ошибка при обновлении данных GPU: {e}")
+        return False
+
+
+def scheduled_refresh():
+    """Функция для запланированного обновления"""
+    logger.info("⏰ Запуск запланированного обновления GPU данных...")
+    refresh_gpu_data_internal()
+
+
+def start_scheduler():
+    """Запуск планировщика для автоматического обновления"""
+    scheduler = BackgroundScheduler()
+    
+    # Добавляем задачу на каждый час
+    scheduler.add_job(
+        func=scheduled_refresh,
+        trigger=IntervalTrigger(hours=1),
+        id='gpu_refresh_hourly',
+        name='GPU Data Refresh Every Hour',
+        replace_existing=True
+    )
+    
+    scheduler.start()
+    logger.info("📅 Планировщик запущен: обновление GPU данных каждый час")
+    return scheduler
+
+
 def run_sizing(inp: SizingInput) -> SizingOutput:
     total_active = calc_total_active(inp.internal_users, inp.penetration_internal, inp.concurrency_internal,
                                      inp.external_users, inp.penetration_external, inp.concurrency_external)
@@ -178,158 +175,120 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     )
 
 
-def calculate_llm_capacity(input_data: SizingInput) -> SizingOutput:
-    # --- 1. Активные пользователи и базовые метрики ---
-    active_internal = (
-        input_data.internal_users
-        * input_data.penetration_internal
-        * input_data.concurrency_internal
-    )
-    active_external = (
-        input_data.external_users
-        * input_data.penetration_external
-        * input_data.concurrency_external
-    )
-    total_active_users = active_internal + active_external
-
-    T_tokens_per_request = input_data.prompt_tokens_P + input_data.answer_tokens_A
-    required_RPS = total_active_users * input_data.rps_per_active_user_R
-
-    # Количество запросов за сессию
-    requests_per_session = input_data.session_duration_sec_t * input_data.rps_per_active_user_R
-    tokens_per_session_TS = T_tokens_per_request * requests_per_session
-
-    # --- 2. Память модели ---
-    model_mem_gb = (input_data.params_billions * 1e9 * input_data.bytes_per_param) / (1024**3)
-
-    # --- 3. Память KV-кэша на сессию ---
-    kv_elements_per_token = 2 * input_data.layers_L * input_data.hidden_size_H  # key + value
-    kv_bytes_per_session_no_opt = (
-        tokens_per_session_TS * kv_elements_per_token * input_data.bytes_per_kv_state
-    )
-    kv_per_session_gb_no_opt = kv_bytes_per_session_no_opt / (1024**3)
-    kv_per_session_gb_opt = kv_per_session_gb_no_opt / input_data.paged_attention_gain_Kopt
-
-    # --- 4. Доступная память под KV на инстанс (1 GPU = 1 инстанс) ---
-    usable_gpu_mem_gb = input_data.gpu_mem_gb * (1 - input_data.mem_reserve_fraction)
-    kv_free_per_instance_gb = usable_gpu_mem_gb - model_mem_gb
-
-    if kv_free_per_instance_gb < 0:
-        raise ValueError(
-            f"Model weights ({model_mem_gb:.2f} GB) exceed available GPU memory "
-            f"({usable_gpu_mem_gb:.2f} GB after reserve)."
-        )
-
-    # Сессий на инстанс (ограничено памятью KV)
-    sessions_per_instance = int(kv_free_per_instance_gb // kv_per_session_gb_opt)
-    sessions_per_instance = max(0, sessions_per_instance)
-
-    # --- 5. Производительность инстанса ---
-    # Эффективный throughput с учётом батчинга и накладных расходов
-    effective_tps = (
-        input_data.tps_per_instance
-        * input_data.batching_coeff
-        / input_data.overhead_factor
-    )
-
-    # Пиковый RPS без учёта SLA
-    peak_rps_per_instance = effective_tps / T_tokens_per_request
-
-    # Доступный RPS с учётом SLA-резерва
-    rps_per_instance = peak_rps_per_instance / input_data.sla_reserve
-
-    # --- 6. Масштабирование ---
-    gpus_per_instance = 1
-    instances_per_server = input_data.gpus_per_server  # 1 инстанс = 1 GPU
-
-    # Требуемое число инстансов по вычислениям
-    instances_by_compute = (
-        math.ceil(required_RPS / rps_per_instance) if rps_per_instance > 0 else 0
-    )
-    servers_by_compute = math.ceil(instances_by_compute / instances_per_server)
-
-    # Требуемое число инстансов по памяти (сессиям)
-    instances_by_memory = (
-        math.ceil(total_active_users / sessions_per_instance) if sessions_per_instance > 0 else 0
-    )
-    servers_by_memory = math.ceil(instances_by_memory / instances_per_server)
-
-    servers_final = max(servers_by_compute, servers_by_memory)
-    sessions_per_server = sessions_per_instance * instances_per_server
-
-    rps_per_server = rps_per_instance * instances_per_server
-
-    # --- 7. Возврат результата как Pydantic-модель ---
-    return SizingOutput(
-        total_active_users=total_active_users,
-        T_tokens_per_request=T_tokens_per_request,
-        required_RPS=required_RPS,
-        tokens_per_session_TS=tokens_per_session_TS,
-        model_mem_gb=model_mem_gb,
-        gpus_per_instance=gpus_per_instance,
-        instances_per_server=instances_per_server,
-        kv_per_session_gb_no_opt=kv_per_session_gb_no_opt,
-        kv_per_session_gb_opt=kv_per_session_gb_opt,
-        kv_free_per_instance_gb=kv_free_per_instance_gb,
-        sessions_per_instance=sessions_per_instance,
-        sessions_per_server=sessions_per_server,
-        servers_by_memory=servers_by_memory,
-        rps_per_instance=rps_per_instance,
-        rps_per_server=rps_per_server,
-        servers_by_compute=servers_by_compute,
-        servers_final=servers_final,
-    )
-
-app = FastAPI(title="GenAI Server Sizing API", version="1.0.0")
+app = FastAPI(
+    title="GenAI Server Sizing API",
+    version="2.0.0",
+    description="API для расчета требований к серверной инфраструктуре для AI/LLM моделей с поддержкой GPU каталога",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
 
 origins = [
-    # "http://localhost:3000",
-    # "http://127.0.0.1:3000",
-    # "http://localhost:5173",
-    # "http://127.0.0.1:5173",
     "*"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # перечисляй явно; для prod не ставь '*'
-    allow_credentials=False,  # True только если реально шлёшь cookies/Authorization
+    allow_origins=origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Глобальная переменная для планировщика
+scheduler = None
 
-@app.get("/healthz")
-def healthz(): return {"status": "ok"}
+
+@app.on_event("startup")
+async def startup_event():
+    """Событие запуска приложения"""
+    global scheduler
+    
+    logger.info("🚀 Запуск AI Server Calculator API...")
+    
+    # Запускаем обновление GPU данных при старте
+    logger.info("🔄 Первоначальное обновление данных GPU...")
+    refresh_gpu_data_internal()
+    
+    # Запускаем планировщик для автоматического обновления
+    scheduler = start_scheduler()
+    
+    logger.info("✅ Приложение успешно запущено с автоматическим обновлением GPU данных")
 
 
-@app.post("/v1/size", response_model=SizingOutput)
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Событие остановки приложения"""
+    global scheduler
+    
+    logger.info("🛑 Остановка приложения...")
+    
+    if scheduler:
+        scheduler.shutdown()
+        logger.info("📅 Планировщик остановлен")
+    
+    logger.info("✅ Приложение остановлено")
+
+
+@app.get("/healthz", tags=["Health"])
+def healthz(): 
+    return {"status": "ok"}
+
+
+@app.get("/v1/scheduler/status", tags=["Health"])
+def scheduler_status():
+    """
+    Получить статус планировщика обновления GPU данных
+    
+    Возвращает информацию о состоянии автоматического обновления.
+    """
+    global scheduler
+    
+    if scheduler and scheduler.running:
+        jobs = scheduler.get_jobs()
+        return {
+            "scheduler_running": True,
+            "jobs_count": len(jobs),
+            "jobs": [
+                {
+                    "id": job.id,
+                    "name": job.name,
+                    "next_run_time": str(job.next_run_time) if job.next_run_time else None
+                }
+                for job in jobs
+            ]
+        }
+    else:
+        return {
+            "scheduler_running": False,
+            "jobs_count": 0,
+            "jobs": []
+        }
+
+
+@app.post("/v1/size", response_model=SizingOutput, tags=["Sizing"])
 def size_endpoint(inp: SizingInput):
-    # out = run_sizing(inp)
+    """
+    Рассчитать требования к серверам для AI/LLM модели
+    
+    Принимает параметры модели, пользователей и инфраструктуры,
+    возвращает детальный расчет необходимых серверов.
+    """
     try:
-        out = calculate_llm_capacity(inp)
+        out = run_sizing(inp)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return out
 
 
-class WhatIfScenario(BaseModel):
-    name: str
-    overrides: dict = {}
-
-
-class WhatIfRequest(BaseModel):
-    base: SizingInput
-    scenarios: List[WhatIfScenario]
-
-
-class WhatIfResponseItem(BaseModel):
-    name: str
-    output: SizingOutput
-
-
-@app.post("/v1/whatif", response_model=List[WhatIfResponseItem])
+@app.post("/v1/whatif", response_model=List[WhatIfResponseItem], tags=["Sizing"])
 def whatif_endpoint(req: WhatIfRequest):
+    """
+    Сравнить несколько сценариев расчета серверов
+    
+    Позволяет проанализировать "что если" сценарии с разными параметрами
+    на основе базовой конфигурации.
+    """
     items: List[WhatIfResponseItem] = []
     for sc in req.scenarios:
         data = req.base.dict()
@@ -340,3 +299,278 @@ def whatif_endpoint(req: WhatIfRequest):
         out = run_sizing(SizingInput(**data))
         items.append(WhatIfResponseItem(name=sc.name, output=out))
     return items
+
+
+# GPU API Endpoints
+
+def _get_recommended_gpus_per_server(gpu_info: dict) -> int:
+    """Определить рекомендуемое количество GPU на сервер"""
+    memory_gb = gpu_info.get("Memory_GB", 0)
+    if memory_gb >= 80:  # A100, H100
+        return 8
+    elif memory_gb >= 40:  # RTX 4090, A40
+        return 8
+    elif memory_gb >= 24:  # RTX 4090, RTX 3090
+        return 8
+    elif memory_gb >= 16:  # RTX 4080, RTX 3080
+        return 8
+    else:
+        return 4
+
+
+def _get_estimated_tps(gpu_info: dict) -> float:
+    """Оценить TPS на основе характеристик GPU"""
+    memory_gb = gpu_info.get("Memory_GB", 0)
+    cores = gpu_info.get("Cores", 0)
+    vendor = gpu_info.get("Vendor", "").lower()
+    
+    # Базовые оценки на основе памяти и архитектуры
+    if vendor == "nvidia":
+        if memory_gb >= 80:  # A100, H100
+            return 2000 + (cores * 0.1 if cores else 0)
+        elif memory_gb >= 40:  # RTX 4090
+            return 1500 + (cores * 0.05 if cores else 0)
+        elif memory_gb >= 24:  # RTX 3090
+            return 1000 + (cores * 0.03 if cores else 0)
+        else:
+            return 500 + (cores * 0.02 if cores else 0)
+    elif vendor == "amd":
+        if memory_gb >= 80:  # MI200 series
+            return 1500 + (cores * 0.08 if cores else 0)
+        elif memory_gb >= 24:  # RX 7900 XTX
+            return 800 + (cores * 0.04 if cores else 0)
+        else:
+            return 400 + (cores * 0.02 if cores else 0)
+    else:  # Intel
+        return 300 + (cores * 0.01 if cores else 0)
+
+
+@app.get("/v1/gpus", response_model=GPUListResponse, tags=["GPU Catalog"])
+def get_gpus(
+    vendor: Optional[str] = Query(None, description="Фильтр по производителю (NVIDIA, AMD, Intel). По умолчанию - все производители"),
+    min_memory: Optional[float] = Query(None, ge=0, description="Минимальная память в GB"),
+    max_memory: Optional[float] = Query(None, ge=0, description="Максимальная память в GB"),
+    min_cores: Optional[int] = Query(None, ge=0, description="Минимальное количество ядер"),
+    min_year: Optional[int] = Query(None, ge=1990, le=2030, description="Минимальный год производства"),
+    max_year: Optional[int] = Query(None, ge=1990, le=2030, description="Максимальный год производства"),
+    memory_type: Optional[str] = Query(None, description="Тип памяти (GDDR6, HBM, etc.)"),
+    page: int = Query(1, ge=1, description="Номер страницы"),
+    per_page: int = Query(20, ge=1, le=100, description="Количество элементов на странице"),
+    search: Optional[str] = Query(None, description="Поиск по названию модели")
+):
+    """
+    Получить список GPU с фильтрацией и пагинацией
+    
+    Поддерживает фильтрацию по:
+    - Производителю (NVIDIA, AMD, Intel) - по умолчанию все производители
+    - Объему памяти (min_memory, max_memory)
+    - Количеству ядер (min_cores)
+    - Году выпуска (min_year, max_year)
+    - Типу памяти (GDDR6, HBM, etc.)
+    - Поиск по названию модели
+    
+    Примеры запросов:
+    - /v1/gpus - все GPU от всех производителей
+    - /v1/gpus?vendor=NVIDIA - только NVIDIA GPU
+    - /v1/gpus?min_memory=16&max_memory=32 - GPU с памятью 16-32 GB
+    - /v1/gpus?min_year=2020&vendor=AMD - AMD GPU с 2020 года
+    """
+    try:
+        with open("gpu_data.json", "r") as f:
+            gpu_data = json.load(f)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="GPU data not found. Run /v1/gpus/refresh first.")
+    
+    # Фильтрация данных
+    filtered_gpus = []
+    for gpu_id, gpu_info in gpu_data.items():
+        # Применяем фильтры
+        if vendor and gpu_info.get("Vendor", "").lower() != vendor.lower():
+            continue
+        
+        memory_gb = gpu_info.get("Memory_GB")
+        if memory_gb:
+            if min_memory and memory_gb < min_memory:
+                continue
+            if max_memory and memory_gb > max_memory:
+                continue
+        
+        cores = gpu_info.get("Cores")
+        if min_cores and cores and cores < min_cores:
+            continue
+        
+        # Фильтрация по году
+        launch_date = gpu_info.get("Launch")
+        if launch_date:
+            try:
+                year = pd.to_datetime(launch_date).year
+                if min_year and year < min_year:
+                    continue
+                if max_year and year > max_year:
+                    continue
+            except:
+                pass
+        
+        if memory_type and gpu_info.get("Memory_Type", "").lower() != memory_type.lower():
+            continue
+        
+        # Поиск по названию
+        if search:
+            model = gpu_info.get("Model", "").lower()
+            if search.lower() not in model:
+                continue
+        
+        # Создаем GPUInfo объект
+        gpu = GPUInfo(
+            id=gpu_id,
+            vendor=gpu_info.get("Vendor", "Unknown"),
+            model=gpu_info.get("Model", "Unknown"),
+            memory_gb=memory_gb if memory_gb is not None else 0,
+            cores=cores,
+            launch_date=launch_date,
+            memory_type=gpu_info.get("Memory_Type"),
+            recommended_gpus_per_server=_get_recommended_gpus_per_server(gpu_info),
+            estimated_tps_per_instance=_get_estimated_tps(gpu_info)
+        )
+        filtered_gpus.append(gpu)
+    
+    # Пагинация
+    total = len(filtered_gpus)
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_gpus = filtered_gpus[start:end]
+    
+    return GPUListResponse(
+        gpus=paginated_gpus,
+        total=total,
+        page=page,
+        per_page=per_page,
+        has_next=end < total,
+        has_prev=page > 1
+    )
+
+
+@app.get("/v1/gpus/{gpu_id}", response_model=GPUInfo, tags=["GPU Catalog"])
+def get_gpu_details(gpu_id: str):
+    """
+    Получить детальную информацию о конкретном GPU
+    
+    Возвращает полную информацию о GPU включая:
+    - Технические характеристики
+    - Рекомендации для калькулятора
+    - Оценки производительности
+    """
+    try:
+        with open("gpu_data.json", "r") as f:
+            gpu_data = json.load(f)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="GPU data not found")
+    
+    if gpu_id not in gpu_data:
+        raise HTTPException(status_code=404, detail="GPU not found")
+    
+    gpu_info = gpu_data[gpu_id]
+    memory_gb = gpu_info.get("Memory_GB")
+    return GPUInfo(
+        id=gpu_id,
+        vendor=gpu_info.get("Vendor", "Unknown"),
+        model=gpu_info.get("Model", "Unknown"),
+        memory_gb=memory_gb if memory_gb is not None else 0,
+        cores=gpu_info.get("Cores"),
+        launch_date=gpu_info.get("Launch"),
+        memory_type=gpu_info.get("Memory_Type"),
+        recommended_gpus_per_server=_get_recommended_gpus_per_server(gpu_info),
+        estimated_tps_per_instance=_get_estimated_tps(gpu_info)
+    )
+
+
+@app.post("/v1/gpus/refresh", response_model=GPURefreshResponse, tags=["GPU Catalog"])
+def refresh_gpu_data():
+    """
+    Обновить каталог GPU из Wikipedia
+    
+    Запускает скрапинг актуальных данных о GPU с Wikipedia.
+    Процесс может занять несколько минут.
+    """
+    try:
+        # Используем внутреннюю функцию для обновления
+        success = refresh_gpu_data_internal()
+        
+        if success:
+            # Подсчитываем количество обновленных GPU
+            try:
+                with open("gpu_data.json", "r") as f:
+                    gpu_data = json.load(f)
+                gpu_count = len(gpu_data)
+            except:
+                gpu_count = 0
+            
+            return GPURefreshResponse(
+                success=True,
+                message=f"Successfully updated {gpu_count} GPUs from Wikipedia",
+                gpus_updated=gpu_count,
+                last_updated=datetime.now()
+            )
+        else:
+            raise HTTPException(status_code=500, detail="Failed to refresh GPU data")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to refresh GPU data: {str(e)}")
+
+
+@app.get("/v1/gpus/stats", response_model=GPUStats, tags=["GPU Catalog"])
+def get_gpu_stats():
+    """
+    Получить статистику по каталогу GPU
+    
+    Возвращает аналитику по базе данных GPU:
+    - Общее количество GPU
+    - Распределение по производителям
+    - Распределение по объему памяти
+    - Распределение по годам выпуска
+    """
+    try:
+        with open("gpu_data.json", "r") as f:
+            gpu_data = json.load(f)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="GPU data not found")
+    
+    # Анализ данных
+    vendors = {}
+    memory_ranges = {"0-4GB": 0, "4-8GB": 0, "8-16GB": 0, "16-32GB": 0, "32GB+": 0}
+    year_ranges = {}
+    
+    for gpu_info in gpu_data.values():
+        # Вендоры
+        vendor = gpu_info.get("Vendor", "Unknown")
+        vendors[vendor] = vendors.get(vendor, 0) + 1
+        
+        # Память
+        memory = gpu_info.get("Memory_GB", 0)
+        if memory < 4:
+            memory_ranges["0-4GB"] += 1
+        elif memory < 8:
+            memory_ranges["4-8GB"] += 1
+        elif memory < 16:
+            memory_ranges["8-16GB"] += 1
+        elif memory < 32:
+            memory_ranges["16-32GB"] += 1
+        else:
+            memory_ranges["32GB+"] += 1
+        
+        # Годы
+        launch_date = gpu_info.get("Launch")
+        if launch_date:
+            try:
+                year = pd.to_datetime(launch_date).year
+                year_range = f"{year//10*10}s"
+                year_ranges[year_range] = year_ranges.get(year_range, 0) + 1
+            except:
+                pass
+    
+    return GPUStats(
+        total_gpus=len(gpu_data),
+        vendors=vendors,
+        memory_ranges=memory_ranges,
+        year_ranges=year_ranges
+    )
