@@ -1,131 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getGPUs, searchGPUs } from '../services/api';
 
 const CalculatorForm = ({ onSubmit, loading }) => {
-  // GPU data
-  const gpuData = {
-    "top_10_gpus_for_llm_deployment_2025": [
-      {
-        "rank": 1,
-        "model": "NVIDIA H100",
-        "memory_size_gb": 80,
-        "memory_type": "HBM3",
-        "memory_bandwidth_gbs": 3000,
-        "cuda_cores": null,
-        "tensor_cores": "4th Gen",
-        "fp16_tflops": 1979,
-        "tdp_watts": 700,
-        "form_factor": "SXM / PCIe"
-      },
-      {
-        "rank": 2,
-        "model": "NVIDIA A100",
-        "memory_size_gb": 80,
-        "memory_type": "HBM2e",
-        "memory_bandwidth_gbs": 2039,
-        "cuda_cores": 6912,
-        "tensor_cores": "3rd Gen",
-        "fp16_tflops": 312,
-        "tdp_watts": 400,
-        "form_factor": "SXM / PCIe"
-      },
-      {
-        "rank": 3,
-        "model": "NVIDIA H200",
-        "memory_size_gb": 141,
-        "memory_type": "HBM3e",
-        "memory_bandwidth_gbs": 4800,
-        "cuda_cores": null,
-        "tensor_cores": "4th Gen",
-        "fp16_tflops": 2000,
-        "tdp_watts": 700,
-        "form_factor": "SXM"
-      },
-      {
-        "rank": 4,
-        "model": "NVIDIA L40",
-        "memory_size_gb": 48,
-        "memory_type": "GDDR6 with ECC",
-        "memory_bandwidth_gbs": 864,
-        "cuda_cores": 18176,
-        "tensor_cores": "3rd Gen",
-        "fp16_tflops": 91,
-        "tdp_watts": 350,
-        "form_factor": "PCIe"
-      },
-      {
-        "rank": 5,
-        "model": "NVIDIA RTX 5090",
-        "memory_size_gb": 32,
-        "memory_type": "GDDR7",
-        "memory_bandwidth_gbs": 1792,
-        "cuda_cores": 21760,
-        "tensor_cores": "5th Gen",
-        "fp16_tflops": 104.8,
-        "tdp_watts": 575,
-        "form_factor": "PCIe"
-      },
-      {
-        "rank": 6,
-        "model": "NVIDIA RTX 4090",
-        "memory_size_gb": 24,
-        "memory_type": "GDDR6X",
-        "memory_bandwidth_gbs": 1008,
-        "cuda_cores": 16384,
-        "tensor_cores": "4th Gen",
-        "fp16_tflops": 82.6,
-        "tdp_watts": 450,
-        "form_factor": "PCIe"
-      },
-      {
-        "rank": 7,
-        "model": "NVIDIA RTX A6000",
-        "memory_size_gb": 48,
-        "memory_type": "GDDR6 with ECC",
-        "memory_bandwidth_gbs": 768,
-        "cuda_cores": 10752,
-        "tensor_cores": "3rd Gen",
-        "fp16_tflops": 191,
-        "tdp_watts": 300,
-        "form_factor": "PCIe"
-      },
-      {
-        "rank": 8,
-        "model": "NVIDIA RTX A4000",
-        "memory_size_gb": 16,
-        "memory_type": "GDDR6 with ECC",
-        "memory_bandwidth_gbs": 448,
-        "cuda_cores": 6144,
-        "tensor_cores": "3rd Gen",
-        "fp16_tflops": 38,
-        "tdp_watts": 140,
-        "form_factor": "PCIe"
-      },
-      {
-        "rank": 9,
-        "model": "NVIDIA T4",
-        "memory_size_gb": 16,
-        "memory_type": "GDDR6",
-        "memory_bandwidth_gbs": 320,
-        "cuda_cores": 2560,
-        "tensor_cores": "3rd Gen",
-        "fp16_tflops": 65,
-        "tdp_watts": 70,
-        "form_factor": "PCIe"
-      },
-      {
-        "rank": 10,
-        "model": "NVIDIA RTX 4060 Ti 16GB",
-        "memory_size_gb": 16,
-        "memory_type": "GDDR6",
-        "memory_bandwidth_gbs": 288,
-        "cuda_cores": 4352,
-        "tensor_cores": "4th Gen",
-        "fp16_tflops": 22,
-        "tdp_watts": 165,
-        "form_factor": "PCIe"
-      }
-    ]
-  };
+  // State for GPU data
+  const [gpuData, setGpuData] = useState([]);
+  const [loadingGpus, setLoadingGpus] = useState(false);
+  // State for GPU search
+  const [gpuSearch, setGpuSearch] = useState('');
+  const [gpuSearchResults, setGpuSearchResults] = useState([]);
+  const [isGpuSearching, setIsGpuSearching] = useState(false);
 
   // Initial form values based on the SizingInput dataclass
   const [formData, setFormData] = useState({
@@ -171,6 +54,9 @@ const CalculatorForm = ({ onSubmit, loading }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedModel, setSelectedModel] = useState(null);
 
+  // State for GPU selection
+  const [selectedGpu, setSelectedGpu] = useState(null);
+
   // State for tracking which sections are expanded in the Advanced tab
   const [expandedSections, setExpandedSections] = useState({
     model: false,
@@ -181,6 +67,51 @@ const CalculatorForm = ({ onSubmit, loading }) => {
   });
 
   const [activeTab, setActiveTab] = useState('basic'); // 'basic' or 'advanced'
+
+  // Load GPU data on component mount
+  useEffect(() => {
+    const loadGpuData = async () => {
+      setLoadingGpus(true);
+      try {
+        const response = await getGPUs({ per_page: 100 }); // Load up to 100 GPUs
+        if (response && response.gpus) {
+          setGpuData(response.gpus);
+        } else {
+          setGpuData([]);
+        }
+      } catch (error) {
+        console.error('Error loading GPU data:', error);
+        setGpuData([]);
+      } finally {
+        setLoadingGpus(false);
+      }
+    };
+
+    loadGpuData();
+  }, []);
+
+  // Auto-calculate when form data changes (with debounce)
+  useEffect(() => {
+    if (selectedModel && formData.gpu_mem_gb > 0) {
+      const handler = setTimeout(() => {
+        onSubmit(formData);
+      }, 500); // 0.5 second delay to allow for faster updates when sliding
+
+      // Cleanup function to clear the timeout if data changes again
+      return () => {
+        clearTimeout(handler);
+      };
+    }
+  }, [formData, selectedModel, onSubmit]);
+
+  // Handle GPU search when gpuSearch changes
+  useEffect(() => {
+    if (gpuSearch.trim()) {
+      searchGPUsByQuery(gpuSearch);
+    } else {
+      setGpuSearchResults([]);
+    }
+  }, [gpuSearch]);
 
   const handleChange = (name, value) => {
     // Determine if the field should be an integer based on the API contract
@@ -213,6 +144,9 @@ const CalculatorForm = ({ onSubmit, loading }) => {
       return;
     }
     
+    // Since we're auto-calculating, we don't need to call onSubmit here
+    // The calculation is already happening automatically when parameters change
+    // We can still call onSubmit to ensure latest calculation if needed
     onSubmit(formData);
   };
 
@@ -221,6 +155,48 @@ const CalculatorForm = ({ onSubmit, loading }) => {
       ...prev,
       [sectionKey]: !prev[sectionKey]
     }));
+  };
+
+  // Handle GPU selection
+  const handleGpuSelect = (gpu) => {
+    setSelectedGpu(gpu);
+    setGpuSearch('');
+    setGpuSearchResults([]);
+    
+    // Update form data with GPU parameters
+    setFormData(prev => ({
+      ...prev,
+      gpu_id: gpu.id,  // Add GPU ID to the form data
+      gpu_mem_gb: gpu.memory_gb,
+      gpus_per_server: gpu.recommended_gpus_per_server || 8,
+      tps_per_instance: gpu.estimated_tps_per_instance || 1000,
+      // Add other GPU-specific parameters here if needed
+    }));
+  };
+
+  // Function to search for GPUs using the API service
+  const searchGPUsByQuery = async (query) => {
+    if (!query.trim()) {
+      setGpuSearchResults([]);
+      return;
+    }
+
+    setIsGpuSearching(true);
+    try {
+      // Using our API service to search for GPUs
+      const data = await searchGPUs(query, { per_page: 10 });
+      
+      if (data && data.gpus) {
+        setGpuSearchResults(data.gpus);
+      } else {
+        setGpuSearchResults([]);
+      }
+    } catch (error) {
+      console.error('Error searching for GPUs:', error);
+      setGpuSearchResults([]);
+    } finally {
+      setIsGpuSearching(false);
+    }
   };
 
   // Function to search for models on Hugging Face
@@ -235,18 +211,18 @@ const CalculatorForm = ({ onSubmit, loading }) => {
       // Using Hugging Face API to search for models
       const response = await fetch(`https://huggingface.co/api/models?search=${encodeURIComponent(query)}&limit=10`);
       const models = await response.json();
-      
+
       // Filter models that might have relevant information for our parameters
       const relevantModels = models.filter(model => {
         // Check if model has relevant data in its configuration
-        return model.tags && Array.isArray(model.tags) && 
-               (model.tags.includes('transformers') || 
-                model.tags.includes('gpt') || 
-                model.tags.includes('llama') || 
+        return model.tags && Array.isArray(model.tags) &&
+               (model.tags.includes('transformers') ||
+                model.tags.includes('gpt') ||
+                model.tags.includes('llama') ||
                 model.tags.includes('pytorch') ||
                 model.config);
       });
-      
+
       setSearchResults(relevantModels);
     } catch (error) {
       console.error('Error searching for models:', error);
@@ -341,16 +317,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
   };
 
   // Handle GPU selection
-  const handleGpuChange = (gpuModel) => {
-    const selectedGpu = gpuData.top_10_gpus_for_llm_deployment_2025.find(gpu => gpu.model === gpuModel);
-    if (selectedGpu) {
-      setFormData(prev => ({
-        ...prev,
-        gpu_mem_gb: selectedGpu.memory_size_gb,
-        // You can add other GPU-specific parameters here if needed
-      }));
-    }
-  };
+
 
   // Handle search input change with debounce
   const handleSearchChange = (e) => {
@@ -475,7 +442,6 @@ const CalculatorForm = ({ onSubmit, loading }) => {
       <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
         <h3 className="text-lg font-medium text-blue-800 mb-4">Users Configuration</h3>
         {renderSliderInput('internal_users', 'Internal Users', 0, 10000, 100, formData.internal_users)}
-        {renderSliderInput('external_users', 'External Users', 0, 50000, 1000, formData.external_users)}
       </div>
       
       <div className="bg-green-50 rounded-lg p-4 border border-green-200">
@@ -541,26 +507,51 @@ const CalculatorForm = ({ onSubmit, loading }) => {
       <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
         <h3 className="text-lg font-medium text-purple-800 mb-4">Hardware Configuration</h3>
         
-        {/* GPU Selection */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Select GPU</label>
-          <select
-            value={formData.gpu_mem_gb} // Using memory size as the identifier
-            onChange={(e) => {
-              const selectedGpu = gpuData.top_10_gpus_for_llm_deployment_2025.find(gpu => gpu.memory_size_gb === parseInt(e.target.value));
-              if (selectedGpu) {
-                handleGpuChange(selectedGpu.model);
-              }
-            }}
+        {/* GPU Selection with Search */}
+        <div className="mb-4 relative">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Search GPU</label>
+          <input
+            type="text"
+            value={gpuSearch}
+            onChange={(e) => setGpuSearch(e.target.value)}
+            placeholder="Search for a GPU (e.g., RTX, A100, etc.)"
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value={0}>Select a GPU...</option>
-            {gpuData.top_10_gpus_for_llm_deployment_2025.map((gpu, index) => (
-              <option key={index} value={gpu.memory_size_gb}>
-                {gpu.model} ({gpu.memory_size_gb}GB)
-              </option>
-            ))}
-          </select>
+          />
+          
+          {isGpuSearching && (
+            <div className="absolute right-3 top-2">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+            </div>
+          )}
+
+          {gpuSearchResults.length > 0 && (
+            <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto">
+              {gpuSearchResults.map((gpu, index) => (
+                <div
+                  key={gpu.id}
+                  onClick={() => handleGpuSelect(gpu)}
+                  className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                >
+                  <div className="font-medium">{gpu.full_name || `${gpu.vendor} ${gpu.model}`}</div>
+                  <div className="text-xs text-gray-500">
+                    Memory: {gpu.memory_size_formatted || `${gpu.memory_gb} GB`} | 
+                    TDP: {gpu.tdp_watts || 'Unknown W'} | 
+                    Cores: {gpu.cores || 'Unknown'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {selectedGpu && (
+            <div className="mt-2">
+              <div className="p-3 bg-purple-100 rounded-md">
+                <div className="text-sm font-medium text-purple-800">
+                  Selected: {selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`} ({selectedGpu.memory_size_formatted || `${selectedGpu.memory_gb} GB`})
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Other hardware parameters */}
@@ -594,6 +585,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
         <>
           {renderSliderInput('penetration_internal', 'Internal Penetration (0-1)', 0, 1, 0.01, formData.penetration_internal)}
           {renderSliderInput('concurrency_internal', 'Internal Concurrency (0-1)', 0, 1, 0.01, formData.concurrency_internal)}
+          {renderSliderInput('external_users', 'External Users', 0, 50000, 1000, formData.external_users)}
           {renderSliderInput('penetration_external', 'External Penetration (0-1)', 0, 1, 0.01, formData.penetration_external)}
           {renderSliderInput('concurrency_external', 'External Concurrency (0-1)', 0, 1, 0.01, formData.concurrency_external)}
         </>,
@@ -688,7 +680,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
             <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
             Calculating...
           </span>
-        ) : 'Calculate Server Requirements'}
+        ) : 'Recalculate (Auto-calculation enabled)'}
       </button>
     </form>
   );

@@ -422,7 +422,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     # 13. Расчет количества серверов, необходимых по ограничению памяти
     servers_mem = calc_servers_by_memory(total_active, sessions_per_server)
     if servers_mem is math.inf:
-        raise HTTPException(status_code=400, detail="Sessions per server is zero; increase GPU memory or reduce KV/session.")
+        raise HTTPException(status_code=400, detail="increase GPU memory or reduce KV/session.")
 
     # 14. Расчет RPS, поддерживаемых одним инстансом
     rps_instance = calc_rps_per_instance(inp.tps_per_instance, T)
@@ -433,7 +433,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     # 16. Расчет количества серверов, необходимых по ограничению вычислительной мощности
     servers_comp = calc_servers_by_compute(required_rps, rps_server, inp.sla_reserve)
     if servers_comp is math.inf:
-        raise HTTPException(status_code=400, detail="RPS per server is zero; check TPS per instance / T / instances per server.")
+        raise HTTPException(status_code=400, detail="RPS per server is zero - check TPS per instance / T / instances per server.")
 
     # 17. Окончательное количество серверов - максимальное из требований по памяти и вычислениям
     servers_final = max(servers_mem, servers_comp)

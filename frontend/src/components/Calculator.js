@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CalculatorForm from './CalculatorForm';
 import ResultsDisplay from './ResultsDisplay';
 import { calculateServerRequirements } from '../services/api';
@@ -7,12 +7,20 @@ const Calculator = () => {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [inputData, setInputData] = useState(null);
 
-  const handleCalculate = async (inputData) => {
+  // Automatically calculate when inputData changes
+  useEffect(() => {
+    if (inputData) {
+      performCalculation(inputData);
+    }
+  }, [inputData]);
+
+  const performCalculation = async (data) => {
     setLoading(true);
     setError(null);
     
-    const response = await calculateServerRequirements(inputData);
+    const response = await calculateServerRequirements(data);
     
     if (response.error) {
       setError(response.error);
@@ -25,10 +33,18 @@ const Calculator = () => {
     setLoading(false);
   };
 
+  const handleCalculate = async (inputData) => {
+    setInputData(inputData);
+  };
+
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <div className="bg-white rounded-xl shadow-lg p-6">
-        <CalculatorForm onSubmit={handleCalculate} loading={loading} />
+        <CalculatorForm 
+          onSubmit={handleCalculate} 
+          loading={loading} 
+        />
       </div>
       
       <div className="bg-white rounded-xl shadow-lg p-6">
