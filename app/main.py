@@ -328,6 +328,59 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     if inp.tps_per_instance <= 0:
         raise ValueError("TPS на инстанс должен быть положительным")
 
+    # Загружаем данные о GPU для получения TFLOPS
+    import os
+    import json
+    gpu_data_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
+    try:
+        with open(gpu_data_path, "r", encoding="utf-8") as f:
+            gpu_data = json.load(f)
+    except FileNotFoundError:
+        raise FileNotFoundError("Файл gpu_data.json не найден")
+    except json.JSONDecodeError:
+        raise ValueError("Файл gpu_data.json содержит некорректный JSON")
+    
+    # Ищем GPU по ID, если он предоставлен, иначе по объему памяти
+    target_gpu = None
+    if inp.gpu_id and inp.gpu_id in gpu_data:
+        target_gpu = gpu_data[inp.gpu_id]
+    else:
+        # Ищем GPU по объему памяти как резервный вариант
+        for gpu_id, gpu_info in gpu_data.items():
+            if gpu_info.get("Memory_GB") == inp.gpu_mem_gb or gpu_info.get("Memory Size (MiB)") == inp.gpu_mem_gb * 1024:
+                target_gpu = gpu_info
+                break
+
+    # Если GPU не найден, используем 0 для throughput
+    tflops_dp = 0
+    if target_gpu:
+        # Ищем значение TFLOPS Double precision
+        # Поле может называться по-разному в разных GPU
+        tflops_fields = ["TFLOPS_DP", "TFLOPS (Double Precision)", "Double Precision (TFLOPS)", "TFLOPS_Double", "TFLOPS"]
+        for field in tflops_fields:
+            if field in target_gpu:
+                try:
+                    tflops_dp = float(target_gpu[field])
+                    break
+                except (ValueError, TypeError):
+                    continue
+        # Если не нашли в этих полях, проверим общее поле
+        if tflops_dp == 0:
+            # Ищем любое поле, которое содержит TFLOPS
+            for key, value in target_gpu.items():
+                if "TFLOPS" in key.upper() and "DOUBLE" in key.upper():
+                    try:
+                        tflops_dp = float(value)
+                        break
+                    except (ValueError, TypeError):
+                        continue
+                elif "TFLOPS" in key.upper() and tflops_dp == 0:  # Общее значение TFLOPS, если нет Double Precision
+                    try:
+                        tflops_dp = float(value)
+                        break
+                    except (ValueError, TypeError):
+                        continue
+
     # 1. Расчет общего количества активных пользователей
     total_active = calc_total_active(inp.internal_users, inp.penetration_internal, inp.concurrency_internal,
                                      inp.external_users, inp.penetration_external, inp.concurrency_external)
@@ -385,6 +438,16 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     # 17. Окончательное количество серверов - максимальное из требований по памяти и вычислениям
     servers_final = max(servers_mem, servers_comp)
 
+    # Рассчитываем throughput по формуле: (TFLOPS * 10^12 * 0.2) / (2 * P * 10^9)
+    # где P - количество параметров в миллиардах (params_billions)
+    if tflops_dp > 0 and inp.params_billions > 0:
+        flops = tflops_dp * 1e12  # TFLOPS в FLOPS
+        eta = 0.2  # показатель eta
+        params = inp.params_billions * 1e9  # миллиарды параметров в штуки
+        throughput = (flops * eta) / (2 * params)
+    else:
+        throughput = 0.0
+
     return SizingOutput(
         total_active_users=total_active,
         T_tokens_per_request=T,
@@ -404,8 +467,11 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         servers_by_compute=servers_comp,
         servers_final=servers_final,
         # Добавляем значения из входных данных
+        gpu_id=inp.gpu_id,
         gpu_mem_gb=inp.gpu_mem_gb,
         mem_reserve_fraction=inp.mem_reserve_fraction,
+        # Добавляем рассчитанный throughput
+        throughput=throughput,
     )
 
 
