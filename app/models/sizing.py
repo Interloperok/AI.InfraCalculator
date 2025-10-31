@@ -90,6 +90,9 @@ class SizingOutput(BaseModel):
     rps_per_server: float = Field(..., description="RPS на сервер")
     servers_by_compute: int = Field(..., description="Серверов по вычислениям")
     servers_final: int = Field(..., description="Итоговое количество серверов")
+    # Поля, переданные в исходных данных для контекста
+    gpu_mem_gb: float = Field(..., description="Память GPU в GB (из входных данных)")
+    mem_reserve_fraction: float = Field(..., description="Доля резервируемой памяти (0-1) (из входных данных)")
     
     class Config:
         json_schema_extra = {

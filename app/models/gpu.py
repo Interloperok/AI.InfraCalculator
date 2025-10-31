@@ -10,21 +10,24 @@ class GPUInfo(BaseModel):
     id: str = Field(..., description="Уникальный идентификатор GPU")
     vendor: str = Field(..., description="Производитель (NVIDIA, AMD, Intel)")
     model: str = Field(..., description="Название модели GPU")
-    memory_gb: float = Field(..., description="Объем видеопамяти в GB", ge=0)
+    memory_gb: int = Field(..., description="Объем видеопамяти в GB")
     cores: Optional[int] = Field(None, description="Количество вычислительных ядер")
     launch_date: Optional[str] = Field(None, description="Дата релиза GPU")
     memory_type: Optional[str] = Field(None, description="Тип памяти (GDDR6, HBM, etc.)")
     recommended_gpus_per_server: int = Field(
-        default=8, 
+        default=8,
         description="Рекомендуемое количество GPU на сервер",
         ge=1, le=16
     )
     estimated_tps_per_instance: float = Field(
-        default=1000, 
+        default=1000,
         description="Оценка токенов в секунду на инстанс",
         gt=0
     )
-    
+    # Новые поля для отображения
+    full_name: Optional[str] = Field(None, description="Полное название модели GPU (Vendor + Model)")
+    tdp_watts: Optional[str] = Field(None, description="Тепловой пакет (TDP) в ваттах")
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -36,7 +39,10 @@ class GPUInfo(BaseModel):
                 "launch_date": "2022-10-12",
                 "memory_type": "GDDR6X",
                 "recommended_gpus_per_server": 8,
-                "estimated_tps_per_instance": 1500.0
+                "estimated_tps_per_instance": 1500.0,
+                "full_name": "NVIDIA GeForce RTX 4090",
+                "memory_size_formatted": "24 GB",
+                "tdp_watts": "450 W"
             }
         }
 
@@ -134,5 +140,3 @@ class GPURefreshResponse(BaseModel):
                 "last_updated": "2024-01-15T10:30:00Z"
             }
         }
-
-
