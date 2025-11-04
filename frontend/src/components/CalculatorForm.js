@@ -654,21 +654,45 @@ const CalculatorForm = ({ onSubmit, loading }) => {
         {activeTab === 'advanced' && advancedInputs}
       </div>
 
+      {/* Auto-calculation status indicator */}
+      <div className="flex items-center justify-between mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+        <div className="flex items-center">
+          <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-sm font-medium text-green-800">Auto-calculation active</span>
+        </div>
+        {loading && (
+          <div className="flex items-center text-green-600">
+            <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-2"></span>
+            <span className="text-sm">Calculating...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Manual recalculate button (secondary style) */}
       <button
         type="submit"
         disabled={loading}
-        className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-colors ${
+        className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
           loading 
-            ? 'bg-gray-400 cursor-not-allowed' 
-            : 'bg-blue-600 hover:bg-blue-700'
+            ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
         }`}
       >
         {loading ? (
           <span className="flex items-center justify-center">
-            <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+            <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2"></span>
             Calculating...
           </span>
-        ) : 'Recalculate (Auto-calculation enabled)'}
+        ) : (
+          <span className="flex items-center justify-center">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh Calculation
+          </span>
+        )}
       </button>
     </form>
   );
