@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const ResultsDisplay = ({ results, loading, error }) => {
   if (loading) {
@@ -51,8 +51,6 @@ const ResultsDisplay = ({ results, loading, error }) => {
     name: item.name || 'Unknown',
     value: typeof item.value === 'number' && !isNaN(item.value) ? item.value : 0
   }));
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
   return (
     <div className="space-y-6">

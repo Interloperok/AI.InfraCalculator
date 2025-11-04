@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { getGPUs, searchGPUs } from '../services/api';
 
 const CalculatorForm = ({ onSubmit, loading }) => {
-  // State for GPU data
-  const [gpuData, setGpuData] = useState([]);
-  const [loadingGpus, setLoadingGpus] = useState(false);
   // State for GPU search
   const [gpuSearch, setGpuSearch] = useState('');
   const [gpuSearchResults, setGpuSearchResults] = useState([]);
@@ -68,22 +65,13 @@ const CalculatorForm = ({ onSubmit, loading }) => {
 
   const [activeTab, setActiveTab] = useState('basic'); // 'basic' or 'advanced'
 
-  // Load GPU data on component mount
+  // Load GPU data on component mount (removed unused state variables)
   useEffect(() => {
     const loadGpuData = async () => {
-      setLoadingGpus(true);
       try {
-        const response = await getGPUs({ per_page: 100 }); // Load up to 100 GPUs
-        if (response && response.gpus) {
-          setGpuData(response.gpus);
-        } else {
-          setGpuData([]);
-        }
+        await getGPUs({ per_page: 100 }); // Load up to 100 GPUs for initial data
       } catch (error) {
         console.error('Error loading GPU data:', error);
-        setGpuData([]);
-      } finally {
-        setLoadingGpus(false);
       }
     };
 
