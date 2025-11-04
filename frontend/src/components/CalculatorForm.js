@@ -469,7 +469,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
         </div>
         
         {selectedModel && (
-          <div className="mb-4">
+          <div className="mt-4 mb-4">
             <div className="p-3 bg-green-100 rounded-md">
               <div className="text-sm font-medium text-green-800">Selected: {selectedModel.modelId || selectedModel.id}</div>
             </div>
@@ -532,7 +532,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
           )}
           
           {selectedGpu && (
-            <div className="mt-2">
+            <div className="mt-4">
               <div className="p-3 bg-purple-100 rounded-md">
                 <div className="text-sm font-medium text-purple-800">
                   Selected: {selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`} ({selectedGpu.memory_size_formatted || `${selectedGpu.memory_gb} GB`})
