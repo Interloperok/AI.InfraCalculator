@@ -16,9 +16,9 @@ const ResultsDisplay = ({ results, loading, error }) => {
   if (error) {
     return (
       <div className="text-center">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-red-800 mb-2">Error</h3>
-          <p className="text-red-600">{error}</p>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <h3 className="text-lg font-medium text-yellow-800 mb-2">Warning</h3>
+          <p className="text-yellow-600">{error}</p>
         </div>
       </div>
     );
@@ -40,100 +40,71 @@ const ResultsDisplay = ({ results, loading, error }) => {
 
   // Prepare data for charts
   const resourceData = [
-    { name: 'Active Users', value: results.total_active_users },
-    { name: 'Required RPS', value: results.required_RPS },
-    { name: 'Model Memory (GB)', value: results.model_mem_gb },
-    { name: 'Servers (Memory)', value: results.servers_by_memory },
-    { name: 'Servers (Compute)', value: results.servers_by_compute },
-    { name: 'Final Servers', value: results.servers_final },
+    { name: 'Model Memory (GB)', value: (results && results.model_mem_gb && typeof results.model_mem_gb === 'number' && !isNaN(results.model_mem_gb)) ? results.model_mem_gb : 0 },
+    { name: 'KV-cache (No Opt, GB)', value: (results && results.kv_per_session_gb_no_opt && typeof results.kv_per_session_gb_no_opt === 'number' && !isNaN(results.kv_per_session_gb_no_opt)) ? results.kv_per_session_gb_no_opt : 0 },
+    { name: 'KV-cache (Opt, GB)', value: (results && results.kv_per_session_gb_opt && typeof results.kv_per_session_gb_opt === 'number' && !isNaN(results.kv_per_session_gb_opt)) ? results.kv_per_session_gb_opt : 0 },
+    { name: 'Memory Reserve (GB)', value: (results && results.gpu_mem_gb && results.mem_reserve_fraction && typeof results.gpu_mem_gb === 'number' && typeof results.mem_reserve_fraction === 'number' && !isNaN(results.gpu_mem_gb) && !isNaN(results.mem_reserve_fraction)) ? results.gpu_mem_gb * results.mem_reserve_fraction : 0 },
   ];
+
+  // Защита от undefined данных для графика
+  const safeResourceData = resourceData.map(item => ({
+    name: item.name || 'Unknown',
+    value: typeof item.value === 'number' && !isNaN(item.value) ? item.value : 0
+  }));
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
-
-  const serverBreakdownData = [
-    { name: 'Memory Limited', value: results.servers_by_memory },
-    { name: 'Compute Limited', value: results.servers_by_compute },
-  ];
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold text-gray-800">Calculation Results</h2>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Highlighted Key Metrics - Servers and GPUs per Server */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-6 text-white shadow-lg">
+          <h3 className="text-lg font-medium opacity-90">Final Server Count</h3>
+          <p className="text-4xl font-bold mt-2">{results.servers_final || 0}</p>
+          <p className="text-sm opacity-80 mt-2">Total servers required for your configuration</p>
+        </div>
+        <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white shadow-lg">
+          <h3 className="text-lg font-medium opacity-90">GPUs per Server</h3>
+          <p className="text-4xl font-bold mt-2">{(results.gpus_per_instance * results.instances_per_server || 0).toFixed(0)}</p>
+          <p className="text-sm opacity-80 mt-2">GPUs per Server = GPUs per Instance × Instances per Server</p>
+        </div>
+      </div>
+
+      {/* Other Key Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-blue-50 rounded-lg p-4">
           <h3 className="text-sm font-medium text-blue-800">Total Active Users</h3>
-          <p className="text-2xl font-bold text-blue-600">{results.total_active_users.toFixed(2)}</p>
+          <p className="text-xl font-bold text-blue-600">{(results.total_active_users || 0).toFixed(2)}</p>
         </div>
         <div className="bg-green-50 rounded-lg p-4">
           <h3 className="text-sm font-medium text-green-800">Required RPS</h3>
-          <p className="text-2xl font-bold text-green-600">{results.required_RPS.toFixed(2)}</p>
+          <p className="text-xl font-bold text-green-600">{(results.required_RPS || 0).toFixed(2)}</p>
         </div>
         <div className="bg-purple-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-purple-800">Model Memory (GB)</h3>
-          <p className="text-2xl font-bold text-purple-600">{results.model_mem_gb.toFixed(2)}</p>
+          <h3 className="text-sm font-medium text-purple-800">Throughput (tokens/sec)</h3>
+          <p className="text-xl font-bold text-purple-600">{(results.throughput || 0).toFixed(2)}</p>
         </div>
         <div className="bg-yellow-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-yellow-800">Final Servers Needed</h3>
-          <p className="text-2xl font-bold text-yellow-600">{results.servers_final}</p>
+          <h3 className="text-sm font-medium text-yellow-800">Instances per Server</h3>
+          <p className="text-xl font-bold text-yellow-600">{results.instances_per_server || 0}</p>
         </div>
       </div>
 
       {/* Resource Distribution Chart */}
       <div className="bg-white border rounded-lg p-4">
-        <h3 className="text-lg font-medium text-gray-800 mb-4">Resource Distribution</h3>
+        <h3 className="text-lg font-medium text-gray-800 mb-4">Resource Distribution (by server)</h3>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={resourceData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="value" fill="#3b82f6" />
-          </BarChart>
+            <BarChart data={safeResourceData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis label={{ value: 'GB / Count', angle: -90, position: 'insideLeft' }} />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="value" fill="#3b82f6" />
+            </BarChart>
         </ResponsiveContainer>
-      </div>
-
-      {/* Server Breakdown */}
-      <div className="bg-white border rounded-lg p-4">
-        <h3 className="text-lg font-medium text-gray-800 mb-4">Server Requirements Breakdown</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={serverBreakdownData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {serverBreakdownData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-              <span className="text-gray-600">Memory Limited Servers:</span>
-              <span className="font-medium">{results.servers_by_memory}</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-              <span className="text-gray-600">Compute Limited Servers:</span>
-              <span className="font-medium">{results.servers_by_compute}</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-blue-100 rounded-lg border border-blue-200">
-              <span className="text-blue-800 font-medium">Final Server Count:</span>
-              <span className="font-bold text-blue-800 text-lg">{results.servers_final}</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Detailed Results */}
@@ -143,29 +114,37 @@ const ResultsDisplay = ({ results, loading, error }) => {
           <div className="space-y-2">
             <div className="flex justify-between border-b pb-1">
               <span className="text-gray-600">Tokens per Request:</span>
-              <span className="font-medium">{results.T_tokens_per_request.toFixed(2)}</span>
+              <span className="font-medium">{(results.T_tokens_per_request || 0).toFixed(2)}</span>
             </div>
             <div className="flex justify-between border-b pb-1">
               <span className="text-gray-600">GPUs per Instance:</span>
-              <span className="font-medium">{results.gpus_per_instance}</span>
+              <span className="font-medium">{results.gpus_per_instance || 0}</span>
             </div>
             <div className="flex justify-between border-b pb-1">
-              <span className="text-gray-600">Instances per Server:</span>
-              <span className="font-medium">{results.instances_per_server}</span>
+              <span className="text-gray-600">Model instances per Server:</span>
+              <span className="font-medium">{results.instances_per_server || 0}</span>
+            </div>
+            <div className="flex justify-between border-b pb-1">
+              <span className="text-gray-600">GPUs per Server:</span>
+              <span className="font-medium">{(results.gpus_per_instance * results.instances_per_server || 0).toFixed(0)}</span>
             </div>
             <div className="flex justify-between border-b pb-1">
               <span className="text-gray-600">KV per Session (GB):</span>
-              <span className="font-medium">{results.kv_per_session_gb_opt.toFixed(4)}</span>
+              <span className="font-medium">{(results.kv_per_session_gb_opt || 0).toFixed(4)}</span>
             </div>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between border-b pb-1">
               <span className="text-gray-600">Sessions per Server:</span>
-              <span className="font-medium">{results.sessions_per_server}</span>
+              <span className="font-medium">{results.sessions_per_server || 0}</span>
             </div>
             <div className="flex justify-between border-b pb-1">
               <span className="text-gray-600">RPS per Server:</span>
-              <span className="font-medium">{results.rps_per_server.toFixed(2)}</span>
+              <span className="font-medium">{(results.rps_per_server || 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between border-b pb-1">
+              <span className="text-gray-600">Total GPUs Required:</span>
+              <span className="font-medium">{(results.gpus_per_instance * results.instances_per_server || 0).toFixed(0)}</span>
             </div>
           </div>
         </div>

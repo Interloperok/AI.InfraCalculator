@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field, conint, confloat, validator
 
 
@@ -30,8 +30,9 @@ class SizingInput(BaseModel):
     bytes_per_kv_state: confloat(gt=0) = Field(..., description="Байт на состояние KV-кэша")
     paged_attention_gain_Kopt: confloat(ge=1.0) = Field(..., description="Коэффициент оптимизации Paged Attention")
 
-    # Hardware
+    # Hardware        
     gpu_mem_gb: confloat(gt=0) = Field(..., description="Память GPU в GB")
+    gpu_id: Optional[str] = Field(None, description="ID выбранной GPU")
     gpus_per_server: conint(gt=0) = Field(..., description="Количество GPU на сервере")
     mem_reserve_fraction: confloat(ge=0.0, lt=1.0) = Field(default=0.07, description="Доля резервируемой памяти (0-1)")
 
@@ -90,6 +91,12 @@ class SizingOutput(BaseModel):
     rps_per_server: float = Field(..., description="RPS на сервер")
     servers_by_compute: int = Field(..., description="Серверов по вычислениям")
     servers_final: int = Field(..., description="Итоговое количество серверов")
+    # Поля, переданные в исходных данных для контекста
+    gpu_id: Optional[str] = Field(None, description="ID выбранной GPU (из входных данных)")
+    gpu_mem_gb: float = Field(..., description="Память GPU в GB (из входных данных)")
+    mem_reserve_fraction: float = Field(..., description="Доля резервируемой памяти (0-1) (из входных данных)")
+    # Рассчитанные показатели
+    throughput: float = Field(..., description="Приблизительный throughput (tokens/second)")
     
     class Config:
         json_schema_extra = {

@@ -305,34 +305,46 @@ def main():
             "NVIDIA_RTX_4090": {
                 "Vendor": "NVIDIA",
                 "Model": "GeForce RTX 4090",
+                "Model name": "GeForce RTX 4090",
                 "Memory_GB": 24.0,
                 "Cores": 16384,
                 "Launch": "2022-10-12",
-                "Memory_Type": "GDDR6X"
+                "Memory_Type": "GDDR6X",
+                "Memory Size (MiB)": "24576",  # 24GB в MiB
+                "TDP (Watts)": "450"
             },
             "NVIDIA_RTX_4080": {
                 "Vendor": "NVIDIA", 
                 "Model": "GeForce RTX 4080",
+                "Model name": "GeForce RTX 4080",
                 "Memory_GB": 16.0,
                 "Cores": 9728,
                 "Launch": "2022-11-16",
-                "Memory_Type": "GDDR6X"
+                "Memory_Type": "GDDR6X",
+                "Memory Size (MiB)": "16384",  # 16GB в MiB
+                "TDP (Watts)": "320"
             },
             "NVIDIA_RTX_4070": {
                 "Vendor": "NVIDIA",
                 "Model": "GeForce RTX 4070",
+                "Model name": "GeForce RTX 4070",
                 "Memory_GB": 12.0,
                 "Cores": 5888,
                 "Launch": "2023-04-13",
-                "Memory_Type": "GDDR6X"
+                "Memory_Type": "GDDR6X",
+                "Memory Size (MiB)": "12288",  # 12GB в MiB
+                "TDP (Watts)": "200"
             },
             "AMD_RX_7900_XTX": {
                 "Vendor": "AMD",
                 "Model": "Radeon RX 7900 XTX",
+                "Model name": "Radeon RX 7900 XTX",
                 "Memory_GB": 24.0,
                 "Cores": 6144,
                 "Launch": "2022-12-13",
-                "Memory_Type": "GDDR6"
+                "Memory_Type": "GDDR6",
+                "Memory Size (MiB)": "24576",  # 24GB в MiB
+                "TDP (Watts)": "355"
             }
         }
         
@@ -346,6 +358,16 @@ def main():
     df = pd.concat(frames, ignore_index=True, sort=False)
     df = remove_bracketed_references(df,
         ["Model", "Model name", "Model (Codename)", "Model (Code name)", "Die size", "Die size (mm2)", "Code name"])
+
+    # Фильтрация GPU: оставляем только те, у которых Launch дата после 2013 года
+    if 'Launch' in df.columns:
+        # Преобразуем даты в формат datetime, если это возможно
+        df['Launch'] = pd.to_datetime(df['Launch'], errors='coerce')
+        # Фильтруем только GPU с датой запуска после 2013 года
+        df = df[df['Launch'].dt.year > 2013] if not df['Launch'].isna().all() else df
+        print(f"✅ Filtered GPUs: kept {len(df)} out of original count based on Launch date > 2013")
+    else:
+        print("⚠️  Launch date column not found, skipping year filter")
 
     result: Dict[str, Dict[str, str]] = {}
     for record in df.to_dict(orient="records"):
