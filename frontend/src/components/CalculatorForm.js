@@ -415,7 +415,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
           step={step}
           value={value}
           onChange={handleSliderChange}
-          className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+          className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
         />
         <div className="flex justify-between text-xs text-gray-500 mt-1">
           <span>{typeof min === 'number' && min >= 1000 ? min.toLocaleString() : min}{unit}</span>
