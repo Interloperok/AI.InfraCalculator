@@ -106,43 +106,67 @@ const ResultsDisplay = ({ results, loading, error }) => {
       </div>
 
       {/* Detailed Results */}
-      <div className="bg-white border rounded-lg p-4">
-        <h3 className="text-lg font-medium text-gray-800 mb-4">Detailed Results</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div className="space-y-2">
-            <div className="flex justify-between border-b pb-1">
-              <span className="text-gray-600">Tokens per Request:</span>
-              <span className="font-medium">{(results.T_tokens_per_request || 0).toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between border-b pb-1">
-              <span className="text-gray-600">GPUs per Instance:</span>
-              <span className="font-medium">{results.gpus_per_instance || 0}</span>
-            </div>
-            <div className="flex justify-between border-b pb-1">
-              <span className="text-gray-600">Model instances per Server:</span>
-              <span className="font-medium">{results.instances_per_server || 0}</span>
-            </div>
-            <div className="flex justify-between border-b pb-1">
-              <span className="text-gray-600">GPUs per Server:</span>
-              <span className="font-medium">{(results.gpus_per_instance * results.instances_per_server || 0).toFixed(0)}</span>
-            </div>
-            <div className="flex justify-between border-b pb-1">
-              <span className="text-gray-600">KV per Session (GB):</span>
-              <span className="font-medium">{(results.kv_per_session_gb_opt || 0).toFixed(4)}</span>
+      <div className="bg-white border rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-6">Detailed Results</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left Column - Model & Hardware Configuration */}
+          <div className="space-y-4">
+            <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+              <h4 className="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                </svg>
+                Model & Hardware
+              </h4>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                  <span className="text-sm text-gray-700">Tokens per Request</span>
+                  <span className="text-sm font-semibold text-gray-900">{(results.T_tokens_per_request || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                  <span className="text-sm text-gray-700">GPUs per Instance</span>
+                  <span className="text-sm font-semibold text-gray-900">{results.gpus_per_instance || 0}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                  <span className="text-sm text-gray-700">Model Instances per Server</span>
+                  <span className="text-sm font-semibold text-gray-900">{results.instances_per_server || 0}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                  <span className="text-sm text-gray-700">GPUs per Server</span>
+                  <span className="text-sm font-semibold text-blue-700">{(results.gpus_per_instance * results.instances_per_server || 0).toFixed(0)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-gray-700">KV per Session (GB)</span>
+                  <span className="text-sm font-semibold text-gray-900">{(results.kv_per_session_gb_opt || 0).toFixed(4)}</span>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="space-y-2">
-            <div className="flex justify-between border-b pb-1">
-              <span className="text-gray-600">Sessions per Server:</span>
-              <span className="font-medium">{results.sessions_per_server || 0}</span>
-            </div>
-            <div className="flex justify-between border-b pb-1">
-              <span className="text-gray-600">RPS per Server:</span>
-              <span className="font-medium">{(results.rps_per_server || 0).toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between border-b pb-1">
-              <span className="text-gray-600">Total GPUs Required:</span>
-              <span className="font-medium">{(results.gpus_per_instance * results.instances_per_server || 0).toFixed(0)}</span>
+
+          {/* Right Column - Performance & Capacity */}
+          <div className="space-y-4">
+            <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+              <h4 className="text-sm font-semibold text-green-800 mb-3 flex items-center">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Performance & Capacity
+              </h4>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-green-200">
+                  <span className="text-sm text-gray-700">Sessions per Server</span>
+                  <span className="text-sm font-semibold text-gray-900">{results.sessions_per_server || 0}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-green-200">
+                  <span className="text-sm text-gray-700">RPS per Server</span>
+                  <span className="text-sm font-semibold text-gray-900">{(results.rps_per_server || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-gray-700">Total GPUs Required</span>
+                  <span className="text-base font-bold text-green-700">{(results.gpus_per_instance * results.instances_per_server || 0).toFixed(0)}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
