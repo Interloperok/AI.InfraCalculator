@@ -470,8 +470,16 @@ const CalculatorForm = ({ onSubmit, loading }) => {
         
         {selectedModel && (
           <div className="mt-4 mb-4">
-            <div className="p-3 bg-green-100 rounded-md">
-              <div className="text-sm font-medium text-green-800">Selected: {selectedModel.modelId || selectedModel.id}</div>
+            <div className="p-3 bg-green-50 border-2 border-green-400 rounded-md shadow-sm">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-green-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <div className="text-xs font-medium text-green-700 uppercase tracking-wide mb-0.5">Selected Model</div>
+                  <div className="text-sm font-semibold text-green-900">{selectedModel.modelId || selectedModel.id}</div>
+                </div>
+              </div>
             </div>
             
             {modelWarning && (
@@ -533,9 +541,18 @@ const CalculatorForm = ({ onSubmit, loading }) => {
           
           {selectedGpu && (
             <div className="mt-4">
-              <div className="p-3 bg-purple-100 rounded-md">
-                <div className="text-sm font-medium text-purple-800">
-                  Selected: {selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`} ({selectedGpu.memory_size_formatted || `${selectedGpu.memory_gb} GB`})
+              <div className="p-3 bg-purple-50 border-2 border-purple-400 rounded-md shadow-sm">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-purple-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-purple-700 uppercase tracking-wide mb-0.5">Selected GPU</div>
+                    <div className="text-sm font-semibold text-purple-900">
+                      {selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`}
+                      <span className="text-purple-700 font-normal ml-1">({selectedGpu.memory_size_formatted || `${selectedGpu.memory_gb} GB`})</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
