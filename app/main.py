@@ -726,10 +726,17 @@ def get_gpus(
         # Создаем GPUInfo объект
         # Формируем полное название модели (Vendor + Model)
         vendor = gpu_info.get("Vendor", "Unknown")
-        if "nan" in str(gpu_info.get("Model")).lower():
-            model_name = gpu_info.get("Model name")
+        model_value = gpu_info.get("Model")
+        model_name_value = gpu_info.get("Model name")
+        
+        # Определяем model_name с проверкой на None и "nan"
+        if model_value and "nan" not in str(model_value).lower():
+            model_name = str(model_value)
+        elif model_name_value and "nan" not in str(model_name_value).lower():
+            model_name = str(model_name_value)
         else:
-            model_name = gpu_info.get("Model", gpu_info.get("Model name", "Unknown"))
+            model_name = "Unknown"
+        
         full_name = f"{vendor} {model_name}".strip()
 
         # Формируем размер памяти в виде строки с единицами измерения
@@ -807,10 +814,17 @@ def get_gpu_details(gpu_id: str):
 
     # Формируем полное название модели (Vendor + Model)
     vendor = gpu_info.get("Vendor", "Unknown")
-    if "nan" in str(gpu_info.get("Model")).lower():
-        model_name = gpu_info.get("Model name")
+    model_value = gpu_info.get("Model")
+    model_name_value = gpu_info.get("Model name")
+    
+    # Определяем model_name с проверкой на None и "nan"
+    if model_value and "nan" not in str(model_value).lower():
+        model_name = str(model_value)
+    elif model_name_value and "nan" not in str(model_name_value).lower():
+        model_name = str(model_name_value)
     else:
-        model_name = gpu_info.get("Model", gpu_info.get("Model name", "Unknown"))
+        model_name = "Unknown"
+    
     full_name = f"{vendor} {model_name}".strip()
 
     # Формируем размер памяти в виде строки с единицами измерения
