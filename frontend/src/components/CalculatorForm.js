@@ -401,8 +401,9 @@ const CalculatorForm = ({ onSubmit, loading }) => {
               step={isInteger ? 1 : "any"}
               value={value}
               onChange={handleInputChange}
-              className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-md text-right"
+              className={`px-2 py-1 text-sm border border-gray-300 rounded-md text-right ${max >= 1000000 ? 'w-28' : 'w-20'}`}
               inputMode={isInteger ? "numeric" : "decimal"}
+              placeholder="0"
             />
             <span className="text-sm text-gray-500 font-medium">{unit}</span>
           </div>
@@ -417,8 +418,8 @@ const CalculatorForm = ({ onSubmit, loading }) => {
           className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
         />
         <div className="flex justify-between text-xs text-gray-500 mt-1">
-          <span>{min}{unit}</span>
-          <span>{max}{unit}</span>
+          <span>{typeof min === 'number' && min >= 1000 ? min.toLocaleString() : min}{unit}</span>
+          <span>{typeof max === 'number' && max >= 1000 ? max.toLocaleString() : max}{unit}</span>
         </div>
       </div>
     );
@@ -429,7 +430,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
     <div className="space-y-6">
       <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
         <h3 className="text-lg font-medium text-blue-800 mb-4">Users Configuration</h3>
-        {renderSliderInput('internal_users', 'Internal Users', 0, 10000, 100, formData.internal_users)}
+        {renderSliderInput('internal_users', 'Internal Users', 0, 1000000, 1000, formData.internal_users)}
       </div>
       
       <div className="bg-green-50 rounded-lg p-4 border border-green-200">
