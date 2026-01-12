@@ -1,6 +1,8 @@
 # AI Server Calculator
 
 Полнофункциональное приложение для расчета требований к серверной инфраструктуре для AI/LLM моделей. Включает в себя FastAPI backend и React frontend с интерактивным интерфейсом.
+<img width="997" height="1172" alt="image" src="https://github.com/user-attachments/assets/97951fb9-b664-4494-980c-ba4c5f902303" />
+
 
 ## 🚀 Быстрый старт с Docker
 
