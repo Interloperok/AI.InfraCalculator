@@ -1,7 +1,9 @@
-import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import React, { useState } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 
 const ResultsDisplay = ({ results, loading, error }) => {
+  const [detailTab, setDetailTab] = useState('memory'); // 'memory' | 'compute'
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -38,138 +40,337 @@ const ResultsDisplay = ({ results, loading, error }) => {
     );
   }
 
-  // Prepare data for charts
-  const resourceData = [
-    { name: 'Model Memory (GB)', value: (results && results.model_mem_gb && typeof results.model_mem_gb === 'number' && !isNaN(results.model_mem_gb)) ? results.model_mem_gb : 0 },
-    { name: 'KV-cache (No Opt, GB)', value: (results && results.kv_per_session_gb_no_opt && typeof results.kv_per_session_gb_no_opt === 'number' && !isNaN(results.kv_per_session_gb_no_opt)) ? results.kv_per_session_gb_no_opt : 0 },
-    { name: 'KV-cache (Opt, GB)', value: (results && results.kv_per_session_gb_opt && typeof results.kv_per_session_gb_opt === 'number' && !isNaN(results.kv_per_session_gb_opt)) ? results.kv_per_session_gb_opt : 0 },
-    { name: 'Memory Reserve (GB)', value: (results && results.gpu_mem_gb && results.mem_reserve_fraction && typeof results.gpu_mem_gb === 'number' && typeof results.mem_reserve_fraction === 'number' && !isNaN(results.gpu_mem_gb) && !isNaN(results.mem_reserve_fraction)) ? results.gpu_mem_gb * results.mem_reserve_fraction : 0 },
-  ];
+  // Prepare data for donut chart — GPU memory breakdown per instance (with TP)
+  const totalMem = results.instance_total_mem_gb || 0;
+  const modelMem = results.model_mem_gb || 0;
+  const kvFree = results.kv_free_per_instance_tp_gb || 0;
+  const overhead = Math.max(0, totalMem - modelMem - kvFree);
 
-  // Защита от undefined данных для графика
-  const safeResourceData = resourceData.map(item => ({
-    name: item.name || 'Unknown',
-    value: typeof item.value === 'number' && !isNaN(item.value) ? item.value : 0
-  }));
+  const memBreakdown = [
+    { name: 'Model Weights', value: Math.round(modelMem * 100) / 100 },
+    { name: 'Available for KV-cache', value: Math.round(kvFree * 100) / 100 },
+    ...(overhead > 0.01 ? [{ name: 'Reserved (1 − Kavail)', value: Math.round(overhead * 100) / 100 }] : []),
+  ];
+  const DONUT_COLORS = ['#6366f1', '#10b981', '#94a3b8'];
+
+  // Helper to format numbers
+  const fmt = (v, digits = 2) => {
+    if (v === undefined || v === null || isNaN(v)) return '0';
+    if (Math.abs(v) >= 1e9) return (v / 1e9).toFixed(1) + 'B';
+    if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+    if (Math.abs(v) >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+    return v.toFixed(digits);
+  };
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold text-gray-800">Calculation Results</h2>
 
-      {/* Highlighted Key Metrics - Servers and GPUs per Server */}
+      {/* ── Top 2 overview tiles ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-6 text-white shadow-lg">
-          <h3 className="text-lg font-medium opacity-90">Final Server Count</h3>
-          <p className="text-4xl font-bold mt-2">{results.servers_final || 0}</p>
-          <p className="text-sm opacity-80 mt-2">Total servers required for your configuration</p>
+        <div className="bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl p-5 text-white shadow-lg flex items-center justify-between">
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wider opacity-60">Concurrent Sessions</h3>
+            <p className="text-3xl font-extrabold mt-1">{fmt(results.Ssim_concurrent_sessions, 0)}</p>
+          </div>
+          <svg className="w-10 h-10 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
         </div>
-        <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white shadow-lg">
-          <h3 className="text-lg font-medium opacity-90">GPUs per Server</h3>
-          <p className="text-4xl font-bold mt-2">{(results.gpus_per_instance * results.instances_per_server || 0).toFixed(0)}</p>
-          <p className="text-sm opacity-80 mt-2">GPUs per Server = GPUs per Instance × Instances per Server</p>
-        </div>
-      </div>
-
-      {/* Other Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-blue-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-blue-800">Total Active Users</h3>
-          <p className="text-xl font-bold text-blue-600">{(results.total_active_users || 0).toFixed(2)}</p>
-        </div>
-        <div className="bg-green-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-green-800">Required RPS</h3>
-          <p className="text-xl font-bold text-green-600">{(results.required_RPS || 0).toFixed(2)}</p>
-        </div>
-        <div className="bg-purple-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-purple-800">Throughput (tokens/sec)</h3>
-          <p className="text-xl font-bold text-purple-600">{(results.throughput || 0).toFixed(2)}</p>
-        </div>
-        <div className="bg-yellow-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-yellow-800">Instances per Server</h3>
-          <p className="text-xl font-bold text-yellow-600">{results.instances_per_server || 0}</p>
+        <div className="bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl p-5 text-white shadow-lg flex items-center justify-between">
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wider opacity-60">Session Context</h3>
+            <p className="text-3xl font-extrabold mt-1">
+              {fmt(results.TS_session_context, 0)}
+              <span className="text-sm font-semibold opacity-60 ml-1">tokens</span>
+            </p>
+          </div>
+          <svg className="w-10 h-10 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+          </svg>
         </div>
       </div>
 
-      {/* Resource Distribution Chart */}
-      <div className="bg-white border rounded-lg p-4">
-        <h3 className="text-lg font-medium text-gray-800 mb-4">Resource Distribution (by server)</h3>
-        <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={safeResourceData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis label={{ value: 'GB / Count', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="value" fill="#3b82f6" />
-            </BarChart>
-        </ResponsiveContainer>
+      {/* ── 3 Key Metric Cards ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        {/* Card 1 — Servers Required */}
+        <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-6 text-white shadow-lg flex flex-col min-h-[170px]">
+          <h3 className="text-xs font-semibold uppercase tracking-wider opacity-70">Servers Required</h3>
+          <p className="text-5xl font-extrabold mt-auto mb-auto">{results.servers_final || 0}</p>
+          <p className="text-sm opacity-75 mt-2">
+            max(mem:&thinsp;{results.servers_by_memory || 0}, comp:&thinsp;{results.servers_by_compute || 0})
+          </p>
+        </div>
+
+        {/* Card 2 — Sessions per Server */}
+        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-6 text-white shadow-lg flex flex-col min-h-[170px]">
+          <h3 className="text-xs font-semibold uppercase tracking-wider opacity-70">Sessions per Server</h3>
+          <p className="text-5xl font-extrabold mt-auto mb-auto">{results.sessions_per_server || 0}</p>
+          <p className="text-sm opacity-75 mt-2">
+            {results.instances_per_server_tp || 0} inst &times; {results.S_TP_z || 0} sess each
+          </p>
+        </div>
+
+        {/* Card 3 — Server Throughput */}
+        <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-6 text-white shadow-lg flex flex-col min-h-[170px]">
+          <h3 className="text-xs font-semibold uppercase tracking-wider opacity-70 flex items-center gap-1.5">
+            Server Throughput
+            <span className="relative group/tip">
+              <svg className="w-3.5 h-3.5 opacity-60 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-gray-900 rounded-lg shadow-lg w-48 text-center leading-relaxed pointer-events-none">
+                Requests per second that one server can handle (req/s)
+                <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+              </span>
+            </span>
+          </h3>
+          <p className="text-5xl font-extrabold mt-auto mb-auto">
+            {fmt(results.th_server_comp, 1)}
+          </p>
+          <p className="text-sm opacity-75 mt-2">
+            prefill {fmt(results.th_prefill, 0)} &middot; decode {fmt(results.th_decode, 0)}
+          </p>
+        </div>
+
       </div>
 
-      {/* Detailed Results */}
+      {/* ── Secondary Metric Cards (3 tiles) ── */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-gradient-to-br from-blue-400/80 to-indigo-500/80 rounded-lg p-4 text-white shadow">
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider opacity-70">GPUs per Server</h3>
+          <p className="text-2xl font-bold mt-1">{results.gpus_per_server || 0}</p>
+        </div>
+        <div className="bg-gradient-to-br from-emerald-400/80 to-teal-500/80 rounded-lg p-4 text-white shadow">
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider opacity-70 flex items-center gap-1">
+            GPUs per Instance
+            <span className="relative group/tip">
+              <svg className="w-3 h-3 opacity-60 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-gray-900 rounded-lg shadow-lg w-52 text-center leading-relaxed pointer-events-none">
+                One instance = one running copy of the model. This is the number of GPUs allocated to each copy (tensor parallelism degree).
+                <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+              </span>
+            </span>
+          </h3>
+          <p className="text-2xl font-bold mt-1">{results.gpus_per_instance || 0}</p>
+        </div>
+        <div className="bg-gradient-to-br from-violet-400/80 to-purple-500/80 rounded-lg p-4 text-white shadow">
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider opacity-70 flex items-center gap-1">
+            Instances per Server
+            <span className="relative group/tip">
+              <svg className="w-3 h-3 opacity-60 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-gray-900 rounded-lg shadow-lg w-52 text-center leading-relaxed pointer-events-none">
+                How many independent model copies fit on one server, considering tensor parallelism.
+                <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+              </span>
+            </span>
+          </h3>
+          <p className="text-2xl font-bold mt-1">{results.instances_per_server_tp || 0}</p>
+        </div>
+      </div>
+
+      {/* GPU Memory Donut Chart */}
       <div className="bg-white border rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-6">Detailed Results</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left Column - Model & Hardware Configuration */}
-          <div className="space-y-4">
-            <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
-              <h4 className="text-sm font-semibold text-blue-800 mb-3 flex items-center">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                </svg>
-                Model & Hardware
-              </h4>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b border-blue-200">
-                  <span className="text-sm text-gray-700">Tokens per Request</span>
-                  <span className="text-sm font-semibold text-gray-900">{(results.T_tokens_per_request || 0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-blue-200">
-                  <span className="text-sm text-gray-700">GPUs per Instance</span>
-                  <span className="text-sm font-semibold text-gray-900">{results.gpus_per_instance || 0}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-blue-200">
-                  <span className="text-sm text-gray-700">Model Instances per Server</span>
-                  <span className="text-sm font-semibold text-gray-900">{results.instances_per_server || 0}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-blue-200">
-                  <span className="text-sm text-gray-700">GPUs per Server</span>
-                  <span className="text-sm font-semibold text-blue-700">{(results.gpus_per_instance * results.instances_per_server || 0).toFixed(0)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-sm text-gray-700">KV per Session (GB)</span>
-                  <span className="text-sm font-semibold text-gray-900">{(results.kv_per_session_gb_opt || 0).toFixed(4)}</span>
-                </div>
-              </div>
+        <h3 className="text-lg font-medium text-gray-800 mb-1">GPU Memory per Instance</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          {results.gpus_per_instance || 0} GPU{(results.gpus_per_instance || 0) !== 1 ? 's' : ''} &times; {results.gpu_mem_gb || 0} GiB
+          &nbsp;= <span className="font-semibold text-gray-700">{fmt(totalMem, 1)} GiB total</span>
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center gap-6">
+          {/* Donut */}
+          <div className="relative w-52 h-52 flex-shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={memBreakdown}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={85}
+                  paddingAngle={2}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {memBreakdown.map((_, i) => (
+                    <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
+                  ))}
+                </Pie>
+                <RechartsTooltip
+                  formatter={(value) => `${value} GiB`}
+                  contentStyle={{ borderRadius: '8px', fontSize: '12px' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            {/* Center label */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-2xl font-bold text-gray-800">{fmt(totalMem, 1)}</span>
+              <span className="text-xs text-gray-500">GiB</span>
             </div>
           </div>
 
-          {/* Right Column - Performance & Capacity */}
-          <div className="space-y-4">
-            <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
-              <h4 className="text-sm font-semibold text-green-800 mb-3 flex items-center">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Performance & Capacity
-              </h4>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b border-green-200">
-                  <span className="text-sm text-gray-700">Sessions per Server</span>
-                  <span className="text-sm font-semibold text-gray-900">{results.sessions_per_server || 0}</span>
+          {/* Legend */}
+          <div className="space-y-3 flex-1 min-w-0">
+            {memBreakdown.map((item, i) => (
+              <div key={item.name} className="flex items-center gap-3">
+                <span
+                  className="w-3 h-3 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-sm text-gray-700">{item.name}</span>
+                    <span className="text-sm font-semibold text-gray-900 ml-2">{fmt(item.value, 2)} GiB</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1">
+                    <div
+                      className="h-1.5 rounded-full"
+                      style={{
+                        backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length],
+                        width: `${totalMem > 0 ? (item.value / totalMem) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-green-200">
-                  <span className="text-sm text-gray-700">RPS per Server</span>
-                  <span className="text-sm font-semibold text-gray-900">{(results.rps_per_server || 0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-sm text-gray-700">Total GPUs Required</span>
-                  <span className="text-base font-bold text-green-700">{(results.gpus_per_instance * results.instances_per_server || 0).toFixed(0)}</span>
-                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Detailed Results — tabbed */}
+      <div className="bg-white border rounded-lg p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-lg font-semibold text-gray-800">Detailed Results</h3>
+          <div className="inline-flex rounded-lg bg-gray-100 p-0.5">
+            <button
+              type="button"
+              onClick={() => setDetailTab('memory')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 ${
+                detailTab === 'memory'
+                  ? 'bg-white text-blue-700 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+              </svg>
+              Memory Path
+            </button>
+            <button
+              type="button"
+              onClick={() => setDetailTab('compute')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 ${
+                detailTab === 'compute'
+                  ? 'bg-white text-green-700 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Compute Path
+            </button>
+          </div>
+        </div>
+
+        {/* Memory Path */}
+        {detailTab === 'memory' && (
+          <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                <span className="text-sm text-gray-700">Tokens per Request (T)</span>
+                <span className="text-sm font-semibold text-gray-900">{fmt(results.T_tokens_per_request, 0)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                <span className="text-sm text-gray-700">Session Context (TS)</span>
+                <span className="text-sm font-semibold text-gray-900">{fmt(results.TS_session_context, 0)} tok</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                <span className="text-sm text-gray-700">Sequence Length (SL)</span>
+                <span className="text-sm font-semibold text-gray-900">{fmt(results.SL_sequence_length, 0)} tok</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                <span className="text-sm text-gray-700">Model Memory (Mmodel)</span>
+                <span className="text-sm font-semibold text-gray-900">{fmt(results.model_mem_gb)} GiB</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                <span className="text-sm text-gray-700">KV/Session (MKV)</span>
+                <span className="text-sm font-semibold text-gray-900">{fmt(results.kv_per_session_gb, 4)} GiB</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                <span className="text-sm text-gray-700">Free KV/Instance</span>
+                <span className="text-sm font-semibold text-gray-900">{fmt(results.kv_free_per_instance_gb)} GiB</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                <span className="text-sm text-gray-700">Sessions/Instance (base TP)</span>
+                <span className="text-sm font-semibold text-gray-900">{results.S_TP_base || 0}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                <span className="text-sm text-gray-700">Sessions/Instance (Z x TP)</span>
+                <span className="text-sm font-semibold text-gray-900">{results.S_TP_z || 0}</span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-sm text-gray-700 font-semibold">Servers by Memory</span>
+                <span className="text-sm font-bold text-blue-700">{results.servers_by_memory || 0}</span>
               </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Compute Path */}
+        {detailTab === 'compute' && (
+          <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2 border-b border-green-200">
+                <span className="text-sm text-gray-700">GPU TFLOPS (per GPU)</span>
+                <span className="text-sm font-semibold text-gray-900">{fmt(results.gpu_tflops_used)} TFLOPS</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-green-200">
+                <span className="text-sm text-gray-700">Fcount_model (per instance)</span>
+                <span className="text-sm font-semibold text-gray-900">{fmt(results.Fcount_model_tflops)} TFLOPS</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-green-200">
+                <span className="text-sm text-gray-700">FLOP/token (FPS)</span>
+                <span className="text-sm font-semibold text-gray-900">{fmt(results.FPS_flops_per_token)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-green-200">
+                <span className="text-sm text-gray-700">Decode Tokens (Tdec)</span>
+                <span className="text-sm font-semibold text-gray-900">{fmt(results.Tdec_tokens, 0)} tok</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-green-200">
+                <span className="text-sm text-gray-700">Prefill Throughput (Th_pf)</span>
+                <span className="text-sm font-semibold text-gray-900">{fmt(results.th_prefill)} tok/s</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-green-200">
+                <span className="text-sm text-gray-700">Decode Throughput (Th_dec)</span>
+                <span className="text-sm font-semibold text-gray-900">{fmt(results.th_decode)} tok/s</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-green-200">
+                <span className="text-sm text-gray-700">Requests/sec per Instance (Cmodel)</span>
+                <span className="text-sm font-semibold text-gray-900">{fmt(results.Cmodel_rps, 4)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-green-200">
+                <span className="text-sm text-gray-700">Server Throughput (Th_server)</span>
+                <span className="text-sm font-semibold text-gray-900">{fmt(results.th_server_comp, 4)} req/s</span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-sm text-gray-700 font-semibold">Servers by Compute</span>
+                <span className="text-sm font-bold text-green-700">{results.servers_by_compute || 0}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

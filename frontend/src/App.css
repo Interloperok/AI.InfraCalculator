@@ -67,6 +67,22 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
+/* Header icon — subtle breathing glow */
+@keyframes icon-glow {
+  0%, 100% {
+    box-shadow: 0 0 14px 3px rgba(147, 51, 234, 0.3),
+                0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 32px 10px rgba(147, 51, 234, 0.55),
+                0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.header-icon {
+  animation: icon-glow 4s ease-in-out infinite;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .grid {

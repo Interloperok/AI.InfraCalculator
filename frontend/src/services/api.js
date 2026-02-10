@@ -13,26 +13,25 @@ export const calculateServerRequirements = async (inputData) => {
     return response.data;
   } catch (error) {
     if (error.response) {
-      // Server responded with error status
       const status = error.response.status;
       const errorData = error.response.data;
-      
-      // Check for specific error messages from the backend
-      if (status === 500 && errorData && errorData.detail) {
-        // Return the specific error message from the backend
-        return { error: errorData.detail };
-      } else if (status === 500) {
-        // For 500 errors without specific detail, provide a general message
-        return { error: 'Internal Server Error: An error occurred on the server. Please check your parameters.' };
+
+      if (status === 422 && errorData && errorData.detail) {
+        // Pydantic validation error — parse field messages
+        const msgs = Array.isArray(errorData.detail)
+          ? errorData.detail.map(d => `${(d.loc || []).join('.')}: ${d.msg}`).join('; ')
+          : String(errorData.detail);
+        return { error: `Validation error: ${msgs}` };
       } else if (status === 400) {
-        // For other error statuses
-        return { error: `Calculation error: ${errorData.detail || error.response.statusText}` };
+        return { error: `Calculation error: ${errorData?.detail || error.response.statusText}` };
+      } else if (errorData && errorData.detail) {
+        return { error: String(errorData.detail) };
+      } else {
+        return { error: `Server error (${status}): ${error.response.statusText}` };
       }
     } else if (error.request) {
-      // Request was made but no response received
-      return { error: 'Network error: Unable to connect to the server. Please check your parameters.' };
+      return { error: 'Network error: Unable to connect to the server. Check that the backend is running.' };
     } else {
-      // Something else happened
       return { error: `Request error: ${error.message}` };
     }
   }

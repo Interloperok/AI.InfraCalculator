@@ -20,13 +20,15 @@ from models import (
     GPUInfo, GPUListResponse, GPUStats, GPURefreshResponse
 )
 
-# Модуль расчета мощностей для развертывания LLM
-# 
-# Методика расчета основана на следующих принципах:
-# 1. Память модели: расчет объема памяти для хранения параметров модели
-# 2. KV-кэш: расчет памяти для хранения ключей и значений внимания
-# 3. Вычислительная мощность: расчет количества запросов в секунду, которые можно обработать
-# 4. Масштабирование: определение количества серверов, необходимых для обслуживания пользователей
+# Модуль расчета мощностей для развертывания LLM (Методика v2)
+#
+# Методика расчета основана на документе:
+# «Методика расчета количества серверов и GPU для LLM-inference решений»
+#
+# Расчет выполняется по двум независимым ограничениям:
+# 1. По памяти GPU (веса модели и KV-кэш) — разделы 3-5
+# 2. По вычислительной пропускной способности (tokens/sec, requests/sec) — раздел 6
+# Итоговое количество серверов = max(серверы_по_памяти, серверы_по_compute)
 
 logger = logging.getLogger("sizing")
 handler = logging.StreamHandler()
@@ -36,248 +38,268 @@ logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
 
-def calc_total_active(iu, pin, cin, eu, pex, cex):
+# ═══════════════════════════════════════════════════════════
+# Section 2: Определение нагрузки
+# ═══════════════════════════════════════════════════════════
+
+def calc_Ssim(iu, pin, cin, eu, pex, cex, J):
     """
-    Расчет общего количества активных пользователей
-    
-    Формула: внутренние_пользователи * проникновение_внутр * конкурентность_внутр + 
-             внешние_пользователи * проникновение_внешн * конкурентность_внешн
-    
+    Раздел 2.1 — Пиковое кол-во одновременных сессий
+
+    Ssim = Nusers × Kpen × Ksim × J  (для каждого сегмента, затем сумма)
+
     Параметры:
-    - iu: количество внутренних пользователей
-    - pin: доля внутренних пользователей, использующих систему (проникновение)
-    - cin: среднее количество сессий на активного внутреннего пользователя
-    - eu: количество внешних пользователей
-    - pex: доля внешних пользователей, использующих систему (проникновение)
-    - cex: среднее количество сессий на активного внешнего пользователя
+    - iu, pin, cin: внутренние пользователи, проникновение, одновременность
+    - eu, pex, cex: внешние пользователи, проникновение, одновременность
+    - J: количество одновременных сессий на пользователя
     """
-    return iu * pin * cin + eu * pex * cex
+    return iu * pin * cin * J + eu * pex * cex * J
 
 
-def calc_tokens_per_request(P, A):
+def calc_T(SP, Prp, MRT, A):
     """
-    Расчет общего количества токенов в одном запросе
-    
-    Формула: токены_промпта + токены_ответа
-    
-    Параметры:
-    - P: количество токенов в промпте (prompt tokens)
-    - A: количество токенов в ответе (answer tokens)
+    Раздел 2.2 — Средняя общая длина запроса и ответа в токенах
+
+    T = SP + Prp + MRT + A
     """
-    return P + A
+    return SP + Prp + MRT + A
 
 
-def calc_required_rps(total_active, R):
+# ═══════════════════════════════════════════════════════════
+# Section 3: Память GPU
+# ═══════════════════════════════════════════════════════════
+
+def calc_model_mem_gb(params_b, bytes_per_param, overhead, emp_model):
     """
-    Расчет требуемого количества запросов в секунду (RPS)
-    
-    Формула: общее_количество_активных_пользователей * RPS_на_активного_пользователя
-    
-    Параметры:
-    - total_active: общее количество активных пользователей
-    - R: количество запросов в секунду на одного активного пользователя
+    Раздел 3.1 — Память, требуемая для весов модели (GiB)
+
+    Mmodel = (P × 10⁹ × Bquant / 1024³) × Koverhead × EMPmodel
     """
-    return total_active * R
+    return (params_b * 1e9 * bytes_per_param / (1024 ** 3)) * overhead * emp_model
 
 
-def calc_tokens_per_session(t, R, T):
+def calc_session_context_TS(SP, Prp, MRT, A, dialog_turns):
     """
-    Расчет общего количества токенов за сессию
-    
-    Формула: длительность_сессии_в_секундах * RPS_на_пользователя * токены_в_запросе
-    
-    Параметры:
-    - t: длительность сессии в секундах
-    - R: количество запросов в секунду на одного пользователя
-    - T: общее количество токенов в одном запросе (промпт + ответ)
-    
-    ВАЖНО: Это общее количество токенов (входящих и выходящих) за всю сессию
+    Раздел 3.2 — Прикидочная длина контекста в сессии
+
+    TS_prp5_s1 = SP + dialog_turns × (Prp + MRT + A)
+
+    Предполагается диалог длиной в dialog_turns сообщений (по умолчанию 5).
     """
-    return t * R * T
+    return SP + dialog_turns * (Prp + MRT + A)
 
 
-def calc_model_mem_gb(params_b, bytes_per_param, overhead):
+def calc_SL(TS, TSmax):
     """
-    Расчет объема памяти, необходимого для хранения модели в гигабайтах
-    
-    Формула: (параметры_в_млрд * 1_000_000_000 * байт_на_параметр * оверхед) / (1024^3)
-    
-    Параметры:
-    - params_b: количество параметров модели в миллиардах
-    - bytes_per_param: количество байт, необходимых для хранения одного параметра (обычно 2, 4 или 8 для FP16, FP32, FP64)
-    - overhead: коэффициент оверхеда (дополнительная память для оптимизатора, активаций и т.д.)
+    Раздел 3.2 — Длина последовательности контекстного окна
+
+    SL = min(TS, TSmax)
     """
-    return (params_b * 1_000_000_000 * bytes_per_param * overhead) / (1024 ** 3)
+    return min(TS, TSmax)
 
 
-def calc_gpus_per_instance(model_mem_gb, gpu_mem_gb):
+def calc_kv_per_session_gb(L, H, SL, bytes_state, emp_kv):
     """
-    Расчет количества GPU, необходимых для одного инстанса модели
-    
-    Формула: max(1, ceil(требуемая_память_модели / память_одного_GPU))
-    
-    Параметры:
-    - model_mem_gb: объем памяти, необходимый для модели в ГБ
-    - gpu_mem_gb: объем памяти одного GPU в ГБ
+    Раздел 3.2 — KV-кэш на 1 сессию (GiB)
+
+    MKV_s1 = 2 × L × H × SL × Bstate × EMPkv / 1024³
     """
-    import math
-    return max(1, math.ceil(model_mem_gb / gpu_mem_gb))
+    return (2 * L * H * SL * bytes_state * emp_kv) / (1024 ** 3)
+
+
+# ═══════════════════════════════════════════════════════════
+# Section 4: GPU и Tensor Parallelism
+# ═══════════════════════════════════════════════════════════
+
+def calc_gpus_per_instance(model_mem_gb, gpu_mem_gb, kavail):
+    """
+    Раздел 4.1 — Мин. кол-во GPU на 1 экземпляр модели
+
+    GPUcount_model = ⌈ Mmodel / (GPUmemory × Kavail) ⌉
+    """
+    return max(1, math.ceil(model_mem_gb / (gpu_mem_gb * kavail)))
 
 
 def calc_instances_per_server(gpus_per_server, gpus_per_instance):
     """
-    Расчет количества инстансов модели, которые можно разместить на одном сервере
-    
-    Формула: gpus_на_сервере // gpus_на_инстанс
-    
-    Параметры:
-    - gpus_per_server: количество GPU на одном сервере
-    - gpus_per_instance: количество GPU, необходимых для одного инстанса модели
+    Раздел 4.2 — Кол-во экземпляров модели на 1 сервер (без TP-множителя)
+
+    Ncount_model = ⌊ GPUcount_server / GPUcount_model ⌋
     """
     return max(0, gpus_per_server // gpus_per_instance)
 
 
-def calc_kv_per_session_gb_no_opt(L, H, TS, bytes_state, P=None):
+def calc_kv_free_per_instance_gb(gpus_per_instance, gpu_mem_gb, kavail, model_mem_gb):
     """
-    Расчет объема KV-кэша на сессию без оптимизаций в гигабайтах
-    
-    Формула: (2 * слои * размер_скрытого_состояния * токены_за_сессию * байт_на_состояние) / (1024^3)
-    Множитель 2 учитывает как Key, так и Value компоненты KV-кэша
-    
-    Важно: токены_за_сессию (TS) должны включать как токены промпта, так и токены генерации
-    Для точного расчета можно передать отдельно P (токены промпта) и A (токены ответа)
-    
-    Параметры:
-    - L: количество слоев в модели
-    - H: размер скрытого состояния (hidden size)
-    - TS: общее количество токенов за сессию (промпт + генерация)
-    - bytes_state: количество байт на элемент состояния (обычно 2 для FP16, 4 для FP32)
-    - P: количество токенов в промпте (опционально, для более точного расчета)
+    Раздел 4.3 — Свободная GPU-память под KV-кэш на 1 экземпляр модели (GiB)
+
+    GPUmemoryForKV_model = GPUcount_model × GPUmemory × Kavail − Mmodel
     """
-    return (2 * L * H * TS * bytes_state) / (1024 ** 3)
+    return max(0.0, gpus_per_instance * gpu_mem_gb * kavail - model_mem_gb)
 
 
-def calc_kv_per_session_gb_opt(kv_no_opt, Kopt):
+def calc_S_TP(kv_free_gb, kv_per_session_gb):
     """
-    Расчет объема KV-кэша на сессию с учетом оптимизаций
-    
-    Формула: KV_без_оптимизаций / коэффициент_оптимизации_KV (если > 0)
-    Используется, например, для учетаpaged attention или других методов сжатия KV-кэша
-    
-    Параметры:
-    - kv_no_opt: объем KV-кэша без оптимизаций
-    - Kopt: коэффициент оптимизации KV-кэша (paged attention gain, и т.д.)
+    Раздел 4.4 — Макс. теоретическое кол-во параллельных сессий при данном TP
+
+    S_TP=n = ⌊ GPUmemoryForKV_model / MKV_s1 ⌋
     """
-    return kv_no_opt / Kopt if Kopt > 0 else kv_no_opt
+    if kv_per_session_gb <= 0:
+        return 0
+    return int(kv_free_gb // kv_per_session_gb)
 
 
-def calc_kv_free_per_instance_gb(gpi, gpu_mem_gb, model_mem_gb, reserve):
+def calc_Kbatch(S_TP_z, S_TP_base, C):
     """
-    Расчет свободной памяти для KV-кэша на инстанс в гигабайтах
-    
-    Формула: max(0, (всего_памяти_на_инстанс * (1 - резерв_памяти)) - память_под_модель)
-    
-    Параметры:
-    - gpi: количество GPU на инстанс
-    - gpu_mem_gb: объем памяти одного GPU в ГБ
-    - model_mem_gb: объем памяти, занятый моделью в ГБ
-    - reserve: доля памяти, зарезервированная для других целей (0.1 означает 10% резерва)
+    Раздел 4.4 — Коэф. повышения пропускной способности за счёт TP и Batch Size
+
+    Kbatch = (S_TP_z / S_TP_base) × ((S_TP_base + C) / (S_TP_z + C))
+
+    При Z=1 → S_TP_z == S_TP_base → Kbatch = 1.0
     """
-    total = gpi * gpu_mem_gb * (1 - reserve)
-    return max(0.0, total - model_mem_gb)
+    if S_TP_base <= 0 or S_TP_z <= 0:
+        return 1.0
+    return (S_TP_z / S_TP_base) * ((S_TP_base + C) / (S_TP_z + C))
 
 
-def calc_sessions_per_instance(kv_free_gb, kv_per_session_gb_opt):
+# ═══════════════════════════════════════════════════════════
+# Section 5: Серверы по памяти
+# ═══════════════════════════════════════════════════════════
+
+def calc_instances_per_server_tp(gpus_per_server, gpus_per_instance, Z):
     """
-    Расчет количества сессий, которые можно обслуживать на одном инстансе
-    
-    Формула: max(0, свободная_память_для_KV // KV_на_сессию_с_оптимизациями)
-    
-    Параметры:
-    - kv_free_gb: свободная память для KV-кэша на инстанс в ГБ
-    - kv_per_session_gb_opt: объем KV-кэша на сессию с оптимизациями в ГБ
+    Раздел 5.1 — Кол-во экземпляров модели на 1 сервер с учётом TP
+
+    NcountTP_model = ⌊ GPUcount_server / (Z × GPUcount_model) ⌋
     """
-    return 0 if kv_per_session_gb_opt <= 0 else max(0, int(kv_free_gb // kv_per_session_gb_opt))
+    total_gpus_per_instance_tp = Z * gpus_per_instance
+    if total_gpus_per_instance_tp <= 0:
+        return 0
+    return gpus_per_server // total_gpus_per_instance_tp
 
 
-def calc_servers_by_memory(total_active, sessions_per_server):
+def calc_sessions_per_server(NcountTP, S_TP_z):
     """
-    Расчет количества серверов, необходимых по ограничению памяти
-    
-    Формула: ceil(всего_активных_пользователей / сессий_на_сервер)
-    
-    Параметры:
-    - total_active: общее количество активных пользователей
-    - sessions_per_server: количество сессий, которые можно обслуживать на одном сервере
+    Раздел 5.1 — Кол-во сессий, одновременно поддерживаемых сервером
+
+    Sserver = NcountTP_model × S_TP_z
     """
-    import math
-    return math.ceil(total_active / sessions_per_server) if sessions_per_server > 0 else math.inf
+    return NcountTP * S_TP_z
 
 
-def calc_rps_per_instance(tps_per_instance, T):
+def calc_servers_by_memory(Ssim, Sserver):
     """
-    Расчет RPS (запросов в секунду), поддерживаемых одним инстансом
-    
-    Формула: tps_на_инстанс / токены_в_запросе (если T > 0)
-    Это показывает, сколько запросов в секунду может обработать один инстанс модели
-    
-    Параметры:
-    - tps_per_instance: количество токенов в секунду, которое может обработать один инстанс
-    - T: общее количество токенов в одном запросе (промпт + ответ)
-    
-    ВАЖНО: Это упрощенная модель, предполагающая, что время обработки запроса
-    пропорционально количеству токенов в запросе. В реальности могут потребоваться
-    более сложные модели, учитывающие время на обработку промпта и генерацию отдельно
+    Раздел 5.2 — Число серверов по памяти
+
+    Servers_mem = ⌈ Ssim / Sserver ⌉
     """
-    return 0.0 if T <= 0 else tps_per_instance / T
+    if Sserver <= 0:
+        return math.inf
+    return math.ceil(Ssim / Sserver)
 
 
-def calc_rps_per_server(rps_instance, instances_per_server, batching_coeff):
+# ═══════════════════════════════════════════════════════════
+# Section 6: Серверы по вычислительной пропускной способности
+# ═══════════════════════════════════════════════════════════
+
+def calc_FPS(params_billions):
     """
-    Расчет RPS (запросов в секунду), поддерживаемых одним сервером
-    
-    Формула: rps_на_инстанс * инстансов_на_сервер * коэффициент_батчинга
-    Учитывает, что батчинг может увеличить пропускную способность сервера
-    
-    Параметры:
-    - rps_instance: количество запросов в секунду, поддерживаемых одним инстансом
-    - instances_per_server: количество инстансов на одном сервере
-    - batching_coeff: коэффициент улучшения производительности за счет батчинга
+    Раздел 6.1 — Число FLOP на 1 токен (базовая оценка)
+
+    FPS = 2 × P × 10⁹
     """
-    return rps_instance * instances_per_server * batching_coeff
+    return 2 * params_billions * 1e9
 
 
-def calc_servers_by_compute(required_rps, rps_per_server, sla_reserve):
+def calc_Tdec(A, MRT):
     """
-    Расчет количества серверов, необходимых по ограничению вычислительной мощности
-    
-    Формула: ceil((требуемый_RPS / rps_на_сервер) * резерв_SLA)
-    Учитывает необходимость резервирования мощности для соблюдения SLA
-    
-    Параметры:
-    - required_rps: требуемое количество запросов в секунду
-    - rps_per_server: количество запросов в секунду, поддерживаемых одним сервером
-    - sla_reserve: коэффициент резервирования для обеспечения SLA (например, 1.2 для 20% резерва)
+    Раздел 6.1 — Число токенов, генерируемых в фазе decode на 1 запрос
+
+    Tdec = A + MRT
     """
-    import math
-    if rps_per_server <= 0: return math.inf
-    return math.ceil((required_rps / rps_per_server) * sla_reserve)
+    return A + MRT
+
+
+def calc_th_prefill_analyt(Fcount_model_flops, eta_pf, Kbatch, FPS, L, H, SL):
+    """
+    Раздел 6.1 — Аналитический throughput фазы prefill (tokens/sec)
+
+    Th_pf_analyt ≈ (Fcount_model × η_pf × Kbatch) / (FPS + 4 × L × H × SL)
+    """
+    denominator = FPS + 4 * L * H * SL
+    if denominator <= 0 or Fcount_model_flops <= 0:
+        return 0.0
+    return (Fcount_model_flops * eta_pf * Kbatch) / denominator
+
+
+def calc_th_decode_analyt(Fcount_model_flops, eta_dec, Kbatch, FPS, L, H, SL, Tdec):
+    """
+    Раздел 6.1 — Аналитический throughput фазы decode (tokens/sec)
+
+    Th_dec_analyt ≈ (Fcount_model × η_dec × Kbatch) / (FPS + 4 × L × H × (SL + (Tdec−1)/2))
+    """
+    denominator = FPS + 4 * L * H * (SL + (Tdec - 1) / 2)
+    if denominator <= 0 or Fcount_model_flops <= 0:
+        return 0.0
+    return (Fcount_model_flops * eta_dec * Kbatch) / denominator
+
+
+def calc_Cmodel(TS, th_pf, Tdec, th_dec):
+    """
+    Раздел 6.2 — Среднее число запросов/сек на 1 экземпляр модели
+
+    Cmodel = 1 / (TS / Th_pf + Tdec / Th_dec)
+    """
+    if th_pf <= 0 or th_dec <= 0:
+        return 0.0
+    time_per_request = TS / th_pf + Tdec / th_dec
+    if time_per_request <= 0:
+        return 0.0
+    return 1.0 / time_per_request
+
+
+def calc_th_server_comp(Ncount_model, Cmodel):
+    """
+    Раздел 6.3 — Итоговая пропускная способность одного сервера (req/sec)
+
+    Th_server_comp = Ncount_model × Cmodel
+    """
+    return Ncount_model * Cmodel
+
+
+def calc_servers_by_compute(Ssim, R, KSLA, th_server_comp):
+    """
+    Раздел 6.4 — Число серверов по пропускной способности
+
+    Servers_comp = ⌈ (Ssim × R × KSLA) / Th_server_comp ⌉
+    """
+    if th_server_comp <= 0:
+        return math.inf
+    return math.ceil((Ssim * R * KSLA) / th_server_comp)
 
 
 # GPU Data Management
 def refresh_gpu_data_internal():
     """Внутренняя функция для обновления данных GPU"""
+    import sys
+    import io
     try:
-        logger.info("🔄 Начинаем обновление данных GPU...")
-        from gpu_scraper import main as scrape_gpus
+        logger.info("Начинаем обновление данных GPU...")
+        # На Windows stdout может не поддерживать UTF-8 emoji из скрапера.
+        # Перенаправляем в StringIO, чтобы не трогать sys.stdout.buffer
+        # (TextIOWrapper закрывает buffer при GC, ломая логгер).
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        try:
+            from gpu_scraper import main as scrape_gpus
+            scrape_gpus()
+        finally:
+            sys.stdout = old_stdout
 
-        # Запускаем скрапер
-        scrape_gpus()
-
-        logger.info("✅ Данные GPU успешно обновлены")
+        logger.info("Данные GPU успешно обновлены")
         return True
     except Exception as e:
-        logger.error(f"❌ Ошибка при обновлении данных GPU: {e}")
+        logger.error(f"Ошибка при обновлении данных GPU: {e}")
         return False
 
 
@@ -305,173 +327,282 @@ def start_scheduler():
     return scheduler
 
 
-def run_sizing(inp: SizingInput) -> SizingOutput:
-    # Проверка входных данных на корректность
-    if inp.params_billions <= 0:
-        raise ValueError("Количество параметров модели должно быть положительным")
-    if inp.gpu_mem_gb <= 0:
-        raise ValueError("Объем памяти GPU должен быть положительным")
-    if inp.gpus_per_server <= 0:
-        raise ValueError("Количество GPU на сервере должно быть положительным")
-    if inp.bytes_per_param <= 0:
-        raise ValueError("Количество байт на параметр должно быть положительным")
-    if inp.overhead_factor <= 0:
-        raise ValueError("Коэффициент оверхеда должен быть положительным")
-    if inp.paged_attention_gain_Kopt < 0:
-        raise ValueError("Коэффициент оптимизации KV-кэша не может быть отрицательным")
-    if inp.mem_reserve_fraction < 0 or inp.mem_reserve_fraction >= 1:
-        raise ValueError("Доля резервируемой памяти должна быть в диапазоне [0, 1)")
-    if inp.sla_reserve <= 0:
-        raise ValueError("Коэффициент резервирования SLA должен быть положительным")
-    if inp.batching_coeff <= 0:
-        raise ValueError("Коэффициент батчинга должен быть положительным")
-    if inp.tps_per_instance <= 0:
-        raise ValueError("TPS на инстанс должен быть положительным")
+def _parse_tflops_value(raw) -> float:
+    """
+    Разбор значения TFLOPS из GPU-каталога.
 
-    # Загружаем данные о GPU для получения TFLOPS
+    Значение может быть числом (312.0), строкой с одним числом ("312.0"),
+    строкой с base/boost ("10.48 12.90") — берём максимум (boost).
+    """
+    if raw is None:
+        return 0.0
+    try:
+        return float(raw)
+    except (ValueError, TypeError):
+        pass
+    s = str(raw).strip()
+    parts = s.replace(",", " ").split()
+    values = []
+    for p in parts:
+        try:
+            values.append(float(p))
+        except ValueError:
+            continue
+    return max(values) if values else 0.0
+
+
+def _extract_gpu_tflops(gpu_info: dict) -> float:
+    """
+    Извлечь наиболее подходящее значение TFLOPS для LLM-инференса из записи GPU.
+
+    Приоритет (от лучшего к худшему):
+    1. Half precision Tensor Core (напр. A100 → 312 TFLOPS)
+    2. Tensor compute FP16
+    3. BFloat16
+    4. Half precision (generic)
+    5. Single precision (FP32)
+    6. Любое поле с «TFLOPS»
+    """
+    priority_keywords = [
+        ("Half precision Tensor Core", "TFLOPS"),
+        ("Tensor compute (FP16)", "TFLOPS"),
+        ("Tensor compute FP16", "TFLOPS"),
+        ("Tensor", "TFLOPS"),
+        ("Bfloat16", "TFLOPS"),
+        ("Half precision", "TFLOPS"),
+        ("Half", "TFLOPS"),
+        ("XMX Half", "TFLOPS"),
+        ("Single precision", "TFLOPS"),
+        ("Single", "TFLOPS"),
+    ]
+
+    for keyword, unit in priority_keywords:
+        for key, value in gpu_info.items():
+            if unit in key and keyword in key:
+                v = _parse_tflops_value(value)
+                if v > 0:
+                    return v
+
+    # Фоллбэк: GFLOPS → TFLOPS
+    gflops_priority = [
+        ("Tensor compute (FP16)", "GFLOPS"),
+        ("Half precision", "GFLOPS"),
+        ("Half", "GFLOPS"),
+        ("Single precision", "GFLOPS"),
+        ("Single", "GFLOPS"),
+    ]
+    for keyword, unit in gflops_priority:
+        for key, value in gpu_info.items():
+            if unit in key and keyword in key:
+                v = _parse_tflops_value(value)
+                if v > 0:
+                    return v / 1000.0  # GFLOPS → TFLOPS
+
+    # Последний фоллбэк: любое поле с TFLOPS/GFLOPS
+    for key, value in gpu_info.items():
+        if "TFLOPS" in key:
+            v = _parse_tflops_value(value)
+            if v > 0:
+                return v
+    for key, value in gpu_info.items():
+        if "GFLOPS" in key:
+            v = _parse_tflops_value(value)
+            if v > 0:
+                return v / 1000.0
+
+    # Vector TFLOPS FP16
+    for key, value in gpu_info.items():
+        k_upper = key.upper()
+        if "TFLOPS" in k_upper and ("FP16" in k_upper or "HALF" in k_upper):
+            v = _parse_tflops_value(value)
+            if v > 0:
+                return v
+
+    return 0.0
+
+
+def _lookup_gpu_tflops(gpu_id, gpu_mem_gb):
+    """
+    Поиск TFLOPS GPU из каталога gpu_data.json.
+
+    Для LLM-инференса ищем Half Precision / Tensor Core TFLOPS
+    (например, 312 TFLOPS для A100, а НЕ 9.7 Double Precision).
+    """
     import os
-    import json
     gpu_data_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
     try:
         with open(gpu_data_path, "r", encoding="utf-8") as f:
             gpu_data = json.load(f)
-    except FileNotFoundError:
-        raise FileNotFoundError("Файл gpu_data.json не найден")
-    except json.JSONDecodeError:
-        raise ValueError("Файл gpu_data.json содержит некорректный JSON")
-    
-    # Ищем GPU по ID, если он предоставлен, иначе по объему памяти
+    except (FileNotFoundError, json.JSONDecodeError):
+        return 0.0
+
     target_gpu = None
-    if inp.gpu_id and inp.gpu_id in gpu_data:
-        target_gpu = gpu_data[inp.gpu_id]
+    if gpu_id and gpu_id in gpu_data:
+        target_gpu = gpu_data[gpu_id]
     else:
-        # Ищем GPU по объему памяти как резервный вариант
-        for gpu_id, gpu_info in gpu_data.items():
-            if gpu_info.get("Memory_GB") == inp.gpu_mem_gb or gpu_info.get("Memory Size (MiB)") == inp.gpu_mem_gb * 1024:
-                target_gpu = gpu_info
+        for gid, ginfo in gpu_data.items():
+            mem = ginfo.get("Memory_GB", 0)
+            if mem and float(mem) == float(gpu_mem_gb):
+                target_gpu = ginfo
                 break
 
-    # Если GPU не найден, используем 0 для throughput
-    tflops_dp = 0
-    if target_gpu:
-        # Ищем значение TFLOPS Double precision
-        # Поле может называться по-разному в разных GPU
-        tflops_fields = ["TFLOPS_DP", "TFLOPS (Double Precision)", "Double Precision (TFLOPS)", "TFLOPS_Double", "TFLOPS"]
-        for field in tflops_fields:
-            if field in target_gpu:
-                try:
-                    tflops_dp = float(target_gpu[field])
-                    break
-                except (ValueError, TypeError):
-                    continue
-        # Если не нашли в этих полях, проверим общее поле
-        if tflops_dp == 0:
-            # Ищем любое поле, которое содержит TFLOPS
-            for key, value in target_gpu.items():
-                if "TFLOPS" in key.upper() and "DOUBLE" in key.upper():
-                    try:
-                        tflops_dp = float(value)
-                        break
-                    except (ValueError, TypeError):
-                        continue
-                elif "TFLOPS" in key.upper() and tflops_dp == 0:  # Общее значение TFLOPS, если нет Double Precision
-                    try:
-                        tflops_dp = float(value)
-                        break
-                    except (ValueError, TypeError):
-                        continue
+    if not target_gpu:
+        return 0.0
 
-    # 1. Расчет общего количества активных пользователей
-    total_active = calc_total_active(inp.internal_users, inp.penetration_internal, inp.concurrency_internal,
-                                     inp.external_users, inp.penetration_external, inp.concurrency_external)
+    return _extract_gpu_tflops(target_gpu)
 
-    # 2. Расчет общего количества токенов в одном запросе (промпт + ответ)
-    T = calc_tokens_per_request(inp.prompt_tokens_P, inp.answer_tokens_A)
 
-    # 3. Расчет требуемого количества запросов в секунду (RPS)
-    required_rps = calc_required_rps(total_active, inp.rps_per_active_user_R)
+def run_sizing(inp: SizingInput) -> SizingOutput:
+    """
+    Главный pipeline расчёта — Методика v2
 
-    # 4. Расчет общего количества токенов за сессию
-    TS = calc_tokens_per_session(inp.session_duration_sec_t, inp.rps_per_active_user_R, T)
+    Выполняет расчёт по двум независимым ограничениям:
+    - по памяти GPU (разделы 3-5)
+    - по вычислительной пропускной способности (раздел 6)
+    Итог: max(серверы_по_памяти, серверы_по_compute)
+    """
 
-    # 5. Расчет объема памяти, необходимого для хранения модели
-    model_mem_gb = calc_model_mem_gb(inp.params_billions, inp.bytes_per_param, inp.overhead_factor)
+    # ── Section 2.1: Ssim — пиковое кол-во одновременных сессий ──
+    Ssim = calc_Ssim(
+        inp.internal_users, inp.penetration_internal, inp.concurrency_internal,
+        inp.external_users, inp.penetration_external, inp.concurrency_external,
+        inp.sessions_per_user_J
+    )
 
-    # 6. Расчет количества GPU, необходимых для одного инстанса модели
-    gpus_per_instance = calc_gpus_per_instance(model_mem_gb, inp.gpu_mem_gb)
+    # ── Section 2.2: T — общая длина запроса и ответа в токенах ──
+    T = calc_T(inp.system_prompt_tokens_SP, inp.user_prompt_tokens_Prp,
+               inp.reasoning_tokens_MRT, inp.answer_tokens_A)
 
-    # 7. Расчет количества инстансов модели, которые можно разместить на одном сервере
-    instances_per_server = calc_instances_per_server(inp.gpus_per_server, gpus_per_instance)
+    # ── Section 3.1: Mmodel — память для весов модели ──
+    Mmodel = calc_model_mem_gb(inp.params_billions, inp.bytes_per_param,
+                               inp.overhead_factor, inp.emp_model)
 
-    # 8. Расчет объема KV-кэша на сессию без оптимизаций
-    # TS (токены за сессию) включает как токены промпта, так и токены генерации
-    kv_no_opt = calc_kv_per_session_gb_no_opt(inp.layers_L, inp.hidden_size_H, TS, inp.bytes_per_kv_state)
+    # ── Section 3.2: KV-кэш на 1 сессию ──
+    TS = calc_session_context_TS(inp.system_prompt_tokens_SP, inp.user_prompt_tokens_Prp,
+                                  inp.reasoning_tokens_MRT, inp.answer_tokens_A,
+                                  inp.dialog_turns)
+    SL = calc_SL(TS, inp.max_context_window_TSmax)
+    MKV = calc_kv_per_session_gb(inp.layers_L, inp.hidden_size_H, SL,
+                                  inp.bytes_per_kv_state, inp.emp_kv)
 
-    # 9. Расчет объема KV-кэша на сессию с учетом оптимизаций (например, paged attention)
-    kv_opt = calc_kv_per_session_gb_opt(kv_no_opt, inp.paged_attention_gain_Kopt)
+    # ── Section 4.1: GPU на 1 экземпляр модели ──
+    GPUcount_model = calc_gpus_per_instance(Mmodel, inp.gpu_mem_gb, inp.kavail)
 
-    # 10. Расчет свободной памяти для KV-кэша на инстанс
-    kv_free = calc_kv_free_per_instance_gb(gpus_per_instance, inp.gpu_mem_gb, model_mem_gb, inp.mem_reserve_fraction)
+    # ── Section 4.2: Экземпляры на сервер (без TP-множителя) ──
+    Ncount_model = calc_instances_per_server(inp.gpus_per_server, GPUcount_model)
 
-    # 11. Расчет количества сессий, которые можно обслуживать на одном инстансе
-    sessions_per_instance = calc_sessions_per_instance(kv_free, kv_opt)
+    # ── Section 4.3: Свободная память для KV на базовом TP ──
+    kv_free_base = calc_kv_free_per_instance_gb(GPUcount_model, inp.gpu_mem_gb,
+                                                 inp.kavail, Mmodel)
 
-    # 12. Расчет количества сессий, которые можно обслуживать на одном сервере
-    sessions_per_server = sessions_per_instance * instances_per_server
+    # ── Section 4.4: Параллельные сессии и Kbatch ──
+    S_TP_base = calc_S_TP(kv_free_base, MKV)
 
-    # 13. Расчет количества серверов, необходимых по ограничению памяти
-    servers_mem = calc_servers_by_memory(total_active, sessions_per_server)
+    # Расчёт для Z × GPUcount_model GPU (с TP-множителем)
+    Z = inp.tp_multiplier_Z
+    GPUcount_z = Z * GPUcount_model
+    kv_free_z = calc_kv_free_per_instance_gb(GPUcount_z, inp.gpu_mem_gb,
+                                              inp.kavail, Mmodel)
+    S_TP_z = calc_S_TP(kv_free_z, MKV)
+
+    Kbatch = calc_Kbatch(S_TP_z, S_TP_base, inp.saturation_coeff_C)
+
+    # ── Section 5.1: Пропускная способность сервера по памяти ──
+    NcountTP = calc_instances_per_server_tp(inp.gpus_per_server, GPUcount_model, Z)
+    Sserver = calc_sessions_per_server(NcountTP, S_TP_z)
+
+    # ── Section 5.2: Серверы по памяти ──
+    servers_mem = calc_servers_by_memory(Ssim, Sserver)
     if servers_mem is math.inf:
-        raise HTTPException(status_code=400, detail="increase GPU memory or reduce KV/session.")
+        raise HTTPException(
+            status_code=400,
+            detail="Невозможно разместить сессии по памяти. "
+                   "Увеличьте память GPU, уменьшите контекст или уменьшите KV/сессию."
+        )
 
-    # 14. Расчет RPS, поддерживаемых одним инстансом
-    rps_instance = calc_rps_per_instance(inp.tps_per_instance, T)
+    # ── Section 6.1: Throughput per instance ──
+    FPS = calc_FPS(inp.params_billions)
+    Tdec = calc_Tdec(inp.answer_tokens_A, inp.reasoning_tokens_MRT)
 
-    # 15. Расчет RPS, поддерживаемых одним сервером
-    rps_server = calc_rps_per_server(rps_instance, instances_per_server, inp.batching_coeff)
+    # Определяем Fcount_model (FLOPS для GPU, выделенных под 1 экземпляр модели)
+    gpu_tflops = inp.gpu_flops_Fcount
+    if gpu_tflops is None:
+        gpu_tflops = _lookup_gpu_tflops(inp.gpu_id, inp.gpu_mem_gb)
+    Fcount_model_flops = gpu_tflops * 1e12 * GPUcount_model if gpu_tflops > 0 else 0.0
 
-    # 16. Расчет количества серверов, необходимых по ограничению вычислительной мощности
-    servers_comp = calc_servers_by_compute(required_rps, rps_server, inp.sla_reserve)
+    # Аналитические throughput (с учётом Kbatch)
+    th_pf_analyt = calc_th_prefill_analyt(Fcount_model_flops, inp.eta_prefill, Kbatch,
+                                           FPS, inp.layers_L, inp.hidden_size_H, SL)
+    th_dec_analyt = calc_th_decode_analyt(Fcount_model_flops, inp.eta_decode, Kbatch,
+                                           FPS, inp.layers_L, inp.hidden_size_H, SL, Tdec)
+
+    # Приоритет: эмпирические значения > аналитические
+    th_pf = inp.th_prefill_empir if inp.th_prefill_empir else th_pf_analyt
+    th_dec = inp.th_decode_empir if inp.th_decode_empir else th_dec_analyt
+
+    # ── Section 6.2: Cmodel — req/sec на 1 экземпляр ──
+    # Используем SL (= min(TS, TSmax)), а не TS: prefill обрабатывает
+    # не более SL токенов (ограничено контекстным окном модели).
+    Cmodel = calc_Cmodel(SL, th_pf, Tdec, th_dec)
+
+    # ── Section 6.3: Пропускная способность сервера по compute ──
+    # Методика v2, раздел 6.3: Th_server_comp = Ncount_model × Cmodel
+    # Используется Ncount_model из раздела 4.2 (без учёта TP-множителя Z).
+    # Итоговое количество серверов = max(по памяти, по compute),
+    # поэтому при Z > 1 ограничение по памяти (NcountTP) доминирует.
+    th_server = calc_th_server_comp(Ncount_model, Cmodel)
+
+    # ── Section 6.4: Серверы по compute ──
+    servers_comp = calc_servers_by_compute(Ssim, inp.rps_per_session_R,
+                                           inp.sla_reserve_KSLA, th_server)
     if servers_comp is math.inf:
-        raise HTTPException(status_code=400, detail="RPS per server is zero - check TPS per instance / T / instances per server.")
+        raise HTTPException(
+            status_code=400,
+            detail="Пропускная способность сервера = 0. "
+                   "Проверьте TFLOPS GPU, throughput или кол-во экземпляров на сервер."
+        )
 
-    # 17. Окончательное количество серверов - максимальное из требований по памяти и вычислениям
+    # ── Section 7: Итоговое количество серверов ──
     servers_final = max(servers_mem, servers_comp)
 
-    # Рассчитываем throughput по формуле: (TFLOPS * 10^12 * 0.2) / (2 * P * 10^9)
-    # где P - количество параметров в миллиардах (params_billions)
-    if tflops_dp > 0 and inp.params_billions > 0:
-        flops = tflops_dp * 1e12  # TFLOPS в FLOPS
-        eta = 0.2  # показатель eta
-        params = inp.params_billions * 1e9  # миллиарды параметров в штуки
-        throughput = (flops * eta) / (2 * params)
-    else:
-        throughput = 0.0
-
     return SizingOutput(
-        total_active_users=total_active,
+        # Section 2
+        Ssim_concurrent_sessions=Ssim,
         T_tokens_per_request=T,
-        required_RPS=required_rps,
-        tokens_per_session_TS=TS,
-        model_mem_gb=model_mem_gb,
-        gpus_per_instance=gpus_per_instance,
-        instances_per_server=instances_per_server,
-        kv_per_session_gb_no_opt=kv_no_opt,
-        kv_per_session_gb_opt=kv_opt,
-        kv_free_per_instance_gb=kv_free,
-        sessions_per_instance=sessions_per_instance,
-        sessions_per_server=sessions_per_server,
+        # Section 3
+        model_mem_gb=Mmodel,
+        TS_session_context=TS,
+        SL_sequence_length=SL,
+        kv_per_session_gb=MKV,
+        # Section 4
+        gpus_per_instance=GPUcount_model,
+        instances_per_server=Ncount_model,
+        kv_free_per_instance_gb=kv_free_base,
+        S_TP_base=S_TP_base,
+        S_TP_z=S_TP_z,
+        Kbatch=Kbatch,
+        instance_total_mem_gb=round(GPUcount_z * inp.gpu_mem_gb, 2),
+        kv_free_per_instance_tp_gb=round(kv_free_z, 4),
+        # Section 5
+        instances_per_server_tp=NcountTP,
+        sessions_per_server=Sserver,
         servers_by_memory=servers_mem,
-        rps_per_instance=rps_instance,
-        rps_per_server=rps_server,
+        # Section 6
+        gpu_tflops_used=gpu_tflops,
+        Fcount_model_tflops=gpu_tflops * GPUcount_model if gpu_tflops > 0 else 0.0,
+        FPS_flops_per_token=FPS,
+        Tdec_tokens=Tdec,
+        th_prefill=th_pf,
+        th_decode=th_dec,
+        Cmodel_rps=Cmodel,
+        th_server_comp=th_server,
         servers_by_compute=servers_comp,
+        # Section 7
         servers_final=servers_final,
-        # Добавляем значения из входных данных
+        # Context
         gpu_id=inp.gpu_id,
         gpu_mem_gb=inp.gpu_mem_gb,
-        mem_reserve_fraction=inp.mem_reserve_fraction,
-        # Добавляем рассчитанный throughput
-        throughput=throughput,
+        gpus_per_server=inp.gpus_per_server,
     )
 
 
@@ -771,7 +902,8 @@ def get_gpus(
             recommended_gpus_per_server=_get_recommended_gpus_per_server(gpu_info),
             estimated_tps_per_instance=_get_estimated_tps(gpu_info),
             full_name=full_name,
-            tdp_watts=tdp_watts
+            tdp_watts=tdp_watts,
+            tflops=_extract_gpu_tflops(gpu_info) or None,
         )
         filtered_gpus.append(gpu)
 
@@ -858,7 +990,8 @@ def get_gpu_details(gpu_id: str):
         recommended_gpus_per_server=_get_recommended_gpus_per_server(gpu_info),
         estimated_tps_per_instance=_get_estimated_tps(gpu_info),
         full_name=full_name,
-        tdp_watts=tdp_watts
+        tdp_watts=tdp_watts,
+        tflops=_extract_gpu_tflops(gpu_info) or None,
     )
 
 
