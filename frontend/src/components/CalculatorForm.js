@@ -660,7 +660,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
         {renderSliderInput('internal_users', 'Total Users', 0, 1000000, 1000, formData.internal_users, '', 'Total number of internal users who may access the AI service.')}
       </div>
 
-      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+      <div className="bg-green-50 rounded-lg p-4 border border-green-200" data-tour="model-search">
         <h3 className="text-lg font-medium text-green-800 mb-4 flex items-center">
           Model
           <SectionTooltip text="Search for a model on Hugging Face to auto-fill architecture parameters, or set them manually in the Advanced tab." />
@@ -734,7 +734,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
         )}
       </div>
 
-      <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+      <div className="bg-purple-50 rounded-lg p-4 border border-purple-200" data-tour="gpu-search">
         <h3 className="text-lg font-medium text-purple-800 mb-4 flex items-center">
           Hardware
           <SectionTooltip text="Choose the GPU accelerator and server layout. Memory and TFLOPS are auto-filled from the GPU catalog." />
@@ -920,7 +920,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
       <h2 className="text-2xl font-semibold text-gray-800 mb-6">Configuration Parameters</h2>
 
       {/* Presets */}
-      <div className="mb-4">
+      <div className="mb-4" data-tour="presets">
         <label className="block text-sm font-medium text-gray-600 mb-2">Quick Presets</label>
         <div className="flex flex-wrap gap-2">
           {PRESETS.map((preset) => (
@@ -941,6 +941,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
       <div className="flex border-b border-gray-200">
         <button
           type="button"
+          data-tour="basic-tab"
           className={`py-2 px-4 font-medium text-sm ${
             activeTab === 'basic'
               ? 'text-blue-600 border-b-2 border-blue-600'
@@ -952,6 +953,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
         </button>
         <button
           type="button"
+          data-tour="advanced-tab"
           className={`py-2 px-4 font-medium text-sm ${
             activeTab === 'advanced'
               ? 'text-gray-600 border-b-2 border-gray-600 bg-gray-50'
@@ -972,11 +974,12 @@ const CalculatorForm = ({ onSubmit, loading }) => {
       {/* Calculate button */}
       <button
         type="submit"
+        data-tour="calculate-btn"
         disabled={loading}
         className={`w-full py-3 px-4 rounded-lg font-semibold text-lg transition-colors ${
           loading
             ? 'bg-blue-300 text-white cursor-not-allowed'
-            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
+            : 'bg-blue-600 text-white hover:bg-blue-700 calc-btn-glow'
         }`}
       >
         {loading ? (

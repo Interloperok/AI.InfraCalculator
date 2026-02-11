@@ -94,7 +94,7 @@ const ResultsDisplay = ({ results, loading, error }) => {
       </div>
 
       {/* ── 3 Key Metric Cards ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-tour="result-cards">
 
         {/* Card 1 — Servers Required */}
         <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-6 text-white shadow-lg flex flex-col min-h-[170px]">
@@ -180,7 +180,7 @@ const ResultsDisplay = ({ results, loading, error }) => {
       </div>
 
       {/* GPU Memory Donut Chart */}
-      <div className="bg-white border rounded-lg p-6">
+      <div className="bg-white border rounded-lg p-6" data-tour="donut-chart">
         <h3 className="text-lg font-medium text-gray-800 mb-1">GPU Memory per Instance</h3>
         <p className="text-sm text-gray-500 mb-4">
           {results.gpus_per_instance || 0} GPU{(results.gpus_per_instance || 0) !== 1 ? 's' : ''} &times; {results.gpu_mem_gb || 0} GiB
@@ -249,7 +249,7 @@ const ResultsDisplay = ({ results, loading, error }) => {
       </div>
 
       {/* Detailed Results — tabbed */}
-      <div className="bg-white border rounded-lg p-6">
+      <div className="bg-white border rounded-lg p-6" data-tour="detail-toggle">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-semibold text-gray-800">Detailed Results</h3>
           <div className="inline-flex rounded-lg bg-gray-100 p-0.5">

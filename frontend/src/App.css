@@ -83,6 +83,31 @@ input[type="range"]::-moz-range-thumb {
   animation: icon-glow 4s ease-in-out infinite;
 }
 
+/* Calculate button — subtle breathing glow */
+@keyframes calc-glow {
+  0%, 100% {
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2),
+                0 0 12px 2px rgba(37, 99, 235, 0.15);
+  }
+  50% {
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3),
+                0 0 28px 8px rgba(37, 99, 235, 0.35);
+  }
+}
+
+.calc-btn-glow {
+  animation: calc-glow 3s ease-in-out infinite;
+}
+
+/* Docs drawer — slide in from right */
+@keyframes drawer-slide-in {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.docs-drawer {
+  animation: drawer-slide-in 0.3s ease-out;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .grid {
