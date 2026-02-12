@@ -3,7 +3,9 @@ from __future__ import annotations
 import math
 import logging
 import json
+import os
 import re
+import io
 
 import pandas as pd
 from datetime import datetime
@@ -12,6 +14,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 # Import models from new structure
@@ -19,6 +22,7 @@ from models import (
     SizingInput, SizingOutput, WhatIfScenario, WhatIfRequest, WhatIfResponseItem,
     GPUInfo, GPUListResponse, GPUStats, GPURefreshResponse
 )
+from report_generator import ReportGenerator
 
 # Модуль расчета мощностей для развертывания LLM (Методика v2)
 #
@@ -710,6 +714,39 @@ def size_endpoint(inp: SizingInput):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return out
+
+
+# ═══════════════════════════════════════════════════════════
+# Excel Report Generation
+# ═══════════════════════════════════════════════════════════
+
+# Экземпляр генератора отчётов с подключением к каталогу GPU
+report_generator = ReportGenerator(gpu_tflops_lookup=_lookup_gpu_tflops)
+
+
+@app.post("/v1/report", tags=["Sizing"])
+def report_endpoint(inp: SizingInput):
+    """
+    Скачать Excel-отчёт по шаблону.
+
+    Принимает те же параметры, что и /v1/size. Заполняет шаблон
+    reportTemplate.xlsx входными значениями и возвращает файл .xlsx.
+    Формулы пересчитываются при открытии файла в Excel.
+    """
+    try:
+        buf = report_generator.generate(inp)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{report_generator.make_filename()}"'
+        }
+    )
 
 
 @app.post("/v1/whatif", response_model=List[WhatIfResponseItem], tags=["Sizing"])

@@ -1,8 +1,27 @@
 import React, { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
+import { downloadReport } from '../services/api';
 
-const ResultsDisplay = ({ results, loading, error }) => {
+const ResultsDisplay = ({ results, loading, error, inputData }) => {
   const [detailTab, setDetailTab] = useState('memory'); // 'memory' | 'compute'
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState(null);
+
+  const handleDownloadReport = async () => {
+    if (!inputData) return;
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      const result = await downloadReport(inputData);
+      if (result && result.error) {
+        setDownloadError(result.error);
+      }
+    } catch (err) {
+      setDownloadError(err.message || 'Failed to download report');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -63,8 +82,23 @@ const ResultsDisplay = ({ results, loading, error }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="gap-6 flex flex-col flex-1">
       <h2 className="text-2xl font-semibold text-gray-800">Calculation Results</h2>
+
+      {downloadError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center justify-between">
+          <p className="text-sm text-red-700">{downloadError}</p>
+          <button
+            type="button"
+            onClick={() => setDownloadError(null)}
+            className="text-red-500 hover:text-red-700"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* ── Top 2 overview tiles ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -159,7 +193,7 @@ const ResultsDisplay = ({ results, loading, error }) => {
               </span>
             </span>
           </h3>
-          <p className="text-2xl font-bold mt-1">{results.gpus_per_instance || 0}</p>
+          <p className="text-2xl font-bold mt-1">{results.gpus_per_instance_tp || results.gpus_per_instance || 0}</p>
         </div>
         <div className="bg-gradient-to-br from-violet-400/80 to-purple-500/80 rounded-lg p-4 text-white shadow">
           <h3 className="text-[10px] font-semibold uppercase tracking-wider opacity-70 flex items-center gap-1">
@@ -183,7 +217,7 @@ const ResultsDisplay = ({ results, loading, error }) => {
       <div className="bg-white border rounded-lg p-6" data-tour="donut-chart">
         <h3 className="text-lg font-medium text-gray-800 mb-1">GPU Memory per Instance</h3>
         <p className="text-sm text-gray-500 mb-4">
-          {results.gpus_per_instance || 0} GPU{(results.gpus_per_instance || 0) !== 1 ? 's' : ''} &times; {results.gpu_mem_gb || 0} GiB
+          {results.gpus_per_instance_tp || results.gpus_per_instance || 0} GPU{(results.gpus_per_instance_tp || results.gpus_per_instance || 0) !== 1 ? 's' : ''} &times; {results.gpu_mem_gb || 0} GiB
           &nbsp;= <span className="font-semibold text-gray-700">{fmt(totalMem, 1)} GiB total</span>
         </p>
 
@@ -372,6 +406,35 @@ const ResultsDisplay = ({ results, loading, error }) => {
           </div>
         )}
       </div>
+
+      {/* Download Report Button */}
+      {inputData && (
+        <button
+          type="button"
+          onClick={handleDownloadReport}
+          disabled={downloading}
+          className={`mt-auto w-full py-3 px-4 rounded-lg font-semibold text-lg transition-colors ${
+            downloading
+              ? 'bg-green-300 text-white cursor-not-allowed'
+              : 'bg-green-600 text-white hover:bg-green-700 download-btn-glow'
+          }`}
+        >
+          {downloading ? (
+            <span className="flex items-center justify-center">
+              <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></span>
+              Generating Report...
+            </span>
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Download Excel Report
+            </span>
+          )}
+        </button>
+      )}
     </div>
   );
 };

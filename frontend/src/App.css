@@ -99,6 +99,22 @@ input[type="range"]::-moz-range-thumb {
   animation: calc-glow 3s ease-in-out infinite;
 }
 
+/* Download button — subtle green breathing glow */
+@keyframes download-glow {
+  0%, 100% {
+    box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2),
+                0 0 12px 2px rgba(22, 163, 74, 0.15);
+  }
+  50% {
+    box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.3),
+                0 0 28px 8px rgba(22, 163, 74, 0.35);
+  }
+}
+
+.download-btn-glow {
+  animation: download-glow 3s ease-in-out infinite;
+}
+
 /* Docs drawer — slide in from right */
 @keyframes drawer-slide-in {
   from { transform: translateX(100%); }

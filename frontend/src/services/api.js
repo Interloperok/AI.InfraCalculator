@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL ||
-  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8001');
+  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8000');
 
 export const calculateServerRequirements = async (inputData) => {
   try {
@@ -114,6 +114,63 @@ export const healthCheck = async () => {
     return response.data;
   } catch (error) {
     throw new Error(`Health check failed: ${error.message}`);
+  }
+};
+
+export const downloadReport = async (inputData) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/v1/report`, inputData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      responseType: 'blob',
+    });
+
+    // Create a download link from the blob response
+    const blob = new Blob([response.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    // Extract filename from Content-Disposition header or use default
+    const disposition = response.headers['content-disposition'];
+    let filename = 'sizing_report.xlsx';
+    if (disposition) {
+      const match = disposition.match(/filename="?([^";\n]+)"?/);
+      if (match && match[1]) {
+        filename = match[1];
+      }
+    }
+
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    return { success: true };
+  } catch (error) {
+    if (error.response) {
+      const status = error.response.status;
+      // For blob responses, we need to parse the error differently
+      if (error.response.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const errorData = JSON.parse(text);
+          return { error: errorData.detail || `Server error (${status})` };
+        } catch {
+          return { error: `Server error (${status})` };
+        }
+      }
+      const errorData = error.response.data;
+      return { error: errorData?.detail || `Server error (${status})` };
+    } else if (error.request) {
+      return { error: 'Network error: Unable to connect to the server.' };
+    } else {
+      return { error: `Request error: ${error.message}` };
+    }
   }
 };
 

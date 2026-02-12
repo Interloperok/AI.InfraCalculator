@@ -306,7 +306,6 @@ const CalculatorForm = ({ onSubmit, loading }) => {
     users: false,
     tokens: false,
     kv: false,
-    tp: false,
     compute: false,
     sla: false,
   });
@@ -805,6 +804,48 @@ const CalculatorForm = ({ onSubmit, loading }) => {
         {renderSliderInput('gpus_per_server', 'GPUs per Server', 1, 16, 1, formData.gpus_per_server, '', 'Number of GPU accelerators installed in each physical server.')}
         {renderSliderInput('kavail', 'Usable Memory Fraction', 0.5, 1.0, 0.01, formData.kavail, '', 'Fraction of GPU memory available after OS/driver overhead. Typically 0.85–0.95.')}
       </div>
+
+      <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+        <h3 className="text-lg font-medium text-orange-800 mb-4 flex items-center">
+          Tensor Parallelism
+          <SectionTooltip text="Tensor parallelism splits one model across multiple GPUs, increasing available memory per instance." />
+        </h3>
+        {(() => {
+          const tpAllowed = [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
+          const currentIdx = Math.max(0, tpAllowed.indexOf(formData.tp_multiplier_Z) !== -1
+            ? tpAllowed.indexOf(formData.tp_multiplier_Z)
+            : tpAllowed.reduce((best, v, i) => Math.abs(v - formData.tp_multiplier_Z) < Math.abs(tpAllowed[best] - formData.tp_multiplier_Z) ? i : best, 0));
+          return (
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-700 flex items-center">
+                  TP Degree (Z)
+                  <InfoTooltip text="Number of GPUs across which the model is split. Z=1 means no parallelism; higher even values increase memory per instance but add inter-GPU communication." />
+                </label>
+                <div className="flex items-center space-x-2">
+                  <span className="px-2 py-1 text-sm border border-gray-300 rounded-md text-right w-20 inline-block bg-white text-center font-medium">
+                    {formData.tp_multiplier_Z}
+                  </span>
+                </div>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={tpAllowed.length - 1}
+                step={1}
+                value={currentIdx}
+                onChange={(e) => handleChange('tp_multiplier_Z', tpAllowed[parseInt(e.target.value)])}
+                className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>{tpAllowed[0]}</span>
+                <span>{tpAllowed[tpAllowed.length - 1]}</span>
+              </div>
+            </div>
+          );
+        })()}
+        {renderSliderInput('saturation_coeff_C', 'Saturation Coefficient', 1, 32, 1, formData.saturation_coeff_C, '', 'Controls diminishing returns of batch processing. Higher C = throughput saturates at larger batch sizes.')}
+      </div>
     </div>
   );
 
@@ -868,18 +909,6 @@ const CalculatorForm = ({ onSubmit, loading }) => {
         'Key-Value cache stores attention states for each session. Larger contexts and more sessions require more GPU memory.'
       )}
 
-      {/* Tensor Parallelism Section */}
-      {renderCollapsibleSection(
-        'tp',
-        'Tensor Parallelism',
-        <>
-          {renderSliderInput('tp_multiplier_Z', 'TP Degree (Z)', 1, 8, 1, formData.tp_multiplier_Z, '', 'Number of GPUs across which the model is split. Higher Z = more memory per instance but more inter-GPU communication.')}
-          {renderSliderInput('saturation_coeff_C', 'Saturation Coefficient', 1, 32, 1, formData.saturation_coeff_C, '', 'Controls diminishing returns of batch processing. Higher C = throughput saturates at larger batch sizes.')}
-        </>,
-        expandedSections.tp,
-        'Tensor parallelism splits one model across multiple GPUs, increasing available memory per instance.'
-      )}
-
       {/* Compute Section */}
       {renderCollapsibleSection(
         'compute',
@@ -916,7 +945,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="gap-6 flex flex-col flex-1">
       <h2 className="text-2xl font-semibold text-gray-800 mb-6">Configuration Parameters</h2>
 
       {/* Presets */}
@@ -976,7 +1005,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
         type="submit"
         data-tour="calculate-btn"
         disabled={loading}
-        className={`w-full py-3 px-4 rounded-lg font-semibold text-lg transition-colors ${
+        className={`mt-auto w-full py-3 px-4 rounded-lg font-semibold text-lg transition-colors ${
           loading
             ? 'bg-blue-300 text-white cursor-not-allowed'
             : 'bg-blue-600 text-white hover:bg-blue-700 calc-btn-glow'
