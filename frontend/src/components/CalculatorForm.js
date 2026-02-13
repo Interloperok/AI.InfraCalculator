@@ -2,6 +2,87 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { getGPUs, searchGPUs } from '../services/api';
 
+// ── Spark burst helper for toggle activation ──
+const useSparkBurst = () => {
+  const containerRef = useRef(null);
+  const fire = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const SPARK_COUNT = 8;
+    for (let i = 0; i < SPARK_COUNT; i++) {
+      const spark = document.createElement('span');
+      spark.className = 'spark';
+      const angle = (360 / SPARK_COUNT) * i + (Math.random() * 30 - 15);
+      const dist = 14 + Math.random() * 12;
+      const rad = (angle * Math.PI) / 180;
+      spark.style.setProperty('--tx', `${Math.cos(rad) * dist}px`);
+      spark.style.setProperty('--ty', `${Math.sin(rad) * dist}px`);
+      spark.style.left = '50%';
+      spark.style.top = '50%';
+      el.appendChild(spark);
+      setTimeout(() => spark.remove(), 550);
+    }
+  }, []);
+  return { containerRef, fire };
+};
+
+// ── Auto-Optimize Toggle Switch with animations ──
+const ToggleSwitch = ({ autoMode, setAutoMode }) => {
+  const { containerRef, fire } = useSparkBurst();
+  const [justActivated, setJustActivated] = useState(false);
+  const prevMode = useRef(autoMode);
+
+  useEffect(() => {
+    if (autoMode && !prevMode.current) {
+      // Just turned ON
+      setJustActivated(true);
+      fire();
+      const t = setTimeout(() => setJustActivated(false), 650);
+      return () => clearTimeout(t);
+    }
+    prevMode.current = autoMode;
+  }, [autoMode, fire]);
+
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="relative" ref={containerRef}>
+        <button
+          type="button"
+          onClick={() => setAutoMode(!autoMode)}
+          className={`relative inline-flex h-8 w-[56px] shrink-0 cursor-pointer rounded-full border-2 transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+            autoMode
+              ? 'bg-indigo-600 border-indigo-600 toggle-electric'
+              : 'bg-gray-200 border-gray-200 toggle-shimmer'
+          }`}
+          title="Auto-Optimize: automatically find the best hardware configuration"
+        >
+          <span
+            className={`pointer-events-none inline-flex h-[28px] w-[28px] items-center justify-center rounded-full bg-white shadow-lg ring-0 transition-all duration-300 ease-[cubic-bezier(0.68,-0.55,0.265,1.55)] ${
+              autoMode ? 'translate-x-[25px]' : 'translate-x-0'
+            }`}
+          >
+            <svg
+              className={`w-4 h-4 transition-all duration-200 ${
+                autoMode ? 'text-indigo-600' : 'text-gray-400'
+              } ${justActivated ? 'bolt-zap' : ''} ${autoMode && !justActivated ? 'bolt-glow' : ''}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </span>
+        </button>
+      </div>
+      <span className={`text-sm font-semibold select-none transition-all duration-300 ${
+        autoMode ? 'text-indigo-600' : 'text-gray-400'
+      }`}>
+        Auto
+      </span>
+      <InfoTooltip text="Auto-Optimize: automatically find the best hardware configuration by searching across GPUs, quantization, TP degree, and server layouts." />
+    </div>
+  );
+};
+
 // ── Tooltip bubble rendered via Portal (always on top of everything) ──
 const TooltipBubble = ({ text, anchorRef, visible, width = 240 }) => {
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -109,8 +190,16 @@ const SectionTooltip = ({ text }) => {
 const PRESETS = [
   {
     id: 'excel_32b_500k',
-    name: '32B / 500K users / A100 80GB / Z=4',
+    name: '32B / 500K users',
+    subtitle: 'A100 80GB  |  Z = 4',
     description: 'Reference example from Excel calculator (MRT=0, 23 servers)',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+    ),
+    color: 'indigo',
     model: { id: 'preset-32b', modelId: 'Custom 32B (FP16, L=64, H=4096)' },
     gpu: { id: 'preset-a100-80', vendor: 'NVIDIA', model: 'A100 80GB PCIe', full_name: 'NVIDIA A100 80GB PCIe', memory_gb: 80, tflops: 312, tdp_watts: '300 W', cores: 6912 },
     data: {
@@ -151,8 +240,16 @@ const PRESETS = [
   },
   {
     id: 'small_7b',
-    name: '7B / 2K users / A100 80GB / Z=1',
+    name: '7B / 2K users',
+    subtitle: 'A100 80GB  |  Z = 1',
     description: 'Small model, low workload',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+      </svg>
+    ),
+    color: 'emerald',
     model: { id: 'preset-7b', modelId: 'Llama-2 7B (FP16, L=32, H=4096)' },
     gpu: { id: 'preset-a100-80', vendor: 'NVIDIA', model: 'A100 80GB PCIe', full_name: 'NVIDIA A100 80GB PCIe', memory_gb: 80, tflops: 312, tdp_watts: '300 W', cores: 6912 },
     data: {
@@ -193,8 +290,18 @@ const PRESETS = [
   },
   {
     id: 'large_70b',
-    name: '70B / 10K users / H100 80GB / Z=2',
+    name: '70B / 10K users',
+    subtitle: 'H100 80GB  |  Z = 2',
     description: 'Large model with reasoning, medium workload',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+      </svg>
+    ),
+    color: 'amber',
     model: { id: 'preset-70b', modelId: 'Llama-2 70B (FP16, L=80, H=8192)' },
     gpu: { id: 'preset-h100-80', vendor: 'NVIDIA', model: 'H100 80GB PCIe', full_name: 'NVIDIA H100 80GB PCIe', memory_gb: 80, tflops: 756, tdp_watts: '350 W', cores: 16896 },
     data: {
@@ -235,7 +342,73 @@ const PRESETS = [
   },
 ];
 
-const CalculatorForm = ({ onSubmit, loading }) => {
+// ── Optimization Mode Cards ──
+const OPTIMIZATION_MODES = [
+  {
+    id: 'min_servers',
+    name: 'Min Servers',
+    description: 'Minimize the number of physical servers',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
+      </svg>
+    ),
+    color: 'blue',
+  },
+  {
+    id: 'min_total_gpus',
+    name: 'Min GPUs',
+    description: 'Minimize total GPU count',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+      </svg>
+    ),
+    color: 'emerald',
+  },
+  {
+    id: 'balanced',
+    name: 'Balanced',
+    description: 'Best balance of cost & performance',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+      </svg>
+    ),
+    color: 'violet',
+  },
+  {
+    id: 'max_performance',
+    name: 'Max Performance',
+    description: 'Maximize throughput per server',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    ),
+    color: 'amber',
+  },
+];
+
+const CARD_COLOR_MAP = {
+  blue: { selected: 'border-blue-500 bg-blue-50 text-blue-700' },
+  emerald: { selected: 'border-emerald-500 bg-emerald-50 text-emerald-700' },
+  violet: { selected: 'border-violet-500 bg-violet-50 text-violet-700' },
+  amber: { selected: 'border-amber-500 bg-amber-50 text-amber-700' },
+  indigo: { selected: 'border-indigo-500 bg-indigo-50 text-indigo-700' },
+};
+
+const CalculatorForm = ({
+  onSubmit, loading,
+  autoMode, setAutoMode,
+  optimizeMode, setOptimizeMode,
+  gpuFilter, onOpenGpuFilter,
+  appliedConfig, onAppliedConfigConsumed,
+}) => {
   // State for GPU search
   const [gpuSearch, setGpuSearch] = useState('');
   const [gpuSearchResults, setGpuSearchResults] = useState([]);
@@ -311,6 +484,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
   });
 
   const [activeTab, setActiveTab] = useState('basic'); // 'basic' or 'advanced'
+  const [selectedPreset, setSelectedPreset] = useState(null);
 
   // Load GPU data on component mount
   useEffect(() => {
@@ -332,6 +506,50 @@ const CalculatorForm = ({ onSubmit, loading }) => {
       setGpuSearchResults([]);
     }
   }, [gpuSearch]);
+
+  // Apply config from Auto-Optimize
+  useEffect(() => {
+    if (appliedConfig && typeof appliedConfig === 'object') {
+      // Map applied SizingInput fields onto form data
+      const mapped = {};
+      const formKeys = Object.keys(formData);
+      for (const key of formKeys) {
+        if (key in appliedConfig && appliedConfig[key] !== null && appliedConfig[key] !== undefined) {
+          mapped[key] = appliedConfig[key];
+        }
+      }
+      if (Object.keys(mapped).length > 0) {
+        setFormData(prev => ({ ...prev, ...mapped }));
+        // Reconstruct selectedGpu from auto-optimize GPU info if available
+        if (appliedConfig._gpuInfo) {
+          setSelectedGpu(appliedConfig._gpuInfo);
+        }
+        // Don't clear selectedModel — LLM model stays the same across configs
+        setGpuSearch('');
+      }
+      // Signal that we consumed the config
+      if (onAppliedConfigConsumed) {
+        onAppliedConfigConsumed();
+      }
+    }
+  }, [appliedConfig]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Normalize GPUs per Server and TP (Z) to allowed values: 1, 2, 4, 6, 8
+  const ALLOWED_DISCRETE = [1, 2, 4, 6, 8];
+  useEffect(() => {
+    setFormData(prev => {
+      const clampToAllowed = (v) => {
+        if (ALLOWED_DISCRETE.includes(v)) return v;
+        return ALLOWED_DISCRETE.reduce((best, x) => Math.abs(x - v) < Math.abs(best - v) ? x : best);
+      };
+      const gpu = clampToAllowed(prev.gpus_per_server);
+      const tp = clampToAllowed(prev.tp_multiplier_Z);
+      if (gpu !== prev.gpus_per_server || tp !== prev.tp_multiplier_Z) {
+        return { ...prev, gpus_per_server: gpu, tp_multiplier_Z: tp };
+      }
+      return prev;
+    });
+  }, [formData.gpus_per_server, formData.tp_multiplier_Z]);
 
   const handleChange = (name, value) => {
     const integerFields = [
@@ -372,6 +590,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
     setFormData({ ...preset.data });
     setSelectedGpu(preset.gpu || null);
     setSelectedModel(preset.model || null);
+    setSelectedPreset(preset.id);
     setGpuSearch('');
     setGpuSearchResults([]);
     setModelSearch('');
@@ -577,6 +796,14 @@ const CalculatorForm = ({ onSubmit, loading }) => {
     </div>
   );
 
+  // Fields locked when auto-mode is active
+  const AUTO_LOCKED_FIELDS = [
+    'gpu_mem_gb', 'gpu_flops_Fcount', 'gpus_per_server',
+    'tp_multiplier_Z', 'saturation_coeff_C', 'bytes_per_param', 'kavail',
+  ];
+
+  const isFieldLocked = (name) => autoMode && AUTO_LOCKED_FIELDS.includes(name);
+
   // Helper function to create slider with text input
   const renderSliderInput = (name, label, min, max, step, value, unit = '', tooltip = '') => {
     const integerFields = [
@@ -586,13 +813,16 @@ const CalculatorForm = ({ onSubmit, loading }) => {
     ];
 
     const isInteger = integerFields.includes(name);
+    const disabled = isFieldLocked(name);
 
     const handleSliderChange = (e) => {
+      if (disabled) return;
       const newValue = isInteger ? Math.round(e.target.value) : e.target.value;
       handleChange(name, newValue);
     };
 
     const handleInputChange = (e) => {
+      if (disabled) return;
       let newValue = e.target.value;
       if (newValue !== '') {
         if (isInteger) {
@@ -610,10 +840,13 @@ const CalculatorForm = ({ onSubmit, loading }) => {
     };
 
     return (
-      <div className="mb-6" key={name}>
+      <div className={`mb-6 ${disabled ? 'opacity-50 pointer-events-none' : ''}`} key={name}>
         <div className="flex justify-between items-center mb-2">
           <label className="block text-sm font-medium text-gray-700 flex items-center">
             {label}
+            {disabled && (
+              <span className="ml-1.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-normal">auto</span>
+            )}
             {tooltip && <InfoTooltip text={tooltip} />}
           </label>
           <div className="flex items-center space-x-2">
@@ -624,7 +857,8 @@ const CalculatorForm = ({ onSubmit, loading }) => {
               step={isInteger ? 1 : "any"}
               value={value}
               onChange={handleInputChange}
-              className={`px-2 py-1 text-sm border border-gray-300 rounded-md text-right ${max >= 1000000 ? 'w-28' : 'w-20'}`}
+              disabled={disabled}
+              className={`px-2 py-1 text-sm border border-gray-300 rounded-md text-right ${max >= 1000000 ? 'w-28' : 'w-20'} ${disabled ? 'bg-gray-100' : ''}`}
               inputMode={isInteger ? "numeric" : "decimal"}
               placeholder="0"
             />
@@ -638,6 +872,7 @@ const CalculatorForm = ({ onSubmit, loading }) => {
           step={step}
           value={value}
           onChange={handleSliderChange}
+          disabled={disabled}
           className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
         />
         <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -704,14 +939,25 @@ const CalculatorForm = ({ onSubmit, loading }) => {
         {selectedModel && (
           <div className="mt-4 mb-4">
             <div className="p-3 bg-green-50 border-2 border-green-400 rounded-md shadow-sm">
-              <div className="flex items-center">
-                <svg className="w-5 h-5 text-green-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <div className="text-xs font-medium text-green-700 uppercase tracking-wide mb-0.5">Selected Model</div>
-                  <div className="text-sm font-semibold text-green-900">{selectedModel.modelId || selectedModel.id}</div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center min-w-0">
+                  <svg className="w-5 h-5 text-green-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="min-w-0">
+                    <div className="text-xs font-medium text-green-700 uppercase tracking-wide mb-0.5">Selected Model</div>
+                    <div className="text-sm font-semibold text-green-900 truncate">{selectedModel.modelId || selectedModel.id}</div>
+                  </div>
                 </div>
+                <a
+                  href={`https://huggingface.co/${selectedModel.modelId || selectedModel.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-2 p-1 rounded-lg hover:bg-yellow-50 transition-colors flex-shrink-0"
+                  title="Open on Hugging Face"
+                >
+                  <img src="/huggingface-color.png" alt="Hugging Face" className="w-6 h-6" />
+                </a>
               </div>
             </div>
 
@@ -739,69 +985,130 @@ const CalculatorForm = ({ onSubmit, loading }) => {
           <SectionTooltip text="Choose the GPU accelerator and server layout. Memory and TFLOPS are auto-filled from the GPU catalog." />
         </h3>
 
-        {/* GPU Selection with Search */}
-        <div className="mb-4 relative">
-          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-            Search GPU
-            <InfoTooltip text="Search the GPU catalog by name (e.g. A100, H100, RTX 4090). Memory and compute specs will be filled in automatically." />
-          </label>
-          <input
-            type="text"
-            value={gpuSearch}
-            onChange={(e) => setGpuSearch(e.target.value)}
-            placeholder="Search for a GPU (e.g., RTX, A100, etc.)"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
+        {/* GPU Selection with Search — or GPU Filter in autoMode */}
+        {autoMode ? (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              GPU Selection
+              <span className="ml-1.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-normal">auto</span>
+              <InfoTooltip text="In auto-optimize mode GPUs are selected automatically. Use the filter to restrict which GPUs to consider." />
+            </label>
+            <button
+              type="button"
+              onClick={onOpenGpuFilter}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-100 hover:border-purple-400 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              GPU Filter{gpuFilter && gpuFilter.length > 0 ? ` (${gpuFilter.length} selected)` : ' (all GPUs)'}
+            </button>
+          </div>
+        ) : (
+          <div className="mb-4 relative">
+            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              Search GPU
+              <InfoTooltip text="Search the GPU catalog by name (e.g. A100, H100, RTX 4090). Memory and compute specs will be filled in automatically." />
+            </label>
+            <input
+              type="text"
+              value={gpuSearch}
+              onChange={(e) => setGpuSearch(e.target.value)}
+              placeholder="Search for a GPU (e.g., RTX, A100, etc.)"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
 
-          {isGpuSearching && (
-            <div className="absolute right-3 top-2">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-            </div>
-          )}
+            {isGpuSearching && (
+              <div className="absolute right-3 top-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+              </div>
+            )}
 
-          {gpuSearchResults.length > 0 && (
-            <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto">
-              {gpuSearchResults.map((gpu, index) => (
-                <div
-                  key={gpu.id}
-                  onClick={() => handleGpuSelect(gpu)}
-                  className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 cursor-pointer border-b border-gray-100 last:border-b-0"
-                >
-                  <div className="font-medium">{gpu.full_name || `${gpu.vendor} ${gpu.model}`}</div>
-                  <div className="text-xs text-gray-500">
-                    Memory: {gpu.memory_size_formatted || `${gpu.memory_gb} GB`} |
-                    TDP: {gpu.tdp_watts || 'Unknown W'} |
-                    Cores: {gpu.cores || 'Unknown'}
+            {gpuSearchResults.length > 0 && (
+              <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto">
+                {gpuSearchResults.map((gpu, index) => (
+                  <div
+                    key={gpu.id}
+                    onClick={() => handleGpuSelect(gpu)}
+                    className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  >
+                    <div className="font-medium">{gpu.full_name || `${gpu.vendor} ${gpu.model}`}</div>
+                    <div className="text-xs text-gray-500">
+                      Memory: {gpu.memory_size_formatted || `${gpu.memory_gb} GB`} |
+                      TDP: {gpu.tdp_watts || 'Unknown W'} |
+                      Cores: {gpu.cores || 'Unknown'}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
 
-          {selectedGpu && (
-            <div className="mt-4">
-              <div className="p-3 bg-purple-50 border-2 border-purple-400 rounded-md shadow-sm">
-                <div className="flex items-center">
-                  <svg className="w-5 h-5 text-purple-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium text-purple-700 uppercase tracking-wide mb-0.5">Selected GPU</div>
-                    <div className="text-sm font-semibold text-purple-900">
-                      {selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`}
-                      <span className="text-purple-700 font-normal ml-1">
-                        ({selectedGpu.memory_size_formatted || `${selectedGpu.memory_gb} GB`})
-                        {selectedGpu.tflops ? ` | ${selectedGpu.tflops} TFLOPS` : ''}
-                      </span>
+            {selectedGpu && (
+              <div className="mt-4">
+                <div className="p-3 bg-purple-50 border-2 border-purple-400 rounded-md shadow-sm">
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-purple-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium text-purple-700 uppercase tracking-wide mb-0.5">Selected GPU</div>
+                      <div className="text-sm font-semibold text-purple-900">
+                        {selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`}
+                        <span className="text-purple-700 font-normal ml-1">
+                          ({selectedGpu.memory_size_formatted || `${selectedGpu.memory_gb} GB`})
+                          {selectedGpu.tflops ? ` | ${selectedGpu.tflops} TFLOPS` : ''}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
-        {renderSliderInput('gpus_per_server', 'GPUs per Server', 1, 16, 1, formData.gpus_per_server, '', 'Number of GPU accelerators installed in each physical server.')}
+        {(() => {
+          const gpuPerServerAllowed = [1, 2, 4, 6, 8];
+          const gpuLocked = isFieldLocked('gpus_per_server');
+          const currentVal = formData.gpus_per_server;
+          const currentIdx = Math.max(0, gpuPerServerAllowed.indexOf(currentVal) !== -1
+            ? gpuPerServerAllowed.indexOf(currentVal)
+            : gpuPerServerAllowed.reduce((best, v, i) => Math.abs(v - currentVal) < Math.abs(gpuPerServerAllowed[best] - currentVal) ? i : best, 0));
+          const displayVal = gpuPerServerAllowed[currentIdx];
+          return (
+            <div className={`mb-6 ${gpuLocked ? 'opacity-50 pointer-events-none' : ''}`} key="gpus_per_server">
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-700 flex items-center">
+                  GPUs per Server
+                  {gpuLocked && (
+                    <span className="ml-1.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-normal">auto</span>
+                  )}
+                  <InfoTooltip text="Number of GPU accelerators installed in each physical server. Allowed: 1, 2, 4, 6, 8." />
+                </label>
+                <div className="flex items-center space-x-2">
+                  <span className={`px-2 py-1 text-sm border border-gray-300 rounded-md text-right w-20 inline-block text-center font-medium ${gpuLocked ? 'bg-gray-100' : 'bg-white'}`}>
+                    {displayVal}
+                  </span>
+                </div>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={gpuPerServerAllowed.length - 1}
+                step={1}
+                value={currentIdx}
+                onChange={(e) => !gpuLocked && handleChange('gpus_per_server', gpuPerServerAllowed[parseInt(e.target.value)])}
+                disabled={gpuLocked}
+                className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>{gpuPerServerAllowed[0]}</span>
+                <span>{gpuPerServerAllowed[gpuPerServerAllowed.length - 1]}</span>
+              </div>
+            </div>
+          );
+        })()}
         {renderSliderInput('kavail', 'Usable Memory Fraction', 0.5, 1.0, 0.01, formData.kavail, '', 'Fraction of GPU memory available after OS/driver overhead. Typically 0.85–0.95.')}
       </div>
 
@@ -811,19 +1118,23 @@ const CalculatorForm = ({ onSubmit, loading }) => {
           <SectionTooltip text="Tensor parallelism splits one model across multiple GPUs, increasing available memory per instance." />
         </h3>
         {(() => {
-          const tpAllowed = [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
+          const tpAllowed = [1, 2, 4, 6, 8];
+          const tpLocked = isFieldLocked('tp_multiplier_Z');
           const currentIdx = Math.max(0, tpAllowed.indexOf(formData.tp_multiplier_Z) !== -1
             ? tpAllowed.indexOf(formData.tp_multiplier_Z)
             : tpAllowed.reduce((best, v, i) => Math.abs(v - formData.tp_multiplier_Z) < Math.abs(tpAllowed[best] - formData.tp_multiplier_Z) ? i : best, 0));
           return (
-            <div className="mb-6">
+            <div className={`mb-6 ${tpLocked ? 'opacity-50 pointer-events-none' : ''}`}>
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-sm font-medium text-gray-700 flex items-center">
                   TP Degree (Z)
+                  {tpLocked && (
+                    <span className="ml-1.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-normal">auto</span>
+                  )}
                   <InfoTooltip text="Number of GPUs across which the model is split. Z=1 means no parallelism; higher even values increase memory per instance but add inter-GPU communication." />
                 </label>
                 <div className="flex items-center space-x-2">
-                  <span className="px-2 py-1 text-sm border border-gray-300 rounded-md text-right w-20 inline-block bg-white text-center font-medium">
+                  <span className={`px-2 py-1 text-sm border border-gray-300 rounded-md text-right w-20 inline-block text-center font-medium ${tpLocked ? 'bg-gray-100' : 'bg-white'}`}>
                     {formData.tp_multiplier_Z}
                   </span>
                 </div>
@@ -834,7 +1145,8 @@ const CalculatorForm = ({ onSubmit, loading }) => {
                 max={tpAllowed.length - 1}
                 step={1}
                 value={currentIdx}
-                onChange={(e) => handleChange('tp_multiplier_Z', tpAllowed[parseInt(e.target.value)])}
+                onChange={(e) => !tpLocked && handleChange('tp_multiplier_Z', tpAllowed[parseInt(e.target.value)])}
+                disabled={tpLocked}
                 className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
               />
               <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -946,25 +1258,74 @@ const CalculatorForm = ({ onSubmit, loading }) => {
 
   return (
     <form onSubmit={handleSubmit} className="gap-6 flex flex-col flex-1">
-      <h2 className="text-2xl font-semibold text-gray-800 mb-6">Configuration Parameters</h2>
-
-      {/* Presets */}
-      <div className="mb-4" data-tour="presets">
-        <label className="block text-sm font-medium text-gray-600 mb-2">Quick Presets</label>
-        <div className="flex flex-wrap gap-2">
-          {PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => applyPreset(preset)}
-              title={preset.description}
-              className="px-3 py-1.5 text-xs font-medium rounded-full border border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-400 transition-colors"
-            >
-              {preset.name}
-            </button>
-          ))}
-        </div>
+      {/* Header with toggle switch */}
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-2xl font-semibold text-gray-800">Configuration Parameters</h2>
+        <ToggleSwitch
+          autoMode={autoMode}
+          setAutoMode={setAutoMode}
+        />
       </div>
+
+      {/* Presets (normal mode) or Optimization Mode cards (auto mode) */}
+      {autoMode ? (
+        <div className="mb-2">
+          <label className="block text-sm font-medium text-gray-600 mb-2">Optimization Mode</label>
+          <div className="grid grid-cols-2 gap-2">
+            {OPTIMIZATION_MODES.map((mode) => {
+              const isSelected = optimizeMode === mode.id;
+              const colors = CARD_COLOR_MAP[mode.color];
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => setOptimizeMode(mode.id)}
+                  className={`p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
+                    isSelected
+                      ? `${colors.selected} border-current shadow-sm`
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-0.5">
+                    {mode.icon}
+                    <span className="text-sm font-semibold">{mode.name}</span>
+                  </div>
+                  <p className="text-xs opacity-75 leading-relaxed">{mode.description}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="mb-2" data-tour="presets">
+          <label className="block text-sm font-medium text-gray-600 mb-2">Quick Presets</label>
+          <div className="grid grid-cols-3 gap-2">
+            {PRESETS.map((preset) => {
+              const isActive = selectedPreset === preset.id;
+              const colors = CARD_COLOR_MAP[preset.color] || CARD_COLOR_MAP.indigo;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => applyPreset(preset)}
+                  title={preset.description}
+                  className={`p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
+                    isActive
+                      ? `${colors.selected} border-current shadow-sm`
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-0.5">
+                    {preset.icon}
+                    <span className="text-sm font-semibold leading-tight">{preset.name}</span>
+                  </div>
+                  <p className="text-xs opacity-60 leading-snug">{preset.subtitle}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <div className="flex border-b border-gray-200">
@@ -1000,26 +1361,35 @@ const CalculatorForm = ({ onSubmit, loading }) => {
         {activeTab === 'advanced' && advancedInputs}
       </div>
 
-      {/* Calculate button */}
+      {/* Calculate / Find Best Configs button */}
       <button
         type="submit"
         data-tour="calculate-btn"
         disabled={loading}
         className={`mt-auto w-full py-3 px-4 rounded-lg font-semibold text-lg transition-colors ${
           loading
-            ? 'bg-blue-300 text-white cursor-not-allowed'
-            : 'bg-blue-600 text-white hover:bg-blue-700 calc-btn-glow'
+            ? (autoMode ? 'bg-indigo-300 text-white cursor-not-allowed' : 'bg-blue-300 text-white cursor-not-allowed')
+            : (autoMode ? 'bg-indigo-600 text-white hover:bg-indigo-700 calc-btn-glow' : 'bg-blue-600 text-white hover:bg-blue-700 calc-btn-glow')
         }`}
       >
         {loading ? (
           <span className="flex items-center justify-center">
             <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></span>
-            Calculating...
+            {autoMode ? 'Searching configurations...' : 'Calculating...'}
+          </span>
+        ) : autoMode ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Find Best Configs
           </span>
         ) : (
           'Calculate'
         )}
       </button>
+
     </form>
   );
 };

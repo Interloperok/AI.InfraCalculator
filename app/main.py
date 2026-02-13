@@ -20,7 +20,8 @@ from fastapi.middleware.cors import CORSMiddleware
 # Import models from new structure
 from models import (
     SizingInput, SizingOutput, WhatIfScenario, WhatIfRequest, WhatIfResponseItem,
-    GPUInfo, GPUListResponse, GPUStats, GPURefreshResponse
+    GPUInfo, GPUListResponse, GPUStats, GPURefreshResponse,
+    OptimizationMode, AutoOptimizeInput, AutoOptimizeResult, AutoOptimizeResponse,
 )
 from report_generator import ReportGenerator
 
@@ -767,6 +768,328 @@ def whatif_endpoint(req: WhatIfRequest):
         out = run_sizing(SizingInput(**data))
         items.append(WhatIfResponseItem(name=sc.name, output=out))
     return items
+
+
+# ═══════════════════════════════════════════════════════════
+# Auto-Optimize: подбор оптимальной конфигурации
+# ═══════════════════════════════════════════════════════════
+
+def _load_gpu_catalog_for_optimize(min_memory_gb: float = 0,
+                                    vendors: Optional[List[str]] = None,
+                                    gpu_ids: Optional[List[str]] = None) -> list:
+    """
+    Загрузить и отфильтровать GPU из каталога для автоподбора.
+
+    Возвращает список dict с ключами: id, name, memory_gb, tflops, vendor.
+    Если gpu_ids задан — берутся только указанные GPU (остальные фильтры игнорируются).
+    Иначе фильтрует GPU без памяти, без TFLOPS и с датой выпуска <= 2013.
+    """
+    gpu_data_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
+    try:
+        with open(gpu_data_path, "r", encoding="utf-8") as f:
+            gpu_data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+    # Если указаны конкретные GPU IDs — только они
+    gpu_id_set = set(gpu_ids) if gpu_ids else None
+
+    results = []
+    seen = set()  # дедупликация по (memory_gb, tflops) для ускорения
+
+    for gpu_id, gpu_info in gpu_data.items():
+        # Фильтр по конкретным ID
+        if gpu_id_set is not None and gpu_id not in gpu_id_set:
+            continue
+
+        # --- Извлечь memory_gb ---
+        memory_gb = 0
+        for key in gpu_info.keys():
+            if "memory size" in str(key).lower():
+                try:
+                    memory_gb = int(re.sub(r"\D+", '', str(gpu_info.get(key)).split(" ")[0]))
+                except (ValueError, IndexError):
+                    pass
+                break
+        if memory_gb <= 0:
+            continue
+
+        # Фильтр по минимальной памяти (применяется даже при gpu_ids)
+        if memory_gb < min_memory_gb:
+            continue
+
+        # Фильтр по вендору (только если gpu_ids не задан)
+        vendor = gpu_info.get("Vendor", "Unknown")
+        if gpu_id_set is None and vendors:
+            if not any(v.lower() == vendor.lower() for v in vendors):
+                continue
+
+        # Фильтр по дате (только если gpu_ids не задан)
+        if gpu_id_set is None:
+            launch_date = gpu_info.get("Launch")
+            if launch_date:
+                try:
+                    year = pd.to_datetime(launch_date).year
+                    if year <= 2013:
+                        continue
+                except Exception:
+                    continue
+            else:
+                continue
+
+        # Извлечь TFLOPS
+        tflops = _extract_gpu_tflops(gpu_info)
+        if tflops <= 0:
+            continue
+
+        # Имя модели
+        model_value = gpu_info.get("Model") or gpu_info.get("Model name") or "Unknown"
+        if "nan" in str(model_value).lower():
+            model_value = "Unknown"
+        full_name = f"{vendor} {model_value}".strip()
+
+        # Дедупликация по (memory, tflops) — одинаковые характеристики дают одинаковый результат
+        dedup_key = (memory_gb, round(tflops, 1))
+        if dedup_key in seen:
+            continue
+        seen.add(dedup_key)
+
+        results.append({
+            "id": gpu_id,
+            "name": full_name,
+            "memory_gb": memory_gb,
+            "tflops": tflops,
+            "vendor": vendor,
+        })
+
+    return results
+
+
+def _score_config(mode: OptimizationMode,
+                  servers_final: int,
+                  total_gpus: int,
+                  th_server_comp: float,
+                  all_servers: list,
+                  all_gpus: list,
+                  all_throughputs: list) -> float:
+    """
+    Вычислить скор конфигурации для ранжирования.
+
+    Меньший скор = лучше.
+    """
+    if mode == OptimizationMode.min_servers:
+        return servers_final * 1000 + total_gpus
+    elif mode == OptimizationMode.min_total_gpus:
+        return total_gpus * 1000 + servers_final
+    elif mode == OptimizationMode.max_performance:
+        # Больше throughput = лучше → инвертируем
+        return -th_server_comp * 1000 + servers_final
+    else:  # balanced
+        # Нормализуем по диапазонам всех валидных результатов
+        min_s = min(all_servers) if all_servers else 1
+        max_s = max(all_servers) if all_servers else 1
+        min_g = min(all_gpus) if all_gpus else 1
+        max_g = max(all_gpus) if all_gpus else 1
+        min_t = min(all_throughputs) if all_throughputs else 0.001
+        max_t = max(all_throughputs) if all_throughputs else 0.001
+
+        def norm(val, lo, hi):
+            if hi == lo:
+                return 0.0
+            return (val - lo) / (hi - lo)
+
+        ns = norm(servers_final, min_s, max_s)
+        ng = norm(total_gpus, min_g, max_g)
+        nt = 1.0 - norm(th_server_comp, min_t, max_t)  # Инвертируем: больше throughput лучше
+        return 0.4 * ns + 0.3 * ng + 0.3 * nt
+
+
+@app.post("/v1/auto-optimize", response_model=AutoOptimizeResponse, tags=["Sizing"])
+def auto_optimize_endpoint(inp: AutoOptimizeInput):
+    """
+    Автоматический подбор оптимальной конфигурации.
+
+    Перебирает комбинации GPU, TP Degree, GPUs/Server, квантизации
+    и возвращает top-N наилучших конфигураций по выбранному режиму.
+    """
+    # ── Пространство поиска ──
+    TP_VALUES = [1, 2, 4, 6, 8]
+    GPUS_PER_SERVER_VALUES = [1, 2, 4, 6, 8]
+    BYTES_PER_PARAM_VALUES = [1, 2, 4]  # INT8, FP16, FP32
+    QUANT_LABELS = {1: "INT8", 2: "FP16", 4: "FP32"}
+
+    # ── Загрузка и фильтрация GPU из каталога ──
+    min_mem = inp.min_gpu_memory_gb or 0
+    gpu_catalog = _load_gpu_catalog_for_optimize(
+        min_memory_gb=min_mem,
+        vendors=inp.gpu_vendors,
+        gpu_ids=inp.gpu_ids,
+    )
+
+    if not gpu_catalog:
+        raise HTTPException(
+            status_code=400,
+            detail="Нет подходящих GPU в каталоге. Попробуйте снизить min_gpu_memory_gb "
+                   "или убрать фильтр по вендору."
+        )
+
+    # ── Перебор комбинаций ──
+    raw_results = []
+    total_evaluated = 0
+
+    for gpu in gpu_catalog:
+        for bpp in BYTES_PER_PARAM_VALUES:
+            # Ранний выход: посчитаем модельную память, чтобы отсечь невалидные
+            Mmodel = calc_model_mem_gb(inp.params_billions, bpp,
+                                       inp.overhead_factor, inp.emp_model)
+            GPUcount_model = calc_gpus_per_instance(Mmodel, gpu["memory_gb"], inp.kavail)
+
+            for gps in GPUS_PER_SERVER_VALUES:
+                # Ранний выход: если модель не влезает в сервер
+                if GPUcount_model > gps:
+                    total_evaluated += len(TP_VALUES)
+                    continue
+
+                for Z in TP_VALUES:
+                    total_evaluated += 1
+
+                    # Ранний выход: Z×GPUcount_model > gpus_per_server
+                    if Z * GPUcount_model > gps:
+                        continue
+
+                    # Собрать SizingInput
+                    try:
+                        sizing_inp = SizingInput(
+                            # Модель
+                            params_billions=inp.params_billions,
+                            bytes_per_param=bpp,
+                            overhead_factor=inp.overhead_factor,
+                            emp_model=inp.emp_model,
+                            layers_L=inp.layers_L,
+                            hidden_size_H=inp.hidden_size_H,
+                            # Пользователи
+                            internal_users=inp.internal_users,
+                            penetration_internal=inp.penetration_internal,
+                            concurrency_internal=inp.concurrency_internal,
+                            external_users=inp.external_users,
+                            penetration_external=inp.penetration_external,
+                            concurrency_external=inp.concurrency_external,
+                            sessions_per_user_J=inp.sessions_per_user_J,
+                            # Токены
+                            system_prompt_tokens_SP=inp.system_prompt_tokens_SP,
+                            user_prompt_tokens_Prp=inp.user_prompt_tokens_Prp,
+                            reasoning_tokens_MRT=inp.reasoning_tokens_MRT,
+                            answer_tokens_A=inp.answer_tokens_A,
+                            dialog_turns=inp.dialog_turns,
+                            # KV
+                            bytes_per_kv_state=inp.bytes_per_kv_state,
+                            emp_kv=inp.emp_kv,
+                            max_context_window_TSmax=inp.max_context_window_TSmax,
+                            # Hardware
+                            gpu_mem_gb=gpu["memory_gb"],
+                            gpu_id=gpu["id"],
+                            gpus_per_server=gps,
+                            kavail=inp.kavail,
+                            tp_multiplier_Z=Z,
+                            saturation_coeff_C=inp.saturation_coeff_C,
+                            # Compute
+                            gpu_flops_Fcount=gpu["tflops"],
+                            eta_prefill=inp.eta_prefill,
+                            eta_decode=inp.eta_decode,
+                            # SLA
+                            rps_per_session_R=inp.rps_per_session_R,
+                            sla_reserve_KSLA=inp.sla_reserve_KSLA,
+                        )
+
+                        result = run_sizing(sizing_inp)
+                    except Exception:
+                        continue
+
+                    servers = result.servers_final
+                    total_gpus_count = servers * gps
+
+                    # Фильтр max_servers
+                    if inp.max_servers and servers > inp.max_servers:
+                        continue
+
+                    raw_results.append({
+                        "gpu": gpu,
+                        "Z": Z,
+                        "gps": gps,
+                        "bpp": bpp,
+                        "result": result,
+                        "servers": servers,
+                        "total_gpus": total_gpus_count,
+                        "th_server": result.th_server_comp,
+                        "sizing_input_dict": sizing_inp.dict(),
+                    })
+
+    if not raw_results:
+        raise HTTPException(
+            status_code=400,
+            detail="Ни одна комбинация не дала валидный результат. "
+                   "Попробуйте увеличить min_gpu_memory_gb или ослабить ограничения."
+        )
+
+    # ── Скоринг ──
+    all_servers = [r["servers"] for r in raw_results]
+    all_gpus = [r["total_gpus"] for r in raw_results]
+    all_throughputs = [r["th_server"] for r in raw_results]
+
+    for r in raw_results:
+        r["score"] = _score_config(
+            inp.mode, r["servers"], r["total_gpus"], r["th_server"],
+            all_servers, all_gpus, all_throughputs,
+        )
+
+    # Сортировка по скору
+    raw_results.sort(key=lambda r: r["score"])
+
+    # Дедупликация: по (servers, total_gpus, sessions_per_server, th_server округлённый)
+    seen_keys = set()
+    deduped = []
+    for r in raw_results:
+        key = (
+            r["servers"],
+            r["total_gpus"],
+            r["result"].sessions_per_server,
+            round(r["th_server"], 2),
+        )
+        if key not in seen_keys:
+            seen_keys.add(key)
+            deduped.append(r)
+
+    # Top-N
+    top = deduped[:inp.top_n]
+
+    results = []
+    for rank, r in enumerate(top, 1):
+        results.append(AutoOptimizeResult(
+            rank=rank,
+            score=round(r["score"], 4),
+            gpu_name=r["gpu"]["name"],
+            gpu_id=r["gpu"]["id"],
+            gpu_mem_gb=r["gpu"]["memory_gb"],
+            gpu_tflops=r["gpu"]["tflops"],
+            tp_multiplier_Z=r["Z"],
+            gpus_per_server=r["gps"],
+            bytes_per_param=r["bpp"],
+            servers_final=r["servers"],
+            total_gpus=r["total_gpus"],
+            servers_by_memory=r["result"].servers_by_memory,
+            servers_by_compute=r["result"].servers_by_compute,
+            sessions_per_server=r["result"].sessions_per_server,
+            instances_per_server_tp=r["result"].instances_per_server_tp,
+            th_server_comp=round(r["result"].th_server_comp, 4),
+            sizing_input=r["sizing_input_dict"],
+        ))
+
+    return AutoOptimizeResponse(
+        mode=inp.mode,
+        total_evaluated=total_evaluated,
+        total_valid=len(raw_results),
+        results=results,
+    )
 
 
 # GPU API Endpoints

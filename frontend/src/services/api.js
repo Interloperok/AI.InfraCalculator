@@ -174,6 +174,39 @@ export const downloadReport = async (inputData) => {
   }
 };
 
+export const autoOptimize = async (inputData) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/v1/auto-optimize`, inputData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      const status = error.response.status;
+      const errorData = error.response.data;
+
+      if (status === 422 && errorData && errorData.detail) {
+        const msgs = Array.isArray(errorData.detail)
+          ? errorData.detail.map(d => `${(d.loc || []).join('.')}: ${d.msg}`).join('; ')
+          : String(errorData.detail);
+        return { error: `Validation error: ${msgs}` };
+      } else if (status === 400) {
+        return { error: errorData?.detail || 'No valid configurations found.' };
+      } else if (errorData && errorData.detail) {
+        return { error: String(errorData.detail) };
+      } else {
+        return { error: `Server error (${status}): ${error.response.statusText}` };
+      }
+    } else if (error.request) {
+      return { error: 'Network error: Unable to connect to the server.' };
+    } else {
+      return { error: `Request error: ${error.message}` };
+    }
+  }
+};
+
 export const searchGPUs = async (searchQuery, params = {}) => {
   try {
     // Include search query in the parameters

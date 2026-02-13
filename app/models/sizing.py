@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import List, Optional
 from pydantic import BaseModel, Field, conint, confloat
 
@@ -254,3 +255,107 @@ class WhatIfResponseItem(BaseModel):
 
     name: str = Field(..., description="Название сценария")
     output: SizingOutput = Field(..., description="Результат расчета")
+
+
+# ═══════════════════════════════════════════════════════════
+#  Auto-Optimize: подбор оптимальной конфигурации
+# ═══════════════════════════════════════════════════════════
+
+class OptimizationMode(str, Enum):
+    """Режим оптимизации"""
+    min_servers = "min_servers"
+    min_total_gpus = "min_total_gpus"
+    balanced = "balanced"
+    max_performance = "max_performance"
+
+
+class AutoOptimizeInput(BaseModel):
+    """Входные параметры для автоподбора конфигурации.
+
+    Пользователь задаёт модель, нагрузку, токены и SLA.
+    Система перебирает комбинации GPU, TP, gpus_per_server, квантизации
+    и возвращает top-N оптимальных конфигураций.
+    """
+
+    # ── Model ──
+    params_billions: confloat(gt=0) = Field(..., description="Параметры модели в миллиардах (P)")
+    layers_L: conint(gt=0) = Field(..., description="Число слоёв модели (L)")
+    hidden_size_H: conint(gt=0) = Field(..., description="Размер скрытого состояния (H)")
+    overhead_factor: confloat(ge=1.0) = Field(default=1.15, description="Коэф. накладных расходов")
+    emp_model: confloat(ge=1.0) = Field(default=1.0, description="Коэф. поправки на память модели")
+
+    # ── Users & behavior ──
+    internal_users: conint(ge=0) = Field(..., description="Внутренние пользователи")
+    penetration_internal: confloat(ge=0.0, le=1.0) = Field(..., description="Коэф. проникновения")
+    concurrency_internal: confloat(ge=0.0, le=1.0) = Field(..., description="Коэф. одновременности")
+    external_users: conint(ge=0) = Field(default=0, description="Внешние пользователи")
+    penetration_external: confloat(ge=0.0, le=1.0) = Field(default=0.0, description="Коэф. проникновения внешн.")
+    concurrency_external: confloat(ge=0.0, le=1.0) = Field(default=0.0, description="Коэф. одновременности внешн.")
+    sessions_per_user_J: confloat(gt=0) = Field(default=1, description="Сессий на пользователя")
+
+    # ── Tokens ──
+    system_prompt_tokens_SP: confloat(ge=0) = Field(default=1000, description="Системный промпт")
+    user_prompt_tokens_Prp: confloat(ge=0) = Field(default=200, description="Запрос пользователя")
+    reasoning_tokens_MRT: confloat(ge=0) = Field(default=4096, description="Рассуждения")
+    answer_tokens_A: confloat(ge=0) = Field(default=400, description="Ответ модели")
+    dialog_turns: conint(gt=0) = Field(default=5, description="Ходов диалога")
+
+    # ── KV-cache ──
+    bytes_per_kv_state: confloat(gt=0) = Field(default=2, description="Байт на KV")
+    emp_kv: confloat(ge=1.0) = Field(default=1.0, description="Поправка KV")
+    max_context_window_TSmax: conint(gt=0) = Field(default=32768, description="Макс. контекст")
+
+    # ── SLA ──
+    rps_per_session_R: confloat(gt=0) = Field(default=0.02, description="req/s на сессию")
+    sla_reserve_KSLA: confloat(gt=0) = Field(default=1.25, description="Запас SLA")
+
+    # ── Optional tuning ──
+    kavail: confloat(gt=0.0, le=1.0) = Field(default=0.9, description="Доступная память GPU")
+    eta_prefill: confloat(gt=0.0, le=1.0) = Field(default=0.20, description="Эффективность prefill")
+    eta_decode: confloat(gt=0.0, le=1.0) = Field(default=0.15, description="Эффективность decode")
+    saturation_coeff_C: confloat(gt=0) = Field(default=8.0, description="Коэф. насыщения")
+
+    # ── Optimization control ──
+    mode: OptimizationMode = Field(default=OptimizationMode.balanced, description="Режим оптимизации")
+    min_gpu_memory_gb: Optional[confloat(gt=0)] = Field(default=None, description="Мин. память GPU (фильтр)")
+    max_servers: Optional[conint(gt=0)] = Field(default=None, description="Макс. серверов (фильтр)")
+    gpu_vendors: Optional[List[str]] = Field(default=None, description="Фильтр по вендорам (NVIDIA, AMD, ...)")
+    gpu_ids: Optional[List[str]] = Field(default=None, description="Конкретные ID GPU из каталога для подбора")
+    top_n: conint(gt=0, le=50) = Field(default=10, description="Количество лучших конфигураций")
+
+
+class AutoOptimizeResult(BaseModel):
+    """Одна конфигурация в результатах автоподбора"""
+
+    rank: int = Field(..., description="Ранг конфигурации (1 = лучшая)")
+    score: float = Field(..., description="Скор оптимизации (меньше = лучше)")
+
+    # ── Подобранные параметры ──
+    gpu_name: str = Field(..., description="Название GPU")
+    gpu_id: Optional[str] = Field(None, description="ID GPU из каталога")
+    gpu_mem_gb: float = Field(..., description="Память GPU (GiB)")
+    gpu_tflops: float = Field(..., description="TFLOPS GPU")
+    tp_multiplier_Z: int = Field(..., description="TP Degree (Z)")
+    gpus_per_server: int = Field(..., description="GPU на сервер")
+    bytes_per_param: float = Field(..., description="Квантизация (байт/параметр)")
+
+    # ── Ключевые метрики ──
+    servers_final: int = Field(..., description="Итого серверов")
+    total_gpus: int = Field(..., description="Итого GPU (серверов × GPU/сервер)")
+    servers_by_memory: int = Field(..., description="Серверов по памяти")
+    servers_by_compute: int = Field(..., description="Серверов по вычислениям")
+    sessions_per_server: int = Field(..., description="Сессий на сервер")
+    instances_per_server_tp: int = Field(..., description="Экземпляров на сервер с TP")
+    th_server_comp: float = Field(..., description="Пропускная способность сервера (req/s)")
+
+    # ── Full output for Apply ──
+    sizing_input: Optional[dict] = Field(None, description="Полный SizingInput для подстановки в калькулятор")
+
+
+class AutoOptimizeResponse(BaseModel):
+    """Ответ автоподбора конфигурации"""
+
+    mode: OptimizationMode = Field(..., description="Использованный режим оптимизации")
+    total_evaluated: int = Field(..., description="Всего оценено комбинаций")
+    total_valid: int = Field(..., description="Валидных комбинаций")
+    results: List[AutoOptimizeResult] = Field(..., description="Топ конфигураций")
