@@ -23,6 +23,20 @@ const Calculator = () => {
   const [gpuFilter, setGpuFilter] = useState([]);
   const [gpuModalOpen, setGpuModalOpen] = useState(false);
 
+  // ── Custom GPU catalog state (persisted in localStorage) ──
+  const [customCatalog, setCustomCatalog] = useState(() => {
+    try {
+      const saved = localStorage.getItem('customGpuCatalog');
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
+  const [customCatalogName, setCustomCatalogName] = useState(
+    () => localStorage.getItem('customGpuCatalogName') || ''
+  );
+  const [useCustomCatalog, setUseCustomCatalog] = useState(
+    () => localStorage.getItem('useCustomCatalog') === 'true'
+  );
+
   // ── Drawer state ──
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerWidth, setDrawerWidth] = useState(520);
@@ -31,6 +45,38 @@ const Calculator = () => {
 
   // ── Applied config for syncing table selection back to form ──
   const [appliedConfig, setAppliedConfig] = useState(null);
+
+  // Persist custom catalog to localStorage
+  useEffect(() => {
+    if (customCatalog) {
+      localStorage.setItem('customGpuCatalog', JSON.stringify(customCatalog));
+    } else {
+      localStorage.removeItem('customGpuCatalog');
+    }
+  }, [customCatalog]);
+
+  useEffect(() => {
+    localStorage.setItem('customGpuCatalogName', customCatalogName);
+  }, [customCatalogName]);
+
+  useEffect(() => {
+    localStorage.setItem('useCustomCatalog', String(useCustomCatalog));
+  }, [useCustomCatalog]);
+
+  // Custom catalog handlers
+  const handleCustomCatalogUpload = useCallback((catalog, fileName) => {
+    setCustomCatalog(catalog);
+    setCustomCatalogName(fileName);
+    setUseCustomCatalog(true);
+    // Reset GPU filter since catalog changed
+    setGpuFilter([]);
+  }, []);
+
+  const handleCustomCatalogToggle = useCallback((useCustom) => {
+    setUseCustomCatalog(useCustom);
+    // Reset GPU filter when switching catalogs
+    setGpuFilter([]);
+  }, []);
 
   // Auto-open drawer when results arrive
   useEffect(() => {
@@ -139,6 +185,11 @@ const Calculator = () => {
 
     if (gpuFilter && gpuFilter.length > 0) {
       payload.gpu_ids = gpuFilter;
+    }
+
+    // Include custom catalog in the payload when active
+    if (useCustomCatalog && customCatalog) {
+      payload.custom_gpu_catalog = customCatalog;
     }
 
     try {
@@ -343,6 +394,11 @@ const Calculator = () => {
         onClose={() => setGpuModalOpen(false)}
         selectedGpuIds={gpuFilter}
         onApply={handleGpuFilterApply}
+        customCatalog={customCatalog}
+        customCatalogName={customCatalogName}
+        useCustomCatalog={useCustomCatalog}
+        onCustomCatalogUpload={handleCustomCatalogUpload}
+        onCustomCatalogToggle={handleCustomCatalogToggle}
       />
     </>
   );

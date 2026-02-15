@@ -207,6 +207,24 @@ export const autoOptimize = async (inputData) => {
   }
 };
 
+export const exportGpuCatalog = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/v1/gpus/export`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      const errorData = error.response.data;
+      return { error: errorData?.detail || `Server error (${error.response.status})` };
+    } else if (error.request) {
+      return { error: 'Network error: Unable to connect to the server.' };
+    } else {
+      return { error: `Request error: ${error.message}` };
+    }
+  }
+};
+
 export const searchGPUs = async (searchQuery, params = {}) => {
   try {
     // Include search query in the parameters

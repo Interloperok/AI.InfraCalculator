@@ -348,9 +348,9 @@ def main():
             }
         }
         
-        with open("gpu_data.json", "w", encoding="utf-8") as fp:
+        with open("gpu_data_raw.json", "w", encoding="utf-8") as fp:
             json.dump(fallback_data, fp, indent=2, ensure_ascii=False, default=str)
-        print("✅ Created fallback data with 4 GPUs → gpu_data.json")
+        print("Created fallback data with 4 GPUs -> gpu_data_raw.json")
         return fallback_data
 
     print(f"✅ Successfully processed {len(successful_vendors)} vendors: {', '.join(successful_vendors)}")
@@ -380,9 +380,9 @@ def main():
             key = f"{key}_{i}"
         result[key] = compact
 
-    with open("gpu_data.json", "w", encoding="utf-8") as fp:
+    with open("gpu_data_raw.json", "w", encoding="utf-8") as fp:
         json.dump(result, fp, indent=2, ensure_ascii=False, default=str)
-    print("✅", len(result), "GPUs saved → gpu_data.json")
+    print(f"[OK] {len(result)} GPUs saved -> gpu_data_raw.json")
     return result
 
 

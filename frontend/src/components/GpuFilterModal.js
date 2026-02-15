@@ -1,46 +1,86 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { getGPUs } from '../services/api';
+import { getGPUs, exportGpuCatalog } from '../services/api';
 
-const GpuFilterModal = ({ isOpen, onClose, selectedGpuIds, onApply }) => {
+/**
+ * GpuFilterModal — GPU selection for auto-optimization + catalog management.
+ *
+ * New props (catalog management):
+ *   customCatalog        — parsed JSON object of user's custom catalog (or null)
+ *   customCatalogName    — filename of the uploaded file
+ *   useCustomCatalog     — boolean: true → use custom, false → use default
+ *   onCustomCatalogUpload(catalog, fileName)  — called after successful upload
+ *   onCustomCatalogToggle(useCustom)          — called when user switches catalogs
+ */
+const GpuFilterModal = ({
+  isOpen,
+  onClose,
+  selectedGpuIds,
+  onApply,
+  customCatalog,
+  customCatalogName,
+  useCustomCatalog,
+  onCustomCatalogUpload,
+  onCustomCatalogToggle,
+}) => {
   const [gpuCatalog, setGpuCatalog] = useState([]);
   const [loadingGpus, setLoadingGpus] = useState(false);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(new Set(selectedGpuIds || []));
+  const [uploadError, setUploadError] = useState(null);
+  const [downloading, setDownloading] = useState(false);
+  const fileInputRef = useRef(null);
 
-  // Load GPU catalog when modal opens (paginate through all pages)
+  // ── Build GPU list from either default (API) or custom (local) catalog ──
   useEffect(() => {
     if (!isOpen) return;
     setSelected(new Set(selectedGpuIds || []));
     setSearch('');
+    setUploadError(null);
 
-    const load = async () => {
-      setLoadingGpus(true);
-      try {
-        let allGpus = [];
-        let page = 1;
-        let hasNext = true;
+    if (useCustomCatalog && customCatalog) {
+      // Parse custom catalog locally
+      const gpus = Object.entries(customCatalog).map(([id, info]) => ({
+        id,
+        vendor: info.vendor || 'Unknown',
+        model: info.model_name || 'Unknown',
+        full_name: `${info.vendor || 'Unknown'} ${info.model_name || 'Unknown'}`.trim(),
+        memory_gb: info.memory_gb || 0,
+        tflops: info.tflops_fp16 || info.tflops_fp32 || null,
+        memory_type: info.memory_type || null,
+      })).filter(g => g.memory_gb > 0);
+      setGpuCatalog(gpus);
+      setLoadingGpus(false);
+    } else {
+      // Load from API (default catalog)
+      const load = async () => {
+        setLoadingGpus(true);
+        try {
+          let allGpus = [];
+          let page = 1;
+          let hasNext = true;
 
-        while (hasNext) {
-          const data = await getGPUs({ per_page: 100, page });
-          if (data && data.gpus) {
-            allGpus = allGpus.concat(data.gpus);
-            hasNext = data.has_next === true;
-            page++;
-          } else {
-            hasNext = false;
+          while (hasNext) {
+            const data = await getGPUs({ per_page: 100, page });
+            if (data && data.gpus) {
+              allGpus = allGpus.concat(data.gpus);
+              hasNext = data.has_next === true;
+              page++;
+            } else {
+              hasNext = false;
+            }
           }
-        }
 
-        setGpuCatalog(allGpus);
-      } catch (err) {
-        console.error('Failed to load GPU catalog:', err);
-      } finally {
-        setLoadingGpus(false);
-      }
-    };
-    load();
-  }, [isOpen, selectedGpuIds]);
+          setGpuCatalog(allGpus);
+        } catch (err) {
+          console.error('Failed to load GPU catalog:', err);
+        } finally {
+          setLoadingGpus(false);
+        }
+      };
+      load();
+    }
+  }, [isOpen, selectedGpuIds, useCustomCatalog, customCatalog]);
 
   // Close on Escape
   useEffect(() => {
@@ -52,6 +92,7 @@ const GpuFilterModal = ({ isOpen, onClose, selectedGpuIds, onApply }) => {
     return () => document.removeEventListener('keydown', handleKey);
   }, [isOpen, onClose]);
 
+  // ── Filter GPU list by search query ──
   const filteredGpus = gpuCatalog.filter((gpu) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
@@ -84,6 +125,83 @@ const GpuFilterModal = ({ isOpen, onClose, selectedGpuIds, onApply }) => {
     onClose();
   };
 
+  // ── Download default catalog ──
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const data = await exportGpuCatalog();
+      if (data && data.error) {
+        setUploadError(data.error);
+        return;
+      }
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'gpu_catalog.json';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setUploadError('Failed to download catalog');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // ── Upload custom catalog ──
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError(null);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const parsed = JSON.parse(evt.target.result);
+
+        // Validate structure: must be an object with GPU entries
+        if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+          setUploadError('Invalid format: expected a JSON object with GPU entries.');
+          return;
+        }
+
+        const keys = Object.keys(parsed);
+        if (keys.length === 0) {
+          setUploadError('Catalog is empty.');
+          return;
+        }
+
+        // Check that at least first entry has required fields
+        const first = parsed[keys[0]];
+        if (!first.memory_gb && !first.Memory_GB) {
+          setUploadError('Invalid catalog: entries must have "memory_gb" field.');
+          return;
+        }
+
+        onCustomCatalogUpload(parsed, file.name);
+      } catch (err) {
+        setUploadError(`Failed to parse JSON: ${err.message}`);
+      }
+    };
+    reader.onerror = () => {
+      setUploadError('Failed to read file');
+    };
+    reader.readAsText(file);
+
+    // Reset the input so same file can be re-uploaded
+    e.target.value = '';
+  };
+
+  // Count GPUs in each catalog
+  const defaultCatalogCount = (!useCustomCatalog) ? gpuCatalog.length : null;
+  const customCatalogCount = customCatalog ? Object.keys(customCatalog).length : 0;
+
   if (!isOpen) return null;
 
   return ReactDOM.createPortal(
@@ -95,7 +213,7 @@ const GpuFilterModal = ({ isOpen, onClose, selectedGpuIds, onApply }) => {
       />
 
       {/* Panel */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 flex flex-col max-h-[80vh] overflow-hidden animate-in fade-in">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 flex flex-col max-h-[85vh] overflow-hidden animate-in fade-in">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
           <div>
@@ -116,6 +234,101 @@ const GpuFilterModal = ({ isOpen, onClose, selectedGpuIds, onApply }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
+        </div>
+
+        {/* ── Catalog Source Section ── */}
+        <div className="px-6 py-3 border-b border-gray-100 shrink-0 bg-gray-50/70">
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Catalog Source</div>
+
+          {/* Radio: Default */}
+          <label className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+            !useCustomCatalog ? 'bg-indigo-50 ring-1 ring-indigo-200' : 'hover:bg-gray-100'
+          }`}>
+            <input
+              type="radio"
+              name="catalogSource"
+              checked={!useCustomCatalog}
+              onChange={() => onCustomCatalogToggle(false)}
+              className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-gray-800">
+                Default Catalog
+                {defaultCatalogCount != null && (
+                  <span className="ml-1.5 text-xs font-normal text-gray-400">({defaultCatalogCount} GPUs)</span>
+                )}
+              </div>
+            </div>
+          </label>
+
+          {/* Radio: Custom */}
+          <label className={`flex items-center gap-3 px-3 py-2 mt-1 rounded-lg transition-colors ${
+            customCatalog ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'
+          } ${useCustomCatalog ? 'bg-indigo-50 ring-1 ring-indigo-200' : customCatalog ? 'hover:bg-gray-100' : ''}`}>
+            <input
+              type="radio"
+              name="catalogSource"
+              checked={useCustomCatalog}
+              disabled={!customCatalog}
+              onChange={() => onCustomCatalogToggle(true)}
+              className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-gray-800">
+                Custom Catalog
+                {customCatalog ? (
+                  <span className="ml-1.5 text-xs font-normal text-gray-400">
+                    {customCatalogName} ({customCatalogCount} GPUs)
+                  </span>
+                ) : (
+                  <span className="ml-1.5 text-xs font-normal text-gray-400">Not uploaded</span>
+                )}
+              </div>
+            </div>
+          </label>
+
+          {/* Download / Upload buttons */}
+          <div className="flex items-center gap-2 mt-3">
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={downloading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              {downloading ? 'Downloading...' : 'Download Default'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleUploadClick}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              Upload Custom
+            </button>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </div>
+
+          {/* Upload error */}
+          {uploadError && (
+            <div className="mt-2 text-xs text-red-600 bg-red-50 px-3 py-1.5 rounded-lg">
+              {uploadError}
+            </div>
+          )}
         </div>
 
         {/* Search + controls */}
@@ -185,6 +398,7 @@ const GpuFilterModal = ({ isOpen, onClose, selectedGpuIds, onApply }) => {
                       <div className="text-xs text-gray-400">
                         {gpu.memory_gb} GB
                         {gpu.tflops ? ` | ${gpu.tflops} TFLOPS` : ''}
+                        {gpu.memory_type ? ` | ${gpu.memory_type}` : ''}
                       </div>
                     </div>
                   </label>

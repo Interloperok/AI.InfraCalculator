@@ -891,7 +891,7 @@ const CalculatorForm = ({
           Users
           <SectionTooltip text="Define the total user base. Fine-tune adoption and concurrency rates in the Advanced tab." />
         </h3>
-        {renderSliderInput('internal_users', 'Total Users', 0, 1000000, 1000, formData.internal_users, '', 'Total number of internal users who may access the AI service.')}
+        {renderSliderInput('internal_users', 'Total Users', 0, 100000000, 1000, formData.internal_users, '', 'Total number of internal users who may access the AI service.')}
       </div>
 
       <div className="bg-green-50 rounded-lg p-4 border border-green-200" data-tour="model-search">

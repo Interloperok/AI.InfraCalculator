@@ -285,7 +285,10 @@ def calc_servers_by_compute(Ssim, R, KSLA, th_server_comp):
 
 # GPU Data Management
 def refresh_gpu_data_internal():
-    """Внутренняя функция для обновления данных GPU"""
+    """Внутренняя функция для обновления данных GPU.
+
+    Pipeline: gpu_scraper -> gpu_data_raw.json -> gpu_normalizer -> gpu_data.json
+    """
     import sys
     import io
     try:
@@ -297,11 +300,19 @@ def refresh_gpu_data_internal():
         sys.stdout = io.StringIO()
         try:
             from gpu_scraper import main as scrape_gpus
-            scrape_gpus()
+            scrape_gpus()  # writes gpu_data_raw.json
         finally:
             sys.stdout = old_stdout
 
-        logger.info("Данные GPU успешно обновлены")
+        logger.info("Скрапинг завершён, запускаем нормализацию...")
+
+        # Normalize raw data into clean gpu_data.json
+        from gpu_normalizer import normalize as normalize_gpu_data
+        raw_path = os.path.join(os.path.dirname(__file__), "gpu_data_raw.json")
+        out_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
+        normalize_gpu_data(raw_path, out_path)
+
+        logger.info("Данные GPU успешно обновлены и нормализованы")
         return True
     except Exception as e:
         logger.error(f"Ошибка при обновлении данных GPU: {e}")
@@ -332,108 +343,26 @@ def start_scheduler():
     return scheduler
 
 
-def _parse_tflops_value(raw) -> float:
-    """
-    Разбор значения TFLOPS из GPU-каталога.
-
-    Значение может быть числом (312.0), строкой с одним числом ("312.0"),
-    строкой с base/boost ("10.48 12.90") — берём максимум (boost).
-    """
-    if raw is None:
-        return 0.0
-    try:
-        return float(raw)
-    except (ValueError, TypeError):
-        pass
-    s = str(raw).strip()
-    parts = s.replace(",", " ").split()
-    values = []
-    for p in parts:
-        try:
-            values.append(float(p))
-        except ValueError:
-            continue
-    return max(values) if values else 0.0
-
-
 def _extract_gpu_tflops(gpu_info: dict) -> float:
     """
-    Извлечь наиболее подходящее значение TFLOPS для LLM-инференса из записи GPU.
+    Извлечь наиболее подходящее значение TFLOPS для LLM-инференса.
 
-    Приоритет (от лучшего к худшему):
-    1. Half precision Tensor Core (напр. A100 → 312 TFLOPS)
-    2. Tensor compute FP16
-    3. BFloat16
-    4. Half precision (generic)
-    5. Single precision (FP32)
-    6. Любое поле с «TFLOPS»
+    Работает с нормализованным каталогом (поля tflops_fp16, tflops_fp32).
+    Приоритет: fp16 → fp32 → 0.
     """
-    priority_keywords = [
-        ("Half precision Tensor Core", "TFLOPS"),
-        ("Tensor compute (FP16)", "TFLOPS"),
-        ("Tensor compute FP16", "TFLOPS"),
-        ("Tensor", "TFLOPS"),
-        ("Bfloat16", "TFLOPS"),
-        ("Half precision", "TFLOPS"),
-        ("Half", "TFLOPS"),
-        ("XMX Half", "TFLOPS"),
-        ("Single precision", "TFLOPS"),
-        ("Single", "TFLOPS"),
-    ]
-
-    for keyword, unit in priority_keywords:
-        for key, value in gpu_info.items():
-            if unit in key and keyword in key:
-                v = _parse_tflops_value(value)
-                if v > 0:
-                    return v
-
-    # Фоллбэк: GFLOPS → TFLOPS
-    gflops_priority = [
-        ("Tensor compute (FP16)", "GFLOPS"),
-        ("Half precision", "GFLOPS"),
-        ("Half", "GFLOPS"),
-        ("Single precision", "GFLOPS"),
-        ("Single", "GFLOPS"),
-    ]
-    for keyword, unit in gflops_priority:
-        for key, value in gpu_info.items():
-            if unit in key and keyword in key:
-                v = _parse_tflops_value(value)
-                if v > 0:
-                    return v / 1000.0  # GFLOPS → TFLOPS
-
-    # Последний фоллбэк: любое поле с TFLOPS/GFLOPS
-    for key, value in gpu_info.items():
-        if "TFLOPS" in key:
-            v = _parse_tflops_value(value)
-            if v > 0:
-                return v
-    for key, value in gpu_info.items():
-        if "GFLOPS" in key:
-            v = _parse_tflops_value(value)
-            if v > 0:
-                return v / 1000.0
-
-    # Vector TFLOPS FP16
-    for key, value in gpu_info.items():
-        k_upper = key.upper()
-        if "TFLOPS" in k_upper and ("FP16" in k_upper or "HALF" in k_upper):
-            v = _parse_tflops_value(value)
-            if v > 0:
-                return v
-
+    fp16 = gpu_info.get("tflops_fp16")
+    if fp16 and float(fp16) > 0:
+        return float(fp16)
+    fp32 = gpu_info.get("tflops_fp32")
+    if fp32 and float(fp32) > 0:
+        return float(fp32)
     return 0.0
 
 
 def _lookup_gpu_tflops(gpu_id, gpu_mem_gb):
     """
-    Поиск TFLOPS GPU из каталога gpu_data.json.
-
-    Для LLM-инференса ищем Half Precision / Tensor Core TFLOPS
-    (например, 312 TFLOPS для A100, а НЕ 9.7 Double Precision).
+    Поиск TFLOPS GPU из нормализованного каталога gpu_data.json.
     """
-    import os
     gpu_data_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
     try:
         with open(gpu_data_path, "r", encoding="utf-8") as f:
@@ -446,7 +375,7 @@ def _lookup_gpu_tflops(gpu_id, gpu_mem_gb):
         target_gpu = gpu_data[gpu_id]
     else:
         for gid, ginfo in gpu_data.items():
-            mem = ginfo.get("Memory_GB", 0)
+            mem = ginfo.get("memory_gb", 0)
             if mem and float(mem) == float(gpu_mem_gb):
                 target_gpu = ginfo
                 break
@@ -776,22 +705,30 @@ def whatif_endpoint(req: WhatIfRequest):
 
 def _load_gpu_catalog_for_optimize(min_memory_gb: float = 0,
                                     vendors: Optional[List[str]] = None,
-                                    gpu_ids: Optional[List[str]] = None) -> list:
+                                    gpu_ids: Optional[List[str]] = None,
+                                    custom_catalog: Optional[dict] = None) -> list:
     """
     Загрузить и отфильтровать GPU из каталога для автоподбора.
 
+    Работает с нормализованным каталогом (поля: memory_gb, tflops_fp16/fp32,
+    vendor, model_name, launch_date).
+
     Возвращает список dict с ключами: id, name, memory_gb, tflops, vendor.
+
+    Если custom_catalog задан — используется он вместо gpu_data.json.
     Если gpu_ids задан — берутся только указанные GPU (остальные фильтры игнорируются).
     Иначе фильтрует GPU без памяти, без TFLOPS и с датой выпуска <= 2013.
     """
-    gpu_data_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
-    try:
-        with open(gpu_data_path, "r", encoding="utf-8") as f:
-            gpu_data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
+    if custom_catalog is not None:
+        gpu_data = custom_catalog
+    else:
+        gpu_data_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
+        try:
+            with open(gpu_data_path, "r", encoding="utf-8") as f:
+                gpu_data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return []
 
-    # Если указаны конкретные GPU IDs — только они
     gpu_id_set = set(gpu_ids) if gpu_ids else None
 
     results = []
@@ -802,54 +739,45 @@ def _load_gpu_catalog_for_optimize(min_memory_gb: float = 0,
         if gpu_id_set is not None and gpu_id not in gpu_id_set:
             continue
 
-        # --- Извлечь memory_gb ---
-        memory_gb = 0
-        for key in gpu_info.keys():
-            if "memory size" in str(key).lower():
-                try:
-                    memory_gb = int(re.sub(r"\D+", '', str(gpu_info.get(key)).split(" ")[0]))
-                except (ValueError, IndexError):
-                    pass
-                break
-        if memory_gb <= 0:
+        # Memory (normalized field)
+        memory_gb = gpu_info.get("memory_gb")
+        if not memory_gb or float(memory_gb) <= 0:
             continue
+        memory_gb = float(memory_gb)
 
-        # Фильтр по минимальной памяти (применяется даже при gpu_ids)
         if memory_gb < min_memory_gb:
             continue
 
-        # Фильтр по вендору (только если gpu_ids не задан)
-        vendor = gpu_info.get("Vendor", "Unknown")
+        # Vendor
+        vendor = gpu_info.get("vendor", "Unknown")
         if gpu_id_set is None and vendors:
             if not any(v.lower() == vendor.lower() for v in vendors):
                 continue
 
-        # Фильтр по дате (только если gpu_ids не задан)
+        # Launch date filter (skip old GPUs unless specific IDs requested)
         if gpu_id_set is None:
-            launch_date = gpu_info.get("Launch")
+            launch_date = gpu_info.get("launch_date")
             if launch_date:
                 try:
-                    year = pd.to_datetime(launch_date).year
+                    year = int(str(launch_date)[:4])
                     if year <= 2013:
                         continue
-                except Exception:
+                except (ValueError, IndexError):
                     continue
             else:
                 continue
 
-        # Извлечь TFLOPS
+        # TFLOPS (normalized: fp16 preferred, fallback fp32)
         tflops = _extract_gpu_tflops(gpu_info)
         if tflops <= 0:
             continue
 
-        # Имя модели
-        model_value = gpu_info.get("Model") or gpu_info.get("Model name") or "Unknown"
-        if "nan" in str(model_value).lower():
-            model_value = "Unknown"
-        full_name = f"{vendor} {model_value}".strip()
+        # Model name
+        model_name = gpu_info.get("model_name") or "Unknown"
+        full_name = f"{vendor} {model_name}".strip()
 
         # Дедупликация по (memory, tflops) — одинаковые характеристики дают одинаковый результат
-        dedup_key = (memory_gb, round(tflops, 1))
+        dedup_key = (int(memory_gb), round(tflops, 1))
         if dedup_key in seen:
             continue
         seen.add(dedup_key)
@@ -857,7 +785,7 @@ def _load_gpu_catalog_for_optimize(min_memory_gb: float = 0,
         results.append({
             "id": gpu_id,
             "name": full_name,
-            "memory_gb": memory_gb,
+            "memory_gb": int(memory_gb),
             "tflops": tflops,
             "vendor": vendor,
         })
@@ -924,6 +852,7 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
         min_memory_gb=min_mem,
         vendors=inp.gpu_vendors,
         gpu_ids=inp.gpu_ids,
+        custom_catalog=inp.custom_gpu_catalog,
     )
 
     if not gpu_catalog:
@@ -1095,45 +1024,37 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
 # GPU API Endpoints
 
 def _get_recommended_gpus_per_server(gpu_info: dict) -> int:
-    """Определить рекомендуемое количество GPU на сервер"""
-    memory_gb = gpu_info.get("Memory_GB", 0)
-    if memory_gb >= 80:  # A100, H100
-        return 8
-    elif memory_gb >= 40:  # RTX 4090, A40
-        return 8
-    elif memory_gb >= 24:  # RTX 4090, RTX 3090
-        return 8
-    elif memory_gb >= 16:  # RTX 4080, RTX 3080
+    """Определить рекомендуемое количество GPU на сервер (normalized catalog)."""
+    memory_gb = gpu_info.get("memory_gb") or 0
+    if memory_gb >= 16:
         return 8
     else:
         return 4
 
 
 def _get_estimated_tps(gpu_info: dict) -> float:
-    """Оценить TPS на основе характеристик GPU"""
-    memory_gb = gpu_info.get("Memory_GB", 0)
-    cores = gpu_info.get("Cores", 0)
-    vendor = gpu_info.get("Vendor", "").lower()
+    """Оценить TPS на основе характеристик GPU (normalized catalog)."""
+    memory_gb = gpu_info.get("memory_gb") or 0
+    vendor = str(gpu_info.get("vendor", "")).lower()
 
-    # Базовые оценки на основе памяти и архитектуры
     if vendor == "nvidia":
-        if memory_gb >= 80:  # A100, H100
-            return 2000 + (cores * 0.1 if cores else 0)
-        elif memory_gb >= 40:  # RTX 4090
-            return 1500 + (cores * 0.05 if cores else 0)
-        elif memory_gb >= 24:  # RTX 3090
-            return 1000 + (cores * 0.03 if cores else 0)
+        if memory_gb >= 80:
+            return 2000
+        elif memory_gb >= 40:
+            return 1500
+        elif memory_gb >= 24:
+            return 1000
         else:
-            return 500 + (cores * 0.02 if cores else 0)
+            return 500
     elif vendor == "amd":
-        if memory_gb >= 80:  # MI200 series
-            return 1500 + (cores * 0.08 if cores else 0)
-        elif memory_gb >= 24:  # RX 7900 XTX
-            return 800 + (cores * 0.04 if cores else 0)
+        if memory_gb >= 80:
+            return 1500
+        elif memory_gb >= 24:
+            return 800
         else:
-            return 400 + (cores * 0.02 if cores else 0)
-    else:  # Intel
-        return 300 + (cores * 0.01 if cores else 0)
+            return 400
+    else:
+        return 300
 
 
 @app.get("/v1/gpus", response_model=GPUListResponse, tags=["GPU Catalog"])
@@ -1173,96 +1094,69 @@ def get_gpus(
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="GPU data not found. Run /v1/gpus/refresh first.")
 
-    # Фильтрация данных
+    # Фильтрация данных (normalized catalog)
     filtered_gpus = []
     for gpu_id, gpu_info in gpu_data.items():
-        # Применяем фильтры
-        if vendor and gpu_info.get("Vendor", "").lower() != vendor.lower():
+        # Vendor filter
+        gpu_vendor = gpu_info.get("vendor", "Unknown")
+        if vendor and gpu_vendor.lower() != vendor.lower():
             continue
 
-        memory_gb = gpu_info.get("Memory_GB")
-        if memory_gb:
-            if min_memory and memory_gb < min_memory:
-                continue
-            if max_memory and memory_gb > max_memory:
-                continue
-
-        cores = gpu_info.get("Cores")
-        if min_cores and cores and cores < min_cores:
+        # Memory filter
+        mem_gb = gpu_info.get("memory_gb")
+        if not mem_gb or float(mem_gb) <= 0:
+            continue
+        mem_gb = float(mem_gb)
+        if min_memory and mem_gb < min_memory:
+            continue
+        if max_memory and mem_gb > max_memory:
             continue
 
-            # Фильтрация по году - оставляем только GPU с Launch после 2013 года
-        launch_date = gpu_info.get("Launch")
+        # Launch date / year filter
+        launch_date = gpu_info.get("launch_date")
         if launch_date:
             try:
-                year = pd.to_datetime(launch_date).year
-                if year <= 2013:  # Пропускаем GPU до 2013 года
+                year = int(str(launch_date)[:4])
+                if year <= 2013:
                     continue
                 if min_year and year < min_year:
                     continue
                 if max_year and year > max_year:
                     continue
-            except:
-                continue  # Пропускаем GPU с некорректной датой запуска
-
-        if memory_type and gpu_info.get("Memory_Type", "").lower() != memory_type.lower():
-            continue
-
-        # Поиск по названию
-        if search:
-            model = gpu_info.get("Model", "").lower()
-            if search.lower() not in model:
+            except (ValueError, IndexError):
                 continue
-
-        # Создаем GPUInfo объект
-        # Формируем полное название модели (Vendor + Model)
-        vendor = gpu_info.get("Vendor", "Unknown")
-        model_value = gpu_info.get("Model")
-        model_name_value = gpu_info.get("Model name")
-        
-        # Определяем model_name с проверкой на None и "nan"
-        if model_value and "nan" not in str(model_value).lower():
-            model_name = str(model_value)
-        elif model_name_value and "nan" not in str(model_name_value).lower():
-            model_name = str(model_name_value)
         else:
-            model_name = "Unknown"
-        
-        full_name = f"{vendor} {model_name}".strip()
-
-        # Формируем размер памяти в виде строки с единицами измерения
-        memory_size = 0
-        memory_size_formatted = 0
-        for key in gpu_info.keys():
-            if "memory size" in str(key).lower():
-                memory_size = int(re.sub(r"\D+", '', str(gpu_info.get(key)).split(" ")[0]))
-
-        if memory_size and memory_size != 0:
-            memory_size_formatted = memory_size
-        else:
-            memory_size_formatted = 0
-            # Сделано для упрощения ориентирования
             continue
 
-        # Получаем TDP (в ваттах)
-        tdp_watts = gpu_info.get("TDP (Watts)", "?")
-        if tdp_watts != "?":
-            tdp_watts = f"{tdp_watts} W"
-        else:
-            tdp_watts = "Unknown"
+        # Memory type filter
+        gpu_mem_type = gpu_info.get("memory_type")
+        if memory_type and (not gpu_mem_type or gpu_mem_type.lower() != memory_type.lower()):
+            continue
+
+        # Model name
+        model_name = gpu_info.get("model_name") or "Unknown"
+        full_name = f"{gpu_vendor} {model_name}".strip()
+
+        # Search filter
+        if search and search.lower() not in full_name.lower():
+            continue
+
+        # TDP
+        tdp_val = gpu_info.get("tdp_watts")
+        tdp_str = f"{int(tdp_val)} W" if tdp_val else "Unknown"
 
         gpu = GPUInfo(
             id=gpu_id,
-            vendor=vendor,
+            vendor=gpu_vendor,
             model=model_name,
-            memory_gb=memory_size_formatted,
-            cores=cores,
+            memory_gb=int(mem_gb),
+            cores=None,
             launch_date=launch_date,
-            memory_type=gpu_info.get("Memory_Type"),
+            memory_type=gpu_mem_type,
             recommended_gpus_per_server=_get_recommended_gpus_per_server(gpu_info),
             estimated_tps_per_instance=_get_estimated_tps(gpu_info),
             full_name=full_name,
-            tdp_watts=tdp_watts,
+            tdp_watts=tdp_str,
             tflops=_extract_gpu_tflops(gpu_info) or None,
         )
         filtered_gpus.append(gpu)
@@ -1280,6 +1174,26 @@ def get_gpus(
         per_page=per_page,
         has_next=end < total,
         has_prev=page > 1
+    )
+
+
+@app.get("/v1/gpus/export", tags=["GPU Catalog"])
+def export_gpu_catalog():
+    """
+    Скачать нормализованный каталог GPU в формате JSON.
+
+    Возвращает полный каталог gpu_data.json для скачивания.
+    Пользователь может отредактировать файл и загрузить обратно
+    через custom_gpu_catalog в auto-optimize запросе.
+    """
+    from fastapi.responses import FileResponse
+    gpu_data_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
+    if not os.path.exists(gpu_data_path):
+        raise HTTPException(status_code=404, detail="GPU data not found. Run /v1/gpus/refresh first.")
+    return FileResponse(
+        gpu_data_path,
+        media_type="application/json",
+        filename="gpu_catalog.json",
     )
 
 
@@ -1304,53 +1218,25 @@ def get_gpu_details(gpu_id: str):
 
     gpu_info = gpu_data[gpu_id]
 
-    # Формируем полное название модели (Vendor + Model)
-    vendor = gpu_info.get("Vendor", "Unknown")
-    model_value = gpu_info.get("Model")
-    model_name_value = gpu_info.get("Model name")
-    
-    # Определяем model_name с проверкой на None и "nan"
-    if model_value and "nan" not in str(model_value).lower():
-        model_name = str(model_value)
-    elif model_name_value and "nan" not in str(model_name_value).lower():
-        model_name = str(model_name_value)
-    else:
-        model_name = "Unknown"
-    
-    full_name = f"{vendor} {model_name}".strip()
-
-    # Формируем размер памяти в виде строки с единицами измерения
-    memory_size = 0
-    memory_size_formatted = 0
-    for key in gpu_info.keys():
-        if "memory size" in str(key).lower():
-            memory_size = int(re.sub(r"\D+", '', str(gpu_info.get(key)).split(" ")[0]))
-            break
-
-    if memory_size and memory_size != 0:
-        memory_size_formatted = memory_size
-    else:
-        memory_size_formatted = 0
-
-    # Получаем TDP (в ваттах)
-    tdp_watts = gpu_info.get("TDP (Watts)", "?")
-    if tdp_watts != "?":
-        tdp_watts = f"{tdp_watts} W"
-    else:
-        tdp_watts = "Unknown"
+    gpu_vendor = gpu_info.get("vendor", "Unknown")
+    model_name = gpu_info.get("model_name") or "Unknown"
+    full_name = f"{gpu_vendor} {model_name}".strip()
+    mem_gb = gpu_info.get("memory_gb") or 0
+    tdp_val = gpu_info.get("tdp_watts")
+    tdp_str = f"{int(tdp_val)} W" if tdp_val else "Unknown"
 
     return GPUInfo(
         id=gpu_id,
-        vendor=vendor,
+        vendor=gpu_vendor,
         model=model_name,
-        memory_gb=memory_size_formatted,
-        cores=gpu_info.get("Cores"),
-        launch_date=gpu_info.get("Launch"),
-        memory_type=gpu_info.get("Memory_Type"),
+        memory_gb=int(mem_gb),
+        cores=None,
+        launch_date=gpu_info.get("launch_date"),
+        memory_type=gpu_info.get("memory_type"),
         recommended_gpus_per_server=_get_recommended_gpus_per_server(gpu_info),
         estimated_tps_per_instance=_get_estimated_tps(gpu_info),
         full_name=full_name,
-        tdp_watts=tdp_watts,
+        tdp_watts=tdp_str,
         tflops=_extract_gpu_tflops(gpu_info) or None,
     )
 
@@ -1412,12 +1298,12 @@ def get_gpu_stats():
     year_ranges = {}
 
     for gpu_info in gpu_data.values():
-        # Вендоры
-        vendor = gpu_info.get("Vendor", "Unknown")
-        vendors[vendor] = vendors.get(vendor, 0) + 1
+        # Вендоры (normalized: "vendor")
+        v = gpu_info.get("vendor", "Unknown")
+        vendors[v] = vendors.get(v, 0) + 1
 
-        # Память
-        memory = gpu_info.get("Memory_GB", 0)
+        # Память (normalized: "memory_gb")
+        memory = gpu_info.get("memory_gb") or 0
         if memory < 4:
             memory_ranges["0-4GB"] += 1
         elif memory < 8:
@@ -1429,14 +1315,14 @@ def get_gpu_stats():
         else:
             memory_ranges["32GB+"] += 1
 
-        # Годы
-        launch_date = gpu_info.get("Launch")
+        # Годы (normalized: "launch_date" → "YYYY-MM-DD" or "YYYY")
+        launch_date = gpu_info.get("launch_date")
         if launch_date:
             try:
-                year = pd.to_datetime(launch_date).year
+                year = int(str(launch_date)[:4])
                 year_range = f"{year // 10 * 10}s"
                 year_ranges[year_range] = year_ranges.get(year_range, 0) + 1
-            except:
+            except (ValueError, IndexError):
                 pass
 
     return GPUStats(
