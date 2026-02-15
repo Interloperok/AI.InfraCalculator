@@ -2,6 +2,13 @@
 
 set -e
 
-git pull
+echo "Building new images..."
+docker-compose -f docker-compose.prod.yml build
+
+echo "Stopping and removing old containers..."
 docker-compose -f docker-compose.prod.yml down
-docker-compose -f docker-compose.prod.yml up --build -d
+
+echo "Starting new containers with freshly built images..."
+docker-compose -f docker-compose.prod.yml up -d
+
+echo "Deployment completed successfully!"

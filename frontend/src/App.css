@@ -2,31 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom styles for sliders */
+/* Custom styles for sliders - unified height and appearance */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   height: 8px;
   border-radius: 4px;
   outline: none;
+  background: transparent;
+  width: 100%;
 }
 
+/* Webkit (Chrome, Safari, Edge) track styles */
+input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: #bfdbfe; /* bg-blue-200 */
+  cursor: pointer;
+}
+
+/* Webkit thumb styles */
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: #2563eb; /* accent-blue-600 */
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  margin-top: -6px; /* Centers thumb on track */
 }
 
+/* Firefox track styles */
+input[type="range"]::-moz-range-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: #bfdbfe; /* bg-blue-200 */
+  cursor: pointer;
+  border: none;
+}
+
+/* Firefox thumb styles */
 input[type="range"]::-moz-range-thumb {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: #2563eb; /* accent-blue-600 */
   cursor: pointer;
   border: none;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -41,6 +65,141 @@ input[type="range"]::-moz-range-thumb {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Header icon — subtle breathing glow */
+@keyframes icon-glow {
+  0%, 100% {
+    box-shadow: 0 0 14px 3px rgba(147, 51, 234, 0.3),
+                0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 32px 10px rgba(147, 51, 234, 0.55),
+                0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.header-icon {
+  animation: icon-glow 4s ease-in-out infinite;
+}
+
+/* Calculate button — subtle breathing glow */
+@keyframes calc-glow {
+  0%, 100% {
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2),
+                0 0 12px 2px rgba(37, 99, 235, 0.15);
+  }
+  50% {
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3),
+                0 0 28px 8px rgba(37, 99, 235, 0.35);
+  }
+}
+
+.calc-btn-glow {
+  animation: calc-glow 3s ease-in-out infinite;
+}
+
+/* Download button — subtle green breathing glow */
+@keyframes download-glow {
+  0%, 100% {
+    box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2),
+                0 0 12px 2px rgba(22, 163, 74, 0.15);
+  }
+  50% {
+    box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.3),
+                0 0 28px 8px rgba(22, 163, 74, 0.35);
+  }
+}
+
+.download-btn-glow {
+  animation: download-glow 3s ease-in-out infinite;
+}
+
+/* Docs drawer — slide in from right */
+@keyframes drawer-slide-in {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.docs-drawer {
+  animation: drawer-slide-in 0.3s ease-out;
+}
+
+/* ── Auto-Optimize toggle ── */
+
+/* OFF state: gentle attention-grabbing shimmer (purple) */
+@keyframes toggle-shimmer {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(147, 51, 234, 0),
+                inset 0 0 0 0 rgba(147, 51, 234, 0);
+  }
+  50% {
+    box-shadow: 0 0 10px 3px rgba(147, 51, 234, 0.3),
+                inset 0 0 4px 0 rgba(147, 51, 234, 0.1);
+  }
+}
+.toggle-shimmer {
+  animation: toggle-shimmer 2.5s ease-in-out infinite;
+}
+
+/* ON state: electric glow */
+@keyframes toggle-electric {
+  0%, 100% {
+    box-shadow: 0 0 6px 1px rgba(99, 102, 241, 0.35),
+                0 0 16px 4px rgba(99, 102, 241, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 10px 3px rgba(99, 102, 241, 0.55),
+                0 0 28px 8px rgba(99, 102, 241, 0.25);
+  }
+}
+.toggle-electric {
+  animation: toggle-electric 2s ease-in-out infinite;
+}
+
+/* Thumb: bolt zap on activation */
+@keyframes bolt-zap {
+  0%   { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 0 transparent); }
+  20%  { transform: scale(1.5) rotate(-12deg); filter: drop-shadow(0 0 6px rgba(250,204,21,0.9)); }
+  40%  { transform: scale(0.9) rotate(8deg); filter: drop-shadow(0 0 3px rgba(250,204,21,0.5)); }
+  60%  { transform: scale(1.2) rotate(-4deg); filter: drop-shadow(0 0 8px rgba(250,204,21,0.8)); }
+  80%  { transform: scale(1.05) rotate(2deg); filter: drop-shadow(0 0 2px rgba(250,204,21,0.3)); }
+  100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 0 transparent); }
+}
+.bolt-zap {
+  animation: bolt-zap 0.6s ease-out;
+}
+
+/* ON state: subtle continuous bolt glow */
+@keyframes bolt-glow {
+  0%, 100% { filter: drop-shadow(0 0 1px rgba(250,204,21,0)); }
+  50%      { filter: drop-shadow(0 0 4px rgba(250,204,21,0.6)); }
+}
+.bolt-glow {
+  animation: bolt-glow 2s ease-in-out infinite;
+}
+
+/* Spark particles on toggle activation */
+@keyframes spark-fly {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
+}
+.spark {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #fbbf24;
+  pointer-events: none;
+  animation: spark-fly 0.5s ease-out forwards;
+}
+
+/* Optimize drawer — slide in from left */
+@keyframes optimize-drawer-in {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+.optimize-drawer {
+  animation: optimize-drawer-in 0.3s ease-out;
 }
 
 /* Responsive adjustments */

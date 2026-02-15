@@ -2,28 +2,38 @@
   "internal_users": 2000,
   "penetration_internal": 0.4,
   "concurrency_internal": 0.1,
-  "external_users": 10000,
+  "external_users": 0,
   "penetration_external": 0.0,
   "concurrency_external": 0.0,
+  "sessions_per_user_J": 1,
 
-  "prompt_tokens_P": 350,
-  "answer_tokens_A": 200,
-  "rps_per_active_user_R": 0.05,
-  "session_duration_sec_t": 300,
+  "system_prompt_tokens_SP": 1000,
+  "user_prompt_tokens_Prp": 200,
+  "reasoning_tokens_MRT": 4096,
+  "answer_tokens_A": 400,
+  "dialog_turns": 5,
 
   "params_billions": 7,
   "bytes_per_param": 2,
   "overhead_factor": 1.15,
+  "emp_model": 1.0,
   "layers_L": 32,
   "hidden_size_H": 4096,
+
   "bytes_per_kv_state": 2,
-  "paged_attention_gain_Kopt": 1.5,
+  "emp_kv": 1.0,
+  "max_context_window_TSmax": 32768,
 
   "gpu_mem_gb": 80,
   "gpus_per_server": 8,
-  "mem_reserve_fraction": 0.07,
+  "kavail": 0.9,
+  "tp_multiplier_Z": 1,
+  "saturation_coeff_C": 8.0,
 
-  "tps_per_instance": 1500,
-  "batching_coeff": 1.2,
-  "sla_reserve": 1.25
+  "gpu_flops_Fcount": 312,
+  "eta_prefill": 0.20,
+  "eta_decode": 0.15,
+
+  "rps_per_session_R": 0.02,
+  "sla_reserve_KSLA": 1.25
 }

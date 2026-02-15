@@ -1,20 +1,342 @@
-import React from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import Joyride, { STATUS } from 'react-joyride';
 import Calculator from './components/Calculator';
 import './App.css';
 
+const APP_VERSION = '0.1.0';
+const GITHUB_URL = 'https://github.com/your-org/ai-server-calculator';
+
+const TOUR_STEPS = [
+  {
+    target: '[data-tour="presets"]',
+    content: 'Start quickly by picking a preset configuration with pre-filled model, GPU, and load parameters.',
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="model-search"]',
+    content: 'Search Hugging Face to find your AI model. Architecture parameters like size and layers are filled automatically.',
+  },
+  {
+    target: '[data-tour="gpu-search"]',
+    content: 'Pick a GPU from the built-in catalog. Memory and TFLOPS specs are filled in for you.',
+  },
+  {
+    target: '[data-tour="basic-tab"]',
+    content: 'Basic settings cover users, model selection, and hardware — enough for a quick estimate.',
+  },
+  {
+    target: '[data-tour="advanced-tab"]',
+    content: 'Fine-tune token budgets, KV-cache, tensor parallelism, compute efficiency, and SLA parameters here.',
+  },
+  {
+    target: '[data-tour="calculate-btn"]',
+    content: 'Hit Calculate to run the sizing engine and see how many servers you need.',
+  },
+  {
+    target: '[data-tour="result-cards"]',
+    content: 'Key results at a glance: total servers, sessions per server, and throughput capacity.',
+  },
+  {
+    target: '[data-tour="donut-chart"]',
+    content: 'Visual breakdown of GPU memory per model instance — model weights vs. available KV-cache space.',
+  },
+  {
+    target: '[data-tour="detail-toggle"]',
+    content: 'Switch between Memory Path and Compute Path to see the full calculation details.',
+  },
+  {
+    target: '[data-tour="docs-btn"]',
+    content: 'Open the methodology documentation in a side panel — read it without leaving the calculator.',
+  },
+];
+
+const TOUR_STYLES = {
+  options: {
+    primaryColor: '#6366f1',
+    zIndex: 10000,
+    arrowColor: '#fff',
+    backgroundColor: '#fff',
+    textColor: '#374151',
+    overlayColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  buttonNext: {
+    backgroundColor: '#6366f1',
+    borderRadius: '8px',
+    fontSize: '13px',
+    padding: '8px 16px',
+  },
+  buttonBack: {
+    color: '#6366f1',
+    fontSize: '13px',
+    marginRight: 8,
+  },
+  buttonSkip: {
+    color: '#9ca3af',
+    fontSize: '13px',
+  },
+  tooltip: {
+    borderRadius: '12px',
+    padding: '20px',
+  },
+  tooltipTitle: {
+    fontSize: '15px',
+    fontWeight: 600,
+  },
+  tooltipContent: {
+    fontSize: '14px',
+    lineHeight: '1.5',
+    padding: '8px 0',
+  },
+};
+
 function App() {
+  const [runTour, setRunTour] = useState(false);
+  const [docsOpen, setDocsOpen] = useState(false);
+  const [drawerWidth, setDrawerWidth] = useState(820);
+  const [isResizing, setIsResizing] = useState(false);
+  const dragging = useRef(false);
+
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data;
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+      setRunTour(false);
+    }
+  }, []);
+
+  // Close docs drawer on Escape key
+  useEffect(() => {
+    if (!docsOpen) return;
+    const handleKey = (e) => {
+      if (e.key === 'Escape') setDocsOpen(false);
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [docsOpen]);
+
+  // Drawer resize via drag
+  const handleDragStart = useCallback((e) => {
+    e.preventDefault();
+    dragging.current = true;
+    setIsResizing(true);
+    const startX = e.clientX;
+    const startW = drawerWidth;
+    const onMove = (ev) => {
+      if (!dragging.current) return;
+      const delta = startX - ev.clientX;
+      const newW = Math.min(Math.max(startW + delta, 400), window.innerWidth * 0.92);
+      setDrawerWidth(newW);
+    };
+    const onUp = () => {
+      dragging.current = false;
+      setIsResizing(false);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [drawerWidth]);
+
+  const currentYear = new Date().getFullYear();
+  const buildDate = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+      <Joyride
+        steps={TOUR_STEPS}
+        run={runTour}
+        continuous
+        showSkipButton
+        showProgress
+        scrollToFirstStep
+        disableOverlayClose
+        callback={handleTourCallback}
+        styles={TOUR_STYLES}
+        locale={{
+          back: 'Back',
+          close: 'Close',
+          last: 'Finish',
+          next: 'Next',
+          skip: 'Skip tour',
+        }}
+      />
+
+      {/* Main content */}
+      <div className="container mx-auto px-4 py-8 flex-1">
         <header className="mb-12 text-center">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">AI Server Calculator</h1>
-          <p className="text-lg text-gray-600">Calculate the required server infrastructure for your AI models</p>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 mb-4 header-icon">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+            </svg>
+          </div>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">AI Infrastructure Calculator</h1>
+          <p className="text-lg text-gray-500 mb-4">Find out how many servers and GPUs you need for your AI models</p>
+          <div className="flex items-center justify-center gap-3">
+            {/* 1 — Take a Tour */}
+            <button
+              onClick={() => setRunTour(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium rounded-lg border border-indigo-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-200"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              <span>Take a Tour</span>
+            </button>
+            {/* 2 — Star on GitHub */}
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 group"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path fillRule="evenodd" clipRule="evenodd"
+                  d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+              </svg>
+              <svg className="w-4 h-4 text-amber-400 group-hover:scale-125 transition-transform duration-200" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              <span>Star on GitHub</span>
+            </a>
+            {/* 3 — Documentation */}
+            <button
+              onClick={() => setDocsOpen(true)}
+              data-tour="docs-btn"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-emerald-50 text-emerald-600 text-sm font-medium rounded-lg border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              <span>Documentation</span>
+            </button>
+          </div>
         </header>
 
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <Calculator />
         </div>
       </div>
+
+      {/* Docs Drawer */}
+      {docsOpen && (
+        <div className="fixed inset-0 z-[9999]">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setDocsOpen(false)}
+          />
+          {/* Panel */}
+          <div
+            className="absolute right-0 top-0 h-full bg-white shadow-2xl flex flex-col docs-drawer"
+            style={{ width: Math.min(drawerWidth, window.innerWidth * 0.92) }}
+          >
+            {/* Drag handle — left edge */}
+            <div
+              onMouseDown={handleDragStart}
+              className="absolute left-0 top-0 h-full w-2 cursor-col-resize z-10 group"
+              title="Drag to resize"
+            >
+              <div className="absolute left-0 top-0 h-full w-1 bg-transparent group-hover:bg-indigo-400/50 transition-colors" />
+            </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <h2 className="text-lg font-semibold text-gray-800">Documentation</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                {/* Open in Google Docs */}
+                <a
+                  href="https://docs.google.com/document/d/e/2PACX-1vRKlgJr0CsZhTEObcFnpBxWlAmHA1hscr0w6GDSnbcJRW-eCqhwkQOuP9pecS735w/pub"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                  title="Open in Google Docs"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  <span>Open in Google Docs</span>
+                </a>
+                {/* Close */}
+                <button
+                  onClick={() => setDocsOpen(false)}
+                  className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                  title="Close (Esc)"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            {/* Iframe */}
+            <div className="relative flex-1">
+              <iframe
+                src="https://docs.google.com/document/d/e/2PACX-1vRKlgJr0CsZhTEObcFnpBxWlAmHA1hscr0w6GDSnbcJRW-eCqhwkQOuP9pecS735w/pub?embedded=true"
+                title="Documentation"
+                className="absolute inset-0 w-full h-full border-0"
+              />
+              {/* Transparent overlay during resize to prevent iframe from stealing events */}
+              {isResizing && <div className="absolute inset-0" />}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="border-t border-gray-200 bg-white/60 backdrop-blur-sm mt-12">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+            {/* Left side */}
+            <div className="flex items-center gap-2">
+              <span>&copy; {currentYear} AI Infrastructure Calculator</span>
+              <span className="text-gray-300">|</span>
+              <span className="px-1.5 py-0.5 bg-gray-200 text-gray-600 text-xs font-mono rounded">v{APP_VERSION}</span>
+              <span className="text-gray-300">|</span>
+              <span>{buildDate}</span>
+            </div>
+
+            {/* Center */}
+            <div className="flex items-center gap-1 text-gray-400">
+              <span>Built with</span>
+              <svg className="w-4 h-4 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd"
+                  d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                  clipRule="evenodd" />
+              </svg>
+              <span>using React & Tailwind</span>
+            </div>
+
+            {/* Right side — GitHub link */}
+            <div className="flex items-center gap-3">
+              <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-800 transition-colors"
+                title="View on GitHub"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path fillRule="evenodd" clipRule="evenodd"
+                    d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+                </svg>
+                <span className="text-sm">GitHub</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

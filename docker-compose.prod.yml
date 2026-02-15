@@ -27,8 +27,6 @@ services:
     container_name: ai-server-calculator-frontend
     ports:
       - "3000:80"
-    environment:
-      - NODE_ENV=production # will use /api
     depends_on:
       - backend
     networks:
