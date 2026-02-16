@@ -3,7 +3,7 @@
 | Milestone ID | Short title | Scope | Estimated risk | Dependencies | Verification command(s) | Files/paths touched (high level) | Commit message template | Status |
 |---|---|---|---|---|---|---|---|---|
 | M01 | Baseline ADR | repo/docs | low | - | `python3 --version && uv --version && node --version` | `./docs/adr/`, `./docs/baseline-inventory.md` | `Document baseline and target toolchain` | DONE |
-| M02 | Repo hygiene | repo | low | M01 | `git ls-files \| rg "__pycache__\|\.pyc$"` | `./.gitignore`, `./app/__pycache__/` | `Clean generated artifacts and add root ignore rules` | TODO |
+| M02 | Repo hygiene | repo | low | M01 | `git ls-files \| rg "__pycache__\|\.pyc$"` | `./.gitignore`, `./.editorconfig`, `./app/__pycache__/` | `Clean generated artifacts and add root ignore rules` | DONE |
 | M03 | Rename app to backend | repo/backend/ci/docs | med | M02 | `test -d ./backend && ! test -d ./app && ! rg -n "(^|/)app/" ./README.md ./docker-compose*.yml ./docs && docker compose config` | `./backend/`, `./docker-compose*.yml`, `./README.md`, `./docs/` | `Rename app directory to backend and update path references` | TODO |
 | M04 | Add pyproject metadata | backend | low | M03 | `python3 -c "import tomllib, pathlib; tomllib.loads(pathlib.Path('./backend/pyproject.toml').read_text())"` | `./backend/pyproject.toml` | `Add backend pyproject metadata and runtime constraints` | TODO |
 | M05 | Add uv lock | backend | med | M04 | `cd backend && uv lock && uv sync --frozen --all-groups` | `./backend/uv.lock`, `./backend/pyproject.toml` | `Lock backend dependencies with uv` | TODO |
