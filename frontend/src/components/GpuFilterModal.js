@@ -31,6 +31,20 @@ const GpuFilterModal = ({
   const [downloading, setDownloading] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Deduplicate by (display name, memory_gb) so same GPU doesn't appear multiple times
+  const deduplicateCatalog = (gpus) => {
+    const seen = new Map();
+    const result = [];
+    for (const g of gpus) {
+      const name = g.full_name || g.name || `${g.vendor || ''} ${g.model || ''}`.trim();
+      const key = `${name}|${g.memory_gb}`;
+      if (seen.has(key)) continue;
+      seen.set(key, true);
+      result.push(g);
+    }
+    return result;
+  };
+
   // ── Build GPU list from either default (API) or custom (local) catalog ──
   useEffect(() => {
     if (!isOpen) return;
@@ -39,17 +53,19 @@ const GpuFilterModal = ({
     setUploadError(null);
 
     if (useCustomCatalog && customCatalog) {
-      // Parse custom catalog locally
-      const gpus = Object.entries(customCatalog).map(([id, info]) => ({
-        id,
+      // Parse custom catalog locally (array of GPU objects)
+      const arr = Array.isArray(customCatalog) ? customCatalog : Object.values(customCatalog);
+      const modelName = (info) => info.model_name || info.model || info.name || 'Unknown';
+      const gpusRaw = arr.map((info, idx) => ({
+        id: info.id || `custom-${(info.vendor || 'unknown').toLowerCase()}-${String(info.model_name || info.model || info.name || 'unknown').replace(/\s+/g, '-')}-${info.memory_gb || 0}-${idx}`,
         vendor: info.vendor || 'Unknown',
-        model: info.model_name || 'Unknown',
-        full_name: `${info.vendor || 'Unknown'} ${info.model_name || 'Unknown'}`.trim(),
+        model: modelName(info),
+        full_name: `${info.vendor || 'Unknown'} ${modelName(info)}`.trim(),
         memory_gb: info.memory_gb || 0,
-        tflops: info.tflops_fp16 || info.tflops_fp32 || null,
+        tflops: info.tflops_fp16 || info.tflops_fp32 || info.tflops || null,
         memory_type: info.memory_type || null,
       })).filter(g => g.memory_gb > 0);
-      setGpuCatalog(gpus);
+      setGpuCatalog(deduplicateCatalog(gpusRaw));
       setLoadingGpus(false);
     } else {
       // Load from API (default catalog)
@@ -71,7 +87,7 @@ const GpuFilterModal = ({
             }
           }
 
-          setGpuCatalog(allGpus);
+          setGpuCatalog(deduplicateCatalog(allGpus));
         } catch (err) {
           console.error('Failed to load GPU catalog:', err);
         } finally {
@@ -92,11 +108,14 @@ const GpuFilterModal = ({
     return () => document.removeEventListener('keydown', handleKey);
   }, [isOpen, onClose]);
 
-  // ── Filter GPU list by search query ──
+  // ── Filter GPU list by search query (single source of truth for display name) ──
+  const getGpuDisplayName = (gpu) =>
+    (gpu.full_name || gpu.name || `${gpu.vendor || ''} ${gpu.model || ''}`.trim()) || 'Unknown';
+
   const filteredGpus = gpuCatalog.filter((gpu) => {
     if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    const name = (gpu.full_name || `${gpu.vendor} ${gpu.model}`).toLowerCase();
+    const q = search.trim().toLowerCase();
+    const name = getGpuDisplayName(gpu).toLowerCase();
     return name.includes(q);
   });
 
@@ -165,21 +184,19 @@ const GpuFilterModal = ({
       try {
         const parsed = JSON.parse(evt.target.result);
 
-        // Validate structure: must be an object with GPU entries
-        if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-          setUploadError('Invalid format: expected a JSON object with GPU entries.');
+        // Validate structure: must be an array of GPU objects
+        if (!Array.isArray(parsed)) {
+          setUploadError('Invalid format: expected a JSON array of GPU objects.');
           return;
         }
 
-        const keys = Object.keys(parsed);
-        if (keys.length === 0) {
+        if (parsed.length === 0) {
           setUploadError('Catalog is empty.');
           return;
         }
 
-        // Check that at least first entry has required fields
-        const first = parsed[keys[0]];
-        if (!first.memory_gb && !first.Memory_GB) {
+        const first = parsed[0];
+        if (typeof first !== 'object' || !first.memory_gb) {
           setUploadError('Invalid catalog: entries must have "memory_gb" field.');
           return;
         }
@@ -200,7 +217,9 @@ const GpuFilterModal = ({
 
   // Count GPUs in each catalog
   const defaultCatalogCount = (!useCustomCatalog) ? gpuCatalog.length : null;
-  const customCatalogCount = customCatalog ? Object.keys(customCatalog).length : 0;
+  const customCatalogCount = customCatalog
+    ? (Array.isArray(customCatalog) ? customCatalog.length : Object.keys(customCatalog).length)
+    : 0;
 
   if (!isOpen) return null;
 
@@ -379,7 +398,7 @@ const GpuFilterModal = ({
             <div className="space-y-1">
               {filteredGpus.map((gpu) => {
                 const isChecked = selected.has(gpu.id);
-                const name = gpu.full_name || `${gpu.vendor} ${gpu.model}`;
+                const name = getGpuDisplayName(gpu);
                 return (
                   <label
                     key={gpu.id}

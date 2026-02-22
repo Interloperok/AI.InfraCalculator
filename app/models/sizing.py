@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, Field, conint, confloat
 
 
@@ -321,9 +321,9 @@ class AutoOptimizeInput(BaseModel):
     max_servers: Optional[conint(gt=0)] = Field(default=None, description="Макс. серверов (фильтр)")
     gpu_vendors: Optional[List[str]] = Field(default=None, description="Фильтр по вендорам (NVIDIA, AMD, ...)")
     gpu_ids: Optional[List[str]] = Field(default=None, description="Конкретные ID GPU из каталога для подбора")
-    custom_gpu_catalog: Optional[Dict[str, Any]] = Field(
+    custom_gpu_catalog: Optional[Union[List[Dict[str, Any]], Dict[str, Any]]] = Field(
         default=None,
-        description="Пользовательский каталог GPU (нормализованный JSON). "
+        description="Пользовательский каталог GPU (нормализованный JSON-массив). "
                     "Если задан — используется вместо встроенного каталога."
     )
     top_n: conint(gt=0, le=50) = Field(default=10, description="Количество лучших конфигураций")

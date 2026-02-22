@@ -287,29 +287,31 @@ def calc_servers_by_compute(Ssim, R, KSLA, th_server_comp):
 def refresh_gpu_data_internal():
     """Внутренняя функция для обновления данных GPU.
 
-    Pipeline: gpu_scraper -> gpu_data_raw.json -> gpu_normalizer -> gpu_data.json
+    Pipeline: gpu_scraper (merge) -> gpu_data_raw.json -> gpu_normalizer -> gpu_data.json
+
+    Scraper uses merge strategy: existing entries are preserved, new ones added,
+    existing ones updated. No data loss even if a partial scrape occurs.
     """
     import sys
     import io
     try:
         logger.info("Начинаем обновление данных GPU...")
+
+        raw_path = os.path.join(os.path.dirname(__file__), "gpu_data_raw.json")
+        out_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
+
         # На Windows stdout может не поддерживать UTF-8 emoji из скрапера.
-        # Перенаправляем в StringIO, чтобы не трогать sys.stdout.buffer
-        # (TextIOWrapper закрывает buffer при GC, ломая логгер).
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
         try:
             from gpu_scraper import main as scrape_gpus
-            scrape_gpus()  # writes gpu_data_raw.json
+            scrape_gpus()  # merges into gpu_data_raw.json
         finally:
             sys.stdout = old_stdout
 
         logger.info("Скрапинг завершён, запускаем нормализацию...")
 
-        # Normalize raw data into clean gpu_data.json
         from gpu_normalizer import normalize as normalize_gpu_data
-        raw_path = os.path.join(os.path.dirname(__file__), "gpu_data_raw.json")
-        out_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
         normalize_gpu_data(raw_path, out_path)
 
         logger.info("Данные GPU успешно обновлены и нормализованы")
@@ -361,7 +363,7 @@ def _extract_gpu_tflops(gpu_info: dict) -> float:
 
 def _lookup_gpu_tflops(gpu_id, gpu_mem_gb):
     """
-    Поиск TFLOPS GPU из нормализованного каталога gpu_data.json.
+    Поиск TFLOPS GPU из нормализованного каталога gpu_data.json (массив).
     """
     gpu_data_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
     try:
@@ -371,14 +373,14 @@ def _lookup_gpu_tflops(gpu_id, gpu_mem_gb):
         return 0.0
 
     target_gpu = None
-    if gpu_id and gpu_id in gpu_data:
-        target_gpu = gpu_data[gpu_id]
-    else:
-        for gid, ginfo in gpu_data.items():
-            mem = ginfo.get("memory_gb", 0)
-            if mem and float(mem) == float(gpu_mem_gb):
-                target_gpu = ginfo
-                break
+    for gpu in gpu_data:
+        if gpu_id and gpu.get("id") == gpu_id:
+            target_gpu = gpu
+            break
+        mem = gpu.get("memory_gb", 0)
+        if mem and float(mem) == float(gpu_mem_gb):
+            target_gpu = gpu
+            break
 
     if not target_gpu:
         return 0.0
@@ -571,9 +573,15 @@ async def startup_event():
 
     logger.info("🚀 Запуск AI Server Calculator API...")
 
-    # Запускаем обновление GPU данных при старте
-    logger.info("🔄 Первоначальное обновление данных GPU...")
-    refresh_gpu_data_internal()
+    # При старте: скрапим только если gpu_data.json не существует.
+    # Если файл уже есть — используем его как есть.
+    # Обновление по расписанию или вручную через /v1/gpus/refresh.
+    gpu_data_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
+    if not os.path.exists(gpu_data_path):
+        logger.info("🔄 Файл gpu_data.json не найден, запускаем первичный скрапинг...")
+        refresh_gpu_data_internal()
+    else:
+        logger.info("📂 Используем существующий gpu_data.json")
 
     # Запускаем планировщик для автоматического обновления
     scheduler = start_scheduler()
@@ -731,15 +739,20 @@ def _load_gpu_catalog_for_optimize(min_memory_gb: float = 0,
 
     gpu_id_set = set(gpu_ids) if gpu_ids else None
 
-    results = []
-    seen = set()  # дедупликация по (memory_gb, tflops) для ускорения
+    # gpu_data is a list (array) of normalized GPU entries
+    gpu_list = gpu_data if isinstance(gpu_data, list) else list(gpu_data.values())
 
-    for gpu_id, gpu_info in gpu_data.items():
+    results = []
+    seen = set()
+
+    for gpu_info in gpu_list:
+        gpu_id = gpu_info.get("id", "")
+
         # Фильтр по конкретным ID
         if gpu_id_set is not None and gpu_id not in gpu_id_set:
             continue
 
-        # Memory (normalized field)
+        # Memory
         memory_gb = gpu_info.get("memory_gb")
         if not memory_gb or float(memory_gb) <= 0:
             continue
@@ -754,7 +767,7 @@ def _load_gpu_catalog_for_optimize(min_memory_gb: float = 0,
             if not any(v.lower() == vendor.lower() for v in vendors):
                 continue
 
-        # Launch date filter (skip old GPUs unless specific IDs requested)
+        # Launch date filter
         if gpu_id_set is None:
             launch_date = gpu_info.get("launch_date")
             if launch_date:
@@ -767,16 +780,14 @@ def _load_gpu_catalog_for_optimize(min_memory_gb: float = 0,
             else:
                 continue
 
-        # TFLOPS (normalized: fp16 preferred, fallback fp32)
+        # TFLOPS
         tflops = _extract_gpu_tflops(gpu_info)
         if tflops <= 0:
             continue
 
-        # Model name
         model_name = gpu_info.get("model_name") or "Unknown"
         full_name = f"{vendor} {model_name}".strip()
 
-        # Дедупликация по (memory, tflops) — одинаковые характеристики дают одинаковый результат
         dedup_key = (int(memory_gb), round(tflops, 1))
         if dedup_key in seen:
             continue
@@ -1094,9 +1105,11 @@ def get_gpus(
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="GPU data not found. Run /v1/gpus/refresh first.")
 
-    # Фильтрация данных (normalized catalog)
+    # Фильтрация данных (normalized catalog — JSON array)
     filtered_gpus = []
-    for gpu_id, gpu_info in gpu_data.items():
+    for gpu_info in gpu_data:
+        gpu_id = gpu_info.get("id", "")
+
         # Vendor filter
         gpu_vendor = gpu_info.get("vendor", "Unknown")
         if vendor and gpu_vendor.lower() != vendor.lower():
@@ -1213,10 +1226,9 @@ def get_gpu_details(gpu_id: str):
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="GPU data not found")
 
-    if gpu_id not in gpu_data:
+    gpu_info = next((g for g in gpu_data if g.get("id") == gpu_id), None)
+    if gpu_info is None:
         raise HTTPException(status_code=404, detail="GPU not found")
-
-    gpu_info = gpu_data[gpu_id]
 
     gpu_vendor = gpu_info.get("vendor", "Unknown")
     model_name = gpu_info.get("model_name") or "Unknown"
@@ -1297,7 +1309,7 @@ def get_gpu_stats():
     memory_ranges = {"0-4GB": 0, "4-8GB": 0, "8-16GB": 0, "16-32GB": 0, "32GB+": 0}
     year_ranges = {}
 
-    for gpu_info in gpu_data.values():
+    for gpu_info in gpu_data:
         # Вендоры (normalized: "vendor")
         v = gpu_info.get("vendor", "Unknown")
         vendors[v] = vendors.get(v, 0) + 1

@@ -675,34 +675,65 @@ def normalize_entry(gpu_id: str, raw: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ─────────────────────────────────────────────
+#  Slug ID generation
+# ─────────────────────────────────────────────
+
+def _make_id(vendor: Optional[str], model_name: Optional[str]) -> str:
+    """Generate a human-readable slug ID from vendor + model name.
+
+    "NVIDIA" + "A100 GPU accelerator (PCIe card)" -> "nvidia-a100-gpu-accelerator-pcie-card"
+    """
+    parts = f"{vendor or 'unknown'} {model_name or 'unknown'}"
+    slug = parts.lower()
+    slug = re.sub(r'[^a-z0-9]+', '-', slug)  # replace non-alphanumeric with dash
+    slug = slug.strip('-')
+    slug = re.sub(r'-{2,}', '-', slug)        # collapse multiple dashes
+    return slug or "unknown"
+
+
+# ─────────────────────────────────────────────
 #  Top-level normalize function
 # ─────────────────────────────────────────────
 
 def normalize(input_path: str = "gpu_data_raw.json",
-              output_path: str = "gpu_data.json") -> Dict[str, Dict]:
-    """Read raw GPU catalog, normalize every entry, write clean catalog."""
-    with open(input_path, "r", encoding="utf-8") as f:
+              output_path: str = "gpu_data.json") -> List[Dict]:
+    """Read raw GPU catalog, normalize every entry, write as JSON array."""
+    with open(input_path, "r", encoding="utf-8-sig") as f:
         raw_data: Dict[str, Dict] = json.load(f)
 
-    result: Dict[str, Dict] = {}
+    result: List[Dict] = []
+    seen_ids: Dict[str, int] = {}  # for collision detection
     skipped = 0
 
-    for gpu_id, gpu_raw in raw_data.items():
+    for gpu_key, gpu_raw in raw_data.items():
         try:
-            entry = normalize_entry(gpu_id, gpu_raw)
-            result[gpu_id] = entry
+            entry = normalize_entry(gpu_key, gpu_raw)
+
+            # Generate human-readable slug ID
+            slug = _make_id(entry.get("vendor"), entry.get("model_name"))
+            if slug in seen_ids:
+                seen_ids[slug] += 1
+                slug = f"{slug}-{seen_ids[slug]}"
+            else:
+                seen_ids[slug] = 1
+
+            # Insert id as first field
+            entry_with_id: Dict[str, Any] = {"id": slug}
+            entry_with_id.update(entry)
+
+            result.append(entry_with_id)
         except Exception as e:
-            print(f"[WARN] Skipped {gpu_id}: {e}")
+            print(f"[WARN] Skipped {gpu_key}: {e}")
             skipped += 1
 
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
 
     total = len(result)
-    with_mem = sum(1 for e in result.values() if e["memory_gb"] is not None)
-    with_tflops = sum(1 for e in result.values()
+    with_mem = sum(1 for e in result if e["memory_gb"] is not None)
+    with_tflops = sum(1 for e in result
                       if e["tflops_fp16"] is not None or e["tflops_fp32"] is not None)
-    with_price = sum(1 for e in result.values() if e["price_usd"] is not None)
+    with_price = sum(1 for e in result if e["price_usd"] is not None)
 
     print(f"[OK] Normalized {total} GPUs -> {output_path}")
     print(f"   Memory: {with_mem}/{total} | TFLOPS: {with_tflops}/{total} | "
