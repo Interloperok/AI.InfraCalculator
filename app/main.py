@@ -388,6 +388,79 @@ def _lookup_gpu_tflops(gpu_id, gpu_mem_gb):
     return _extract_gpu_tflops(target_gpu)
 
 
+def _price_from_gpu_entry(gpu: dict) -> Optional[float]:
+    """Извлечь price_usd из одной записи каталога GPU."""
+    p = gpu.get("price_usd")
+    if p is None or str(p).strip() == "":
+        return None
+    try:
+        return float(p)
+    except (TypeError, ValueError):
+        return None
+
+
+def _lookup_gpu_price_in_catalog(
+    catalog: list,
+    gpu_id: Optional[str],
+    gpu_mem_gb: float,
+) -> Optional[float]:
+    """
+    Поиск цены GPU (USD) в переданном каталоге (массив записей).
+    По gpu_id или по памяти (memory_gb).
+    """
+    target_gpu = None
+    for gpu in catalog:
+        if not isinstance(gpu, dict):
+            continue
+        if gpu_id and gpu.get("id") == gpu_id:
+            target_gpu = gpu
+            break
+        if not gpu_id:
+            mem = gpu.get("memory_gb", 0)
+            if mem is not None and float(mem) == float(gpu_mem_gb):
+                target_gpu = gpu
+                break
+    if not target_gpu:
+        return None
+    return _price_from_gpu_entry(target_gpu)
+
+
+def _lookup_gpu_price_usd(
+    gpu_id: Optional[str],
+    gpu_mem_gb: float,
+    custom_catalog: Optional[list] = None,
+) -> Optional[float]:
+    """
+    Поиск цены GPU (USD). Сначала в custom_catalog (если передан), иначе в gpu_data.json.
+    """
+    if custom_catalog:
+        price = _lookup_gpu_price_in_catalog(custom_catalog, gpu_id, gpu_mem_gb)
+        if price is not None:
+            return price
+
+    gpu_data_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
+    try:
+        with open(gpu_data_path, "r", encoding="utf-8") as f:
+            gpu_data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+    target_gpu = None
+    for gpu in gpu_data:
+        if gpu_id and gpu.get("id") == gpu_id:
+            target_gpu = gpu
+            break
+        if not gpu_id:
+            mem = gpu.get("memory_gb", 0)
+            if mem and float(mem) == float(gpu_mem_gb):
+                target_gpu = gpu
+                break
+
+    if not target_gpu:
+        return None
+    return _price_from_gpu_entry(target_gpu)
+
+
 def run_sizing(inp: SizingInput) -> SizingOutput:
     """
     Главный pipeline расчёта — Методика v2
@@ -501,6 +574,17 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     # ── Section 7: Итоговое количество серверов ──
     servers_final = max(servers_mem, servers_comp)
 
+    # ── Cost estimate (from GPU catalog price: custom catalog или gpu_data.json) ──
+    custom_catalog_list = None
+    if getattr(inp, "custom_gpu_catalog", None) is not None:
+        raw = inp.custom_gpu_catalog
+        custom_catalog_list = raw if isinstance(raw, list) else list(raw.values()) if isinstance(raw, dict) else None
+    price_per_gpu = _lookup_gpu_price_usd(inp.gpu_id, inp.gpu_mem_gb, custom_catalog_list)
+    cost_estimate_usd = (
+        round(servers_final * inp.gpus_per_server * price_per_gpu, 2)
+        if price_per_gpu is not None and price_per_gpu > 0 else None
+    )
+
     return SizingOutput(
         # Section 2
         Ssim_concurrent_sessions=Ssim,
@@ -539,6 +623,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         gpu_id=inp.gpu_id,
         gpu_mem_gb=inp.gpu_mem_gb,
         gpus_per_server=inp.gpus_per_server,
+        cost_estimate_usd=cost_estimate_usd,
     )
 
 
@@ -793,12 +878,15 @@ def _load_gpu_catalog_for_optimize(min_memory_gb: float = 0,
             continue
         seen.add(dedup_key)
 
+        price = _price_from_gpu_entry(gpu_info)
+
         results.append({
             "id": gpu_id,
             "name": full_name,
             "memory_gb": int(memory_gb),
             "tflops": tflops,
             "vendor": vendor,
+            "price_usd": price,
         })
 
     return results
@@ -808,9 +896,11 @@ def _score_config(mode: OptimizationMode,
                   servers_final: int,
                   total_gpus: int,
                   th_server_comp: float,
+                  cost: Optional[float],
                   all_servers: list,
                   all_gpus: list,
-                  all_throughputs: list) -> float:
+                  all_throughputs: list,
+                  all_costs: list) -> float:
     """
     Вычислить скор конфигурации для ранжирования.
 
@@ -818,19 +908,23 @@ def _score_config(mode: OptimizationMode,
     """
     if mode == OptimizationMode.min_servers:
         return servers_final * 1000 + total_gpus
-    elif mode == OptimizationMode.min_total_gpus:
-        return total_gpus * 1000 + servers_final
+    elif mode == OptimizationMode.min_cost:
+        if cost is not None:
+            return cost * 1000 + total_gpus
+        # No price available — push to the end
+        return float('inf')
     elif mode == OptimizationMode.max_performance:
-        # Больше throughput = лучше → инвертируем
         return -th_server_comp * 1000 + servers_final
     else:  # balanced
-        # Нормализуем по диапазонам всех валидных результатов
         min_s = min(all_servers) if all_servers else 1
         max_s = max(all_servers) if all_servers else 1
         min_g = min(all_gpus) if all_gpus else 1
         max_g = max(all_gpus) if all_gpus else 1
         min_t = min(all_throughputs) if all_throughputs else 0.001
         max_t = max(all_throughputs) if all_throughputs else 0.001
+        costs_valid = [c for c in all_costs if c is not None]
+        min_c = min(costs_valid) if costs_valid else 0
+        max_c = max(costs_valid) if costs_valid else 0
 
         def norm(val, lo, hi):
             if hi == lo:
@@ -839,8 +933,9 @@ def _score_config(mode: OptimizationMode,
 
         ns = norm(servers_final, min_s, max_s)
         ng = norm(total_gpus, min_g, max_g)
-        nt = 1.0 - norm(th_server_comp, min_t, max_t)  # Инвертируем: больше throughput лучше
-        return 0.4 * ns + 0.3 * ng + 0.3 * nt
+        nt = 1.0 - norm(th_server_comp, min_t, max_t)
+        nc = norm(cost, min_c, max_c) if cost is not None and max_c > min_c else 0.5
+        return 0.3 * ns + 0.2 * ng + 0.25 * nt + 0.25 * nc
 
 
 @app.post("/v1/auto-optimize", response_model=AutoOptimizeResponse, tags=["Sizing"])
@@ -952,6 +1047,12 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
                     if inp.max_servers and servers > inp.max_servers:
                         continue
 
+                    gpu_price = gpu.get("price_usd")
+                    total_cost = (
+                        round(servers * gps * gpu_price, 2)
+                        if gpu_price is not None else None
+                    )
+
                     raw_results.append({
                         "gpu": gpu,
                         "Z": Z,
@@ -961,6 +1062,8 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
                         "servers": servers,
                         "total_gpus": total_gpus_count,
                         "th_server": result.th_server_comp,
+                        "gpu_price": gpu_price,
+                        "total_cost": total_cost,
                         "sizing_input_dict": sizing_inp.dict(),
                     })
 
@@ -975,11 +1078,13 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
     all_servers = [r["servers"] for r in raw_results]
     all_gpus = [r["total_gpus"] for r in raw_results]
     all_throughputs = [r["th_server"] for r in raw_results]
+    all_costs = [r["total_cost"] for r in raw_results]
 
     for r in raw_results:
         r["score"] = _score_config(
             inp.mode, r["servers"], r["total_gpus"], r["th_server"],
-            all_servers, all_gpus, all_throughputs,
+            r["total_cost"],
+            all_servers, all_gpus, all_throughputs, all_costs,
         )
 
     # Сортировка по скору
@@ -1021,6 +1126,8 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
             sessions_per_server=r["result"].sessions_per_server,
             instances_per_server_tp=r["result"].instances_per_server_tp,
             th_server_comp=round(r["result"].th_server_comp, 4),
+            gpu_price_usd=r["gpu_price"],
+            cost_estimate_usd=r["total_cost"],
             sizing_input=r["sizing_input_dict"],
         ))
 

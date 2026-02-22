@@ -59,6 +59,12 @@ class SizingInput(BaseModel):
     rps_per_session_R: confloat(gt=0) = Field(default=0.02, description="Запросов/сек на сессию (R, чат ≈ 0.017-0.033)")
     sla_reserve_KSLA: confloat(gt=0) = Field(default=1.25, description="Коэф. запаса для SLA (KSLA, 1.25-2.0)")
 
+    # ── Optional: пользовательский каталог GPU (для расчёта Cost Estimate по ценам из каталога) ──
+    custom_gpu_catalog: Optional[Union[List[Dict[str, Any]], Dict[str, Any]]] = Field(
+        default=None,
+        description="Пользовательский каталог GPU (массив или объект). Если задан — цена для Cost Estimate берётся из него."
+    )
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -143,6 +149,9 @@ class SizingOutput(BaseModel):
     gpu_id: Optional[str] = Field(None, description="ID выбранной GPU")
     gpu_mem_gb: float = Field(..., description="Память GPU (GiB)")
     gpus_per_server: int = Field(..., description="GPU на сервере (GPUcount_server)")
+
+    # ── Cost (optional, from GPU catalog price) ──
+    cost_estimate_usd: Optional[float] = Field(None, description="Оценка стоимости инфраструктуры (USD): серверы × GPU/сервер × цена GPU")
 
     class Config:
         json_schema_extra = {
@@ -264,7 +273,7 @@ class WhatIfResponseItem(BaseModel):
 class OptimizationMode(str, Enum):
     """Режим оптимизации"""
     min_servers = "min_servers"
-    min_total_gpus = "min_total_gpus"
+    min_cost = "min_cost"
     balanced = "balanced"
     max_performance = "max_performance"
 
@@ -352,6 +361,10 @@ class AutoOptimizeResult(BaseModel):
     sessions_per_server: int = Field(..., description="Сессий на сервер")
     instances_per_server_tp: int = Field(..., description="Экземпляров на сервер с TP")
     th_server_comp: float = Field(..., description="Пропускная способность сервера (req/s)")
+
+    # ── Cost ──
+    gpu_price_usd: Optional[float] = Field(None, description="Цена одного GPU (USD)")
+    cost_estimate_usd: Optional[float] = Field(None, description="Общая стоимость GPU (серверы × GPU/сервер × цена)")
 
     # ── Full output for Apply ──
     sizing_input: Optional[dict] = Field(None, description="Полный SizingInput для подстановки в калькулятор")

@@ -131,8 +131,13 @@ const Calculator = () => {
     setLoading(true);
     setError(null);
 
+    const payload = { ...data };
+    if (useCustomCatalog && customCatalog) {
+      payload.custom_gpu_catalog = customCatalog;
+    }
+
     try {
-      const response = await calculateServerRequirements(data);
+      const response = await calculateServerRequirements(payload);
 
       if (!response) {
         setError('No response from server. Check that the backend is running.');
@@ -143,21 +148,21 @@ const Calculator = () => {
         setResults(null);
         setInputData(null);
       } else {
-        const Z = data.tp_multiplier_Z || 1;
+        const Z = payload.tp_multiplier_Z || 1;
         const gpuPerInst = response.gpus_per_instance || 1;
         setResults({
           ...response,
-          gpus_per_server: response.gpus_per_server ?? data.gpus_per_server,
+          gpus_per_server: response.gpus_per_server ?? payload.gpus_per_server,
           gpus_per_instance: response.gpus_per_instance ?? gpuPerInst,
           gpus_per_instance_tp: Z * gpuPerInst,
           instances_per_server_tp: response.instances_per_server_tp
-            ?? Math.floor((data.gpus_per_server || 8) / (Z * gpuPerInst)),
+            ?? Math.floor((payload.gpus_per_server || 8) / (Z * gpuPerInst)),
           instance_total_mem_gb: response.instance_total_mem_gb
-            ?? (Z * gpuPerInst * (data.gpu_mem_gb || 0)),
+            ?? (Z * gpuPerInst * (payload.gpu_mem_gb || 0)),
           kv_free_per_instance_tp_gb: response.kv_free_per_instance_tp_gb
-            ?? Math.max(0, Z * gpuPerInst * (data.gpu_mem_gb || 0) * (data.kavail || 0.9) - (response.model_mem_gb || 0)),
+            ?? Math.max(0, Z * gpuPerInst * (payload.gpu_mem_gb || 0) * (payload.kavail || 0.9) - (response.model_mem_gb || 0)),
         });
-        setInputData(data);
+        setInputData(payload);
         setError(null);
       }
     } catch (err) {
@@ -274,6 +279,7 @@ const Calculator = () => {
             ?? (Z * gpuPerInst * (fullInput.gpu_mem_gb || 0)),
           kv_free_per_instance_tp_gb: response.kv_free_per_instance_tp_gb
             ?? Math.max(0, Z * gpuPerInst * (fullInput.gpu_mem_gb || 0) * (fullInput.kavail || 0.9) - (response.model_mem_gb || 0)),
+          cost_estimate_usd: response.cost_estimate_usd ?? config.cost_estimate_usd ?? null,
         });
         setInputData(fullInput);
         setError(null);

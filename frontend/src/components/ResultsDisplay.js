@@ -100,7 +100,26 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
         </div>
       )}
 
-      {/* ── Top 2 overview tiles ── */}
+      {/* ── Cost Estimate (above) ── */}
+      <div className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-xl p-5 text-white shadow-lg flex items-center justify-between">
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider opacity-90">Cost Estimate</h3>
+          <p className="text-3xl font-extrabold mt-1">
+            {results.cost_estimate_usd != null && results.cost_estimate_usd > 0
+              ? `$${Number(results.cost_estimate_usd).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+              : '—'}
+          </p>
+          {results.cost_estimate_usd != null && results.cost_estimate_usd > 0 && (
+            <span className="text-sm font-semibold opacity-80">GPU hardware only</span>
+          )}
+        </div>
+        <svg className="w-10 h-10 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+
+      {/* ── Concurrent Sessions & Session Context ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl p-5 text-white shadow-lg flex items-center justify-between">
           <div>
