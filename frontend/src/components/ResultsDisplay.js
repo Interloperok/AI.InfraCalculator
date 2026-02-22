@@ -101,7 +101,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
       )}
 
       {/* ── Cost Estimate (above) ── */}
-      <div className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-xl p-5 text-white shadow-lg flex items-center justify-between">
+      <div data-tour="cost-estimate" className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-xl p-5 text-white shadow-lg flex items-center justify-between">
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-wider opacity-90">Cost Estimate</h3>
           <p className="text-3xl font-extrabold mt-1">
@@ -120,7 +120,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
       </div>
 
       {/* ── Concurrent Sessions & Session Context ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-tour="session-cards">
         <div className="bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl p-5 text-white shadow-lg flex items-center justify-between">
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider opacity-60">Concurrent Sessions</h3>
@@ -430,6 +430,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
       {inputData && (
         <button
           type="button"
+          data-tour="download-report"
           onClick={handleDownloadReport}
           disabled={downloading}
           className={`mt-auto w-full py-3 px-4 rounded-lg font-semibold text-lg transition-colors ${

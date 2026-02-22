@@ -6,19 +6,27 @@ import './App.css';
 const APP_VERSION = '0.1.0';
 const GITHUB_URL = 'https://github.com/your-org/ai-server-calculator';
 
+const DOCS_STEP_INDEX = 1;
+const PRESETS_STEP_INDEX = 2;
+const CALCULATE_STEP_INDEX = 7;
+const AUTO_OPTIMIZE_STEP_INDEX = 14;
+const LAST_AUTO_STEP_INDEX = 16;
+
 const TOUR_STEPS = [
   {
-    target: '[data-tour="presets"]',
-    content: 'Start quickly by picking a preset configuration with pre-filled model, GPU, and load parameters.',
+    target: '[data-tour="github-btn"]',
+    content: 'Visit us on GitHub — star the repo to stay updated and learn more about the project.',
     disableBeacon: true,
   },
   {
-    target: '[data-tour="model-search"]',
-    content: 'Search Hugging Face to find your AI model. Architecture parameters like size and layers are filled automatically.',
-  },
+    target: '[data-tour="docs-btn"]',
+    content: 'Here is the methodology documentation — browse it in a side panel without leaving the calculator.',
+    disableOverlay: true,
+  }, 
   {
-    target: '[data-tour="gpu-search"]',
-    content: 'Pick a GPU from the built-in catalog. Memory and TFLOPS specs are filled in for you.',
+    target: '[data-tour="presets"]',
+    content: 'Start quickly by picking a preset configuration with pre-filled model, GPU, and load parameters.',
+    
   },
   {
     target: '[data-tour="basic-tab"]',
@@ -29,8 +37,24 @@ const TOUR_STEPS = [
     content: 'Fine-tune token budgets, KV-cache, tensor parallelism, compute efficiency, and SLA parameters here.',
   },
   {
+    target: '[data-tour="model-search"]',
+    content: 'Search Hugging Face to find your AI model. Architecture parameters like size and layers are filled automatically.',
+  },
+  {
+    target: '[data-tour="gpu-search"]',
+    content: 'Pick a GPU from the built-in catalog or upload your own. Memory and TFLOPS specs are filled in for you.',
+  },
+  {
     target: '[data-tour="calculate-btn"]',
-    content: 'Hit Calculate to run the sizing engine and see how many servers you need.',
+    content: 'Hit Calculate to run the sizing engine, or Find Best Configs in auto mode to compare multiple options.',
+  },
+  {
+    target: '[data-tour="cost-estimate"]',
+    content: 'Estimated GPU hardware cost based on current market prices for the selected configuration.',
+  },
+  {
+    target: '[data-tour="session-cards"]',
+    content: 'Total concurrent sessions the infrastructure supports and the token length of each session context.',
   },
   {
     target: '[data-tour="result-cards"]',
@@ -45,8 +69,20 @@ const TOUR_STEPS = [
     content: 'Switch between Memory Path and Compute Path to see the full calculation details.',
   },
   {
-    target: '[data-tour="docs-btn"]',
-    content: 'Open the methodology documentation in a side panel — read it without leaving the calculator.',
+    target: '[data-tour="download-report"]',
+    content: 'Download a detailed Excel report with all inputs, intermediate values, and final results.',
+  },
+  {
+    target: '[data-tour="auto-optimize"]',
+    content: 'Toggle Auto-Optimize to let the engine search across GPUs, quantization levels, and TP degrees to find the best hardware configuration automatically.',
+  },
+  {
+    target: '[data-tour="optimize-mode"]',
+    content: 'Choose an optimization strategy: minimize servers, minimize cost, find the best balance, or maximize throughput.',
+  },
+  {
+    target: '[data-tour="optimize-results"]',
+    content: 'After running the optimizer, results appear in this side panel. Click to expand it and compare configurations side by side.',
   },
 ];
 
@@ -91,17 +127,74 @@ const TOUR_STYLES = {
 
 function App() {
   const [runTour, setRunTour] = useState(false);
+  const [tourStepIndex, setTourStepIndex] = useState(0);
   const [docsOpen, setDocsOpen] = useState(false);
   const [drawerWidth, setDrawerWidth] = useState(820);
   const [isResizing, setIsResizing] = useState(false);
   const dragging = useRef(false);
+  const tourAutoOn = useRef(false);
+
+  const toggleAutoOptimize = useCallback((delay = 400) => {
+    setTimeout(() => {
+      const container = document.querySelector('[data-tour="auto-optimize"]');
+      container?.querySelector('button')?.click();
+    }, delay);
+  }, []);
+
+  const cleanupTourAuto = useCallback(() => {
+    if (tourAutoOn.current) {
+      toggleAutoOptimize(100);
+      tourAutoOn.current = false;
+    }
+  }, [toggleAutoOptimize]);
 
   const handleTourCallback = useCallback((data) => {
-    const { status } = data;
+    const { status, type, action, index } = data;
+
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
       setRunTour(false);
+      setDocsOpen(false);
+      cleanupTourAuto();
+      return;
     }
-  }, []);
+
+    if (type === 'step:after') {
+      if (action === 'close') {
+        setRunTour(false);
+        setDocsOpen(false);
+        cleanupTourAuto();
+        return;
+      }
+
+      const nextIndex = action === 'prev' ? index - 1 : index + 1;
+
+      if (index === DOCS_STEP_INDEX) setDocsOpen(false);
+      if (nextIndex === DOCS_STEP_INDEX) setDocsOpen(true);
+
+      if (nextIndex === PRESETS_STEP_INDEX) {
+        setTimeout(() => {
+          const container = document.querySelector('[data-tour="presets"]');
+          container?.querySelector('button')?.click();
+        }, 400);
+      }
+
+      if (nextIndex === CALCULATE_STEP_INDEX) {
+        setTimeout(() => {
+          document.querySelector('[data-tour="calculate-btn"]')?.click();
+        }, 400);
+      }
+
+      if (nextIndex === AUTO_OPTIMIZE_STEP_INDEX && !tourAutoOn.current) {
+        toggleAutoOptimize(400);
+        tourAutoOn.current = true;
+      }
+      if (index === AUTO_OPTIMIZE_STEP_INDEX && action === 'prev') {
+        cleanupTourAuto();
+      }
+
+      setTourStepIndex(nextIndex);
+    }
+  }, [cleanupTourAuto, toggleAutoOptimize]);
 
   // Close docs drawer on Escape key
   useEffect(() => {
@@ -148,6 +241,7 @@ function App() {
       <Joyride
         steps={TOUR_STEPS}
         run={runTour}
+        stepIndex={tourStepIndex}
         continuous
         showSkipButton
         showProgress
@@ -178,8 +272,8 @@ function App() {
           <div className="flex items-center justify-center gap-3">
             {/* 1 — Take a Tour */}
             <button
-              onClick={() => setRunTour(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium rounded-lg border border-indigo-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-200"
+              onClick={() => { setTourStepIndex(0); setRunTour(true); }}
+              className="tour-btn-pulse inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium rounded-lg border border-indigo-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-200"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -192,6 +286,7 @@ function App() {
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
+              data-tour="github-btn"
               className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 group"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

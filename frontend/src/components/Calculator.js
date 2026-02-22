@@ -388,6 +388,7 @@ const Calculator = () => {
             {/* ── Edge toggle tab (inside same container = moves perfectly in sync) ── */}
             <button
               type="button"
+              data-tour="optimize-results"
               onClick={() => setDrawerOpen(prev => !prev)}
               className="absolute top-1/2 -translate-y-1/2 h-16 w-6 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-r-lg shadow-lg"
               style={{ left: '100%' }}

@@ -1209,15 +1209,17 @@ const CalculatorForm = ({
       {/* Header with toggle switch */}
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-2xl font-semibold text-gray-800">Configuration Parameters</h2>
-        <ToggleSwitch
-          autoMode={autoMode}
-          setAutoMode={setAutoMode}
-        />
+        <div data-tour="auto-optimize">
+          <ToggleSwitch
+            autoMode={autoMode}
+            setAutoMode={setAutoMode}
+          />
+        </div>
       </div>
 
       {/* Presets (normal mode) or Optimization Mode cards (auto mode) */}
       {autoMode ? (
-        <div className="mb-2">
+        <div className="mb-2" data-tour="optimize-mode">
           <label className="block text-sm font-medium text-gray-600 mb-2">Optimization Mode</label>
           <div className="grid grid-cols-2 gap-2">
             {OPTIMIZATION_MODES.map((mode) => {
