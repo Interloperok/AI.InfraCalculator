@@ -5,18 +5,20 @@ import { getGPUs, exportGpuCatalog } from '../services/api';
 /**
  * GpuFilterModal — GPU selection for auto-optimization + catalog management.
  *
- * New props (catalog management):
- *   customCatalog        — parsed JSON object of user's custom catalog (or null)
- *   customCatalogName    — filename of the uploaded file
- *   useCustomCatalog     — boolean: true → use custom, false → use default
- *   onCustomCatalogUpload(catalog, fileName)  — called after successful upload
- *   onCustomCatalogToggle(useCustom)          — called when user switches catalogs
+ * Props:
+ *   singleSelection      — if true, only one GPU can be selected (for normal calc mode)
+ *   modalTitle           — optional title when singleSelection (e.g. "Select GPU")
+ *   modalSubtitle        — optional subtitle when singleSelection
+ *   customCatalog, customCatalogName, useCustomCatalog, onCustomCatalogUpload, onCustomCatalogToggle
  */
 const GpuFilterModal = ({
   isOpen,
   onClose,
   selectedGpuIds,
   onApply,
+  singleSelection = false,
+  modalTitle,
+  modalSubtitle,
   customCatalog,
   customCatalogName,
   useCustomCatalog,
@@ -26,30 +28,49 @@ const GpuFilterModal = ({
   const [gpuCatalog, setGpuCatalog] = useState([]);
   const [loadingGpus, setLoadingGpus] = useState(false);
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState(new Set(selectedGpuIds || []));
+  const initialIds = singleSelection ? (selectedGpuIds || []).slice(0, 1) : (selectedGpuIds || []);
+  const [selected, setSelected] = useState(new Set(initialIds));
   const [uploadError, setUploadError] = useState(null);
   const [downloading, setDownloading] = useState(false);
+  const [hoveredInfoGpuId, setHoveredInfoGpuId] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Deduplicate by (display name, memory_gb) so same GPU doesn't appear multiple times
+  const deduplicateCatalog = (gpus) => {
+    const seen = new Map();
+    const result = [];
+    for (const g of gpus) {
+      const name = g.full_name || g.name || `${g.vendor || ''} ${g.model || ''}`.trim();
+      const key = `${name}|${g.memory_gb}`;
+      if (seen.has(key)) continue;
+      seen.set(key, true);
+      result.push(g);
+    }
+    return result;
+  };
 
   // ── Build GPU list from either default (API) or custom (local) catalog ──
   useEffect(() => {
     if (!isOpen) return;
-    setSelected(new Set(selectedGpuIds || []));
+    const ids = singleSelection ? (selectedGpuIds || []).slice(0, 1) : (selectedGpuIds || []);
+    setSelected(new Set(ids));
     setSearch('');
     setUploadError(null);
 
     if (useCustomCatalog && customCatalog) {
-      // Parse custom catalog locally
-      const gpus = Object.entries(customCatalog).map(([id, info]) => ({
-        id,
+      // Parse custom catalog locally (array of GPU objects)
+      const arr = Array.isArray(customCatalog) ? customCatalog : Object.values(customCatalog);
+      const modelName = (info) => info.model_name || info.model || info.name || 'Unknown';
+      const gpusRaw = arr.map((info, idx) => ({
+        id: info.id || `custom-${(info.vendor || 'unknown').toLowerCase()}-${String(info.model_name || info.model || info.name || 'unknown').replace(/\s+/g, '-')}-${info.memory_gb || 0}-${idx}`,
         vendor: info.vendor || 'Unknown',
-        model: info.model_name || 'Unknown',
-        full_name: `${info.vendor || 'Unknown'} ${info.model_name || 'Unknown'}`.trim(),
+        model: modelName(info),
+        full_name: `${info.vendor || 'Unknown'} ${modelName(info)}`.trim(),
         memory_gb: info.memory_gb || 0,
-        tflops: info.tflops_fp16 || info.tflops_fp32 || null,
-        memory_type: info.memory_type || null,
+        tflops: info.tflops_fp16 || info.tflops_fp32 || info.tflops || null,
+        price_usd: info.price_usd != null ? Number(info.price_usd) : null,
       })).filter(g => g.memory_gb > 0);
-      setGpuCatalog(gpus);
+      setGpuCatalog(deduplicateCatalog(gpusRaw));
       setLoadingGpus(false);
     } else {
       // Load from API (default catalog)
@@ -71,7 +92,7 @@ const GpuFilterModal = ({
             }
           }
 
-          setGpuCatalog(allGpus);
+          setGpuCatalog(deduplicateCatalog(allGpus));
         } catch (err) {
           console.error('Failed to load GPU catalog:', err);
         } finally {
@@ -80,7 +101,7 @@ const GpuFilterModal = ({
       };
       load();
     }
-  }, [isOpen, selectedGpuIds, useCustomCatalog, customCatalog]);
+  }, [isOpen, selectedGpuIds, useCustomCatalog, customCatalog, singleSelection]);
 
   // Close on Escape
   useEffect(() => {
@@ -92,16 +113,42 @@ const GpuFilterModal = ({
     return () => document.removeEventListener('keydown', handleKey);
   }, [isOpen, onClose]);
 
-  // ── Filter GPU list by search query ──
+  // ── Filter GPU list by search query (single source of truth for display name) ──
+  const getGpuDisplayName = (gpu) =>
+    (gpu.full_name || gpu.name || `${gpu.vendor || ''} ${gpu.model || ''}`.trim()) || 'Unknown';
+
+  const formatGpuInfoTooltip = (gpu) => {
+    const lines = [];
+    const name = getGpuDisplayName(gpu);
+    if (name) lines.push(`Name: ${name}`);
+    if (gpu.vendor) lines.push(`Vendor: ${gpu.vendor}`);
+    if (gpu.model) lines.push(`Model: ${gpu.model}`);
+    lines.push(`Memory: ${gpu.memory_gb} GB`);
+    if (gpu.tflops != null) lines.push(`TFLOPS: ${gpu.tflops}`);
+    if (gpu.price_usd != null && gpu.price_usd !== '') {
+      lines.push(`Price: $${Number(gpu.price_usd).toLocaleString()}`);
+    } else {
+      lines.push('Price: not specified');
+    }
+    if (gpu.memory_type) lines.push(`Memory type: ${gpu.memory_type}`);
+    if (gpu.tdp_watts) lines.push(`TDP: ${gpu.tdp_watts}`);
+    if (gpu.launch_date) lines.push(`Launch: ${gpu.launch_date}`);
+    return lines.join('\n');
+  };
+
   const filteredGpus = gpuCatalog.filter((gpu) => {
     if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    const name = (gpu.full_name || `${gpu.vendor} ${gpu.model}`).toLowerCase();
+    const q = search.trim().toLowerCase();
+    const name = getGpuDisplayName(gpu).toLowerCase();
     return name.includes(q);
   });
 
   const toggleGpu = useCallback((gpuId) => {
     setSelected((prev) => {
+      if (singleSelection) {
+        if (prev.has(gpuId)) return new Set();
+        return new Set([gpuId]);
+      }
       const next = new Set(prev);
       if (next.has(gpuId)) {
         next.delete(gpuId);
@@ -110,9 +157,10 @@ const GpuFilterModal = ({
       }
       return next;
     });
-  }, []);
+  }, [singleSelection]);
 
   const handleSelectAll = () => {
+    if (singleSelection) return; // no "select all" in single mode
     setSelected(new Set(filteredGpus.map((g) => g.id)));
   };
 
@@ -121,7 +169,13 @@ const GpuFilterModal = ({
   };
 
   const handleApply = () => {
-    onApply(Array.from(selected));
+    const ids = Array.from(selected);
+    if (singleSelection && ids.length > 0) {
+      const gpuObj = gpuCatalog.find((g) => g.id === ids[0]) || null;
+      onApply(ids, gpuObj);
+    } else {
+      onApply(ids);
+    }
     onClose();
   };
 
@@ -165,21 +219,19 @@ const GpuFilterModal = ({
       try {
         const parsed = JSON.parse(evt.target.result);
 
-        // Validate structure: must be an object with GPU entries
-        if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-          setUploadError('Invalid format: expected a JSON object with GPU entries.');
+        // Validate structure: must be an array of GPU objects
+        if (!Array.isArray(parsed)) {
+          setUploadError('Invalid format: expected a JSON array of GPU objects.');
           return;
         }
 
-        const keys = Object.keys(parsed);
-        if (keys.length === 0) {
+        if (parsed.length === 0) {
           setUploadError('Catalog is empty.');
           return;
         }
 
-        // Check that at least first entry has required fields
-        const first = parsed[keys[0]];
-        if (!first.memory_gb && !first.Memory_GB) {
+        const first = parsed[0];
+        if (typeof first !== 'object' || !first.memory_gb) {
           setUploadError('Invalid catalog: entries must have "memory_gb" field.');
           return;
         }
@@ -200,7 +252,9 @@ const GpuFilterModal = ({
 
   // Count GPUs in each catalog
   const defaultCatalogCount = (!useCustomCatalog) ? gpuCatalog.length : null;
-  const customCatalogCount = customCatalog ? Object.keys(customCatalog).length : 0;
+  const customCatalogCount = customCatalog
+    ? (Array.isArray(customCatalog) ? customCatalog.length : Object.keys(customCatalog).length)
+    : 0;
 
   if (!isOpen) return null;
 
@@ -222,9 +276,11 @@ const GpuFilterModal = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
-              GPU Filter
+              {singleSelection ? (modalTitle || 'Select GPU') : 'GPU Filter'}
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5">Select GPUs to include in optimization search</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {singleSelection ? (modalSubtitle || 'Choose one GPU for calculation') : 'Select GPUs to include in optimization search'}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -343,14 +399,18 @@ const GpuFilterModal = ({
           />
           <div className="flex items-center justify-between mt-2">
             <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleSelectAll}
-                className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
-              >
-                Select All ({filteredGpus.length})
-              </button>
-              <span className="text-gray-300">|</span>
+              {!singleSelection && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleSelectAll}
+                    className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+                  >
+                    Select All ({filteredGpus.length})
+                  </button>
+                  <span className="text-gray-300">|</span>
+                </>
+              )}
               <button
                 type="button"
                 onClick={handleClear}
@@ -379,7 +439,7 @@ const GpuFilterModal = ({
             <div className="space-y-1">
               {filteredGpus.map((gpu) => {
                 const isChecked = selected.has(gpu.id);
-                const name = gpu.full_name || `${gpu.vendor} ${gpu.model}`;
+                const name = getGpuDisplayName(gpu);
                 return (
                   <label
                     key={gpu.id}
@@ -398,9 +458,25 @@ const GpuFilterModal = ({
                       <div className="text-xs text-gray-400">
                         {gpu.memory_gb} GB
                         {gpu.tflops ? ` | ${gpu.tflops} TFLOPS` : ''}
-                        {gpu.memory_type ? ` | ${gpu.memory_type}` : ''}
+                        {' | '}
+                        {gpu.price_usd != null && gpu.price_usd !== '' ? `$${Number(gpu.price_usd).toLocaleString()}` : 'not specified'}
                       </div>
                     </div>
+                    <span
+                      className="relative flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full border border-gray-400 text-gray-500 text-xs font-normal cursor-help hover:border-purple-400 hover:text-purple-600 transition-colors"
+                      onMouseEnter={(e) => { e.preventDefault(); e.stopPropagation(); setHoveredInfoGpuId(gpu.id); }}
+                      onMouseLeave={(e) => { e.preventDefault(); e.stopPropagation(); setHoveredInfoGpuId(null); }}
+                    >
+                      i
+                      {hoveredInfoGpuId === gpu.id && (
+                        <div
+                          className="absolute right-full top-0 mr-1.5 z-[10001] px-3 py-2 text-left text-xs font-normal text-white bg-gray-800 rounded-lg shadow-lg whitespace-pre-line min-w-[200px] max-w-[280px] pointer-events-none"
+                          style={{ lineHeight: 1.5 }}
+                        >
+                          {formatGpuInfoTooltip(gpu)}
+                        </div>
+                      )}
+                    </span>
                   </label>
                 );
               })}

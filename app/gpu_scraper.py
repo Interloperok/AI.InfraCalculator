@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import time
 from io import StringIO
@@ -348,10 +349,22 @@ def main():
             }
         }
         
-        with open("gpu_data_raw.json", "w", encoding="utf-8") as fp:
-            json.dump(fallback_data, fp, indent=2, ensure_ascii=False, default=str)
-        print("Created fallback data with 4 GPUs -> gpu_data_raw.json")
-        return fallback_data
+        # Merge fallback into existing data (don't overwrite)
+        raw_path = os.path.join(os.path.dirname(__file__) or ".", "gpu_data_raw.json")
+        existing_fb: Dict[str, Dict[str, str]] = {}
+        if os.path.exists(raw_path):
+            try:
+                with open(raw_path, "r", encoding="utf-8-sig") as f:
+                    existing_fb = json.load(f)
+            except Exception:
+                existing_fb = {}
+        for k, v in fallback_data.items():
+            if k not in existing_fb:
+                existing_fb[k] = v
+        with open(raw_path, "w", encoding="utf-8") as fp:
+            json.dump(existing_fb, fp, indent=2, ensure_ascii=False, default=str)
+        print(f"Merged fallback data -> {len(existing_fb)} GPUs in gpu_data_raw.json")
+        return existing_fb
 
     print(f"✅ Successfully processed {len(successful_vendors)} vendors: {', '.join(successful_vendors)}")
     
@@ -369,21 +382,44 @@ def main():
     else:
         print("⚠️  Launch date column not found, skipping year filter")
 
-    result: Dict[str, Dict[str, str]] = {}
+    scraped: Dict[str, Dict[str, str]] = {}
     for record in df.to_dict(orient="records"):
         compact = {k: v for k, v in record.items() if pd.notna(v)}
         key = record_key(compact)
-        if key in result:
+        if key in scraped:
             i = 2
-            while f"{key}_{i}" in result:
+            while f"{key}_{i}" in scraped:
                 i += 1
             key = f"{key}_{i}"
-        result[key] = compact
+        scraped[key] = compact
 
-    with open("gpu_data_raw.json", "w", encoding="utf-8") as fp:
-        json.dump(result, fp, indent=2, ensure_ascii=False, default=str)
-    print(f"[OK] {len(result)} GPUs saved -> gpu_data_raw.json")
-    return result
+    # Merge strategy: load existing data, then overlay scraped entries.
+    # Existing entries NOT present in scraped data are preserved (not deleted).
+    existing: Dict[str, Dict[str, str]] = {}
+    raw_path = os.path.join(os.path.dirname(__file__) or ".", "gpu_data_raw.json")
+    if os.path.exists(raw_path):
+        try:
+            with open(raw_path, "r", encoding="utf-8-sig") as f:
+                existing = json.load(f)
+        except Exception:
+            existing = {}
+
+    old_count = len(existing)
+    added = 0
+    updated = 0
+    for key, value in scraped.items():
+        if key not in existing:
+            added += 1
+        else:
+            updated += 1
+        existing[key] = value
+
+    with open(raw_path, "w", encoding="utf-8") as fp:
+        json.dump(existing, fp, indent=2, ensure_ascii=False, default=str)
+
+    print(f"[OK] Merge: {old_count} existing + {added} added + {updated} updated "
+          f"= {len(existing)} total -> gpu_data_raw.json")
+    return existing
 
 
 if __name__ == "__main__":

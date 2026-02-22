@@ -1,5 +1,6 @@
-{
-  "NVIDIA_GF119-300-A1": {
+[
+  {
+    "id": "nvidia-geforce-gt-705",
     "model_name": "GeForce GT 705",
     "vendor": "NVIDIA",
     "code_name": "GF119-300-A1",
@@ -28,7 +29,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GK208-301-A1": {
+  {
+    "id": "nvidia-geforce-gt-710",
     "model_name": "GeForce GT 710",
     "vendor": "NVIDIA",
     "code_name": "GK208-301-A1",
@@ -57,7 +59,8 @@
     "vulkan_version": "1.2",
     "cuda_version": null
   },
-  "NVIDIA_GK208-203-B1": {
+  {
+    "id": "nvidia-geforce-gt-710-2",
     "model_name": "GeForce GT 710",
     "vendor": "NVIDIA",
     "code_name": "GK208-203-B1",
@@ -86,7 +89,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GK208-201-B1": {
+  {
+    "id": "nvidia-geforce-gt-720",
     "model_name": "GeForce GT 720",
     "vendor": "NVIDIA",
     "code_name": "GK208-201-B1",
@@ -115,7 +119,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GK208-301-A1_2": {
+  {
+    "id": "nvidia-geforce-gt-730",
     "model_name": "GeForce GT 730",
     "vendor": "NVIDIA",
     "code_name": "GK208-301-A1",
@@ -144,7 +149,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GK208-400-A1": {
+  {
+    "id": "nvidia-geforce-gt-730-2",
     "model_name": "GeForce GT 730",
     "vendor": "NVIDIA",
     "code_name": "GK208-400-A1",
@@ -173,7 +179,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GF108": {
+  {
+    "id": "nvidia-geforce-gt-730-3",
     "model_name": "GeForce GT 730",
     "vendor": "NVIDIA",
     "code_name": "GF108",
@@ -202,7 +209,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GK107-425-A2": {
+  {
+    "id": "nvidia-geforce-gt-740",
     "model_name": "GeForce GT 740",
     "vendor": "NVIDIA",
     "code_name": "GK107-425-A2",
@@ -231,7 +239,8 @@
     "vulkan_version": "1.2",
     "cuda_version": null
   },
-  "NVIDIA_GK107-425-A2_2": {
+  {
+    "id": "nvidia-geforce-gt-740-2",
     "model_name": "GeForce GT 740",
     "vendor": "NVIDIA",
     "code_name": "GK107-425-A2",
@@ -260,7 +269,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GM107-220-A2": {
+  {
+    "id": "nvidia-geforce-gtx-745",
     "model_name": "GeForce GTX 745",
     "vendor": "NVIDIA",
     "code_name": "GM107-220-A2",
@@ -289,7 +299,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GM107-300-A2": {
+  {
+    "id": "nvidia-geforce-gtx-750",
     "model_name": "GeForce GTX 750",
     "vendor": "NVIDIA",
     "code_name": "GM107-300-A2",
@@ -318,7 +329,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GM107-400-A2": {
+  {
+    "id": "nvidia-geforce-gtx-750-ti",
     "model_name": "GeForce GTX 750 Ti",
     "vendor": "NVIDIA",
     "code_name": "GM107-400-A2",
@@ -347,7 +359,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GK110-430-B1": {
+  {
+    "id": "nvidia-geforce-gtx-titan-black",
     "model_name": "GeForce GTX TITAN Black",
     "vendor": "NVIDIA",
     "code_name": "GK110-430-B1",
@@ -376,10 +389,11 @@
     "vulkan_version": "1.2",
     "cuda_version": null
   },
-  "NVIDIA_2× GK110-350-B1": {
+  {
+    "id": "nvidia-geforce-gtx-titan-z",
     "model_name": "GeForce GTX TITAN Z",
     "vendor": "NVIDIA",
-    "code_name": "2× GK110-350-B1",
+    "code_name": "2├Ч GK110-350-B1",
     "launch_date": "2014-05-28",
     "process_nm": 28,
     "fab": "TSMC",
@@ -389,8 +403,8 @@
     "core_config": "2x 2880:240:48",
     "memory_gb": 6.0,
     "memory_type": "GDDR5",
-    "memory_bus_width_bit": 384,
-    "memory_bandwidth_gbs": 336.5,
+    "memory_bus_width_bit": null,
+    "memory_bandwidth_gbs": 2.0,
     "clock_base_mhz": 705.0,
     "clock_boost_mhz": 876.0,
     "clock_memory_mhz": 1752.5,
@@ -405,7 +419,8 @@
     "vulkan_version": "1.2",
     "cuda_version": null
   },
-  "NVIDIA_GM108": {
+  {
+    "id": "nvidia-geforce-gt-945a",
     "model_name": "GeForce GT 945A",
     "vendor": "NVIDIA",
     "code_name": "GM108",
@@ -434,7 +449,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP108-200-A1": {
+  {
+    "id": "nvidia-geforce-gt-1010",
     "model_name": "GeForce GT 1010",
     "vendor": "NVIDIA",
     "code_name": "GP108-200-A1",
@@ -463,7 +479,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP108-200-A1_2": {
+  {
+    "id": "nvidia-geforce-gt-1010-2",
     "model_name": "GeForce GT 1010",
     "vendor": "NVIDIA",
     "code_name": "GP108-200-A1",
@@ -492,7 +509,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP108-310-A1": {
+  {
+    "id": "nvidia-geforce-gt-1030",
     "model_name": "GeForce GT 1030",
     "vendor": "NVIDIA",
     "code_name": "GP108-310-A1",
@@ -521,7 +539,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP108-300-A1": {
+  {
+    "id": "nvidia-geforce-gt-1030-2",
     "model_name": "GeForce GT 1030",
     "vendor": "NVIDIA",
     "code_name": "GP108-300-A1",
@@ -550,7 +569,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP107-300-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1050",
     "model_name": "GeForce GTX 1050",
     "vendor": "NVIDIA",
     "code_name": "GP107-300-A1",
@@ -579,7 +599,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP107-301-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1050-2",
     "model_name": "GeForce GTX 1050",
     "vendor": "NVIDIA",
     "code_name": "GP107-301-A1",
@@ -608,7 +629,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP107-400-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1050-ti",
     "model_name": "GeForce GTX 1050 Ti",
     "vendor": "NVIDIA",
     "code_name": "GP107-400-A1",
@@ -637,7 +659,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP104-140-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1060",
     "model_name": "GeForce GTX 1060",
     "vendor": "NVIDIA",
     "code_name": "GP104-140-A1",
@@ -666,7 +689,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP106-300-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1060-2",
     "model_name": "GeForce GTX 1060",
     "vendor": "NVIDIA",
     "code_name": "GP106-300-A1",
@@ -695,7 +719,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP106-350-K3-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1060-3",
     "model_name": "GeForce GTX 1060",
     "vendor": "NVIDIA",
     "code_name": "GP106-350-K3-A1",
@@ -724,7 +749,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP104-150-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1060-4",
     "model_name": "GeForce GTX 1060",
     "vendor": "NVIDIA",
     "code_name": "GP104-150-A1",
@@ -753,7 +779,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP104-150-KA-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1060-5",
     "model_name": "GeForce GTX 1060",
     "vendor": "NVIDIA",
     "code_name": "GP104-150-KA-A1",
@@ -782,7 +809,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP106-400-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1060-6",
     "model_name": "GeForce GTX 1060",
     "vendor": "NVIDIA",
     "code_name": "GP106-400-A1",
@@ -811,7 +839,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP106-410-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1060-7",
     "model_name": "GeForce GTX 1060",
     "vendor": "NVIDIA",
     "code_name": "GP106-410-A1",
@@ -840,7 +869,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP104-300-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1070-ti",
     "model_name": "GeForce GTX 1070 Ti",
     "vendor": "NVIDIA",
     "code_name": "GP104-300-A1",
@@ -869,7 +899,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP104-400-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1080",
     "model_name": "GeForce GTX 1080",
     "vendor": "NVIDIA",
     "code_name": "GP104-400-A1",
@@ -898,7 +929,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP104-410-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1080-2",
     "model_name": "GeForce GTX 1080",
     "vendor": "NVIDIA",
     "code_name": "GP104-410-A1",
@@ -927,7 +959,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP102-350-K1-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1080-ti",
     "model_name": "GeForce GTX 1080 Ti",
     "vendor": "NVIDIA",
     "code_name": "GP102-350-K1-A1",
@@ -956,7 +989,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP102-400-A1": {
+  {
+    "id": "nvidia-titan-x-pascal",
     "model_name": "TITAN X Pascal",
     "vendor": "NVIDIA",
     "code_name": "GP102-400-A1",
@@ -985,7 +1019,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GP102-450-A1": {
+  {
+    "id": "nvidia-titan-xp",
     "model_name": "TITAN Xp",
     "vendor": "NVIDIA",
     "code_name": "GP102-450-A1",
@@ -1014,7 +1049,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GV100-400-A1": {
+  {
+    "id": "nvidia-nvidia-titan-v",
     "model_name": "Nvidia Titan V",
     "vendor": "NVIDIA",
     "code_name": "GV100-400-A1",
@@ -1043,7 +1079,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GV100-???-A1": {
+  {
+    "id": "nvidia-nvidia-titan-v-ceo-edition",
     "model_name": "Nvidia Titan V (CEO Edition)",
     "vendor": "NVIDIA",
     "code_name": "GV100-???-A1",
@@ -1072,7 +1109,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU117-150-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1630",
     "model_name": "GeForce GTX 1630",
     "vendor": "NVIDIA",
     "code_name": "TU117-150-A1",
@@ -1101,7 +1139,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU117-300-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1650",
     "model_name": "GeForce GTX 1650",
     "vendor": "NVIDIA",
     "code_name": "TU117-300-A1",
@@ -1130,7 +1169,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU117-300-A1_2": {
+  {
+    "id": "nvidia-geforce-gtx-1650-2",
     "model_name": "GeForce GTX 1650",
     "vendor": "NVIDIA",
     "code_name": "TU117-300-A1",
@@ -1159,7 +1199,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU106-125-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1650-3",
     "model_name": "GeForce GTX 1650",
     "vendor": "NVIDIA",
     "code_name": "TU106-125-A1",
@@ -1188,7 +1229,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU116-250-KA-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1650-super",
     "model_name": "GeForce GTX 1650 Super",
     "vendor": "NVIDIA",
     "code_name": "TU116-250-KA-A1",
@@ -1217,7 +1259,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU116-300-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1660",
     "model_name": "GeForce GTX 1660",
     "vendor": "NVIDIA",
     "code_name": "TU116-300-A1",
@@ -1246,7 +1289,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU116-300-A1_2": {
+  {
+    "id": "nvidia-geforce-gtx-1660-super",
     "model_name": "GeForce GTX 1660 Super",
     "vendor": "NVIDIA",
     "code_name": "TU116-300-A1",
@@ -1275,7 +1319,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU116-400-A1": {
+  {
+    "id": "nvidia-geforce-gtx-1660-ti",
     "model_name": "GeForce GTX 1660 Ti",
     "vendor": "NVIDIA",
     "code_name": "TU116-400-A1",
@@ -1304,7 +1349,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU106-200-KA-A1": {
+  {
+    "id": "nvidia-geforce-rtx-2060",
     "model_name": "GeForce RTX 2060",
     "vendor": "NVIDIA",
     "code_name": "TU106-200-KA-A1",
@@ -1333,7 +1379,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU104-150-KC-A1": {
+  {
+    "id": "nvidia-geforce-rtx-2060-2",
     "model_name": "GeForce RTX 2060",
     "vendor": "NVIDIA",
     "code_name": "TU104-150-KC-A1",
@@ -1362,7 +1409,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU106-300-KA-A1": {
+  {
+    "id": "nvidia-geforce-rtx-2060-3",
     "model_name": "GeForce RTX 2060",
     "vendor": "NVIDIA",
     "code_name": "TU106-300-KA-A1",
@@ -1391,7 +1439,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU106-410-A1": {
+  {
+    "id": "nvidia-geforce-rtx-2060-super",
     "model_name": "GeForce RTX 2060 Super",
     "vendor": "NVIDIA",
     "code_name": "TU106-410-A1",
@@ -1420,7 +1469,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU106-400-A1": {
+  {
+    "id": "nvidia-geforce-rtx-2070",
     "model_name": "GeForce RTX 2070",
     "vendor": "NVIDIA",
     "code_name": "TU106-400-A1",
@@ -1449,7 +1499,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU104-410-A1": {
+  {
+    "id": "nvidia-geforce-rtx-2070-super",
     "model_name": "GeForce RTX 2070 Super",
     "vendor": "NVIDIA",
     "code_name": "TU104-410-A1",
@@ -1478,7 +1529,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU104-400-A1": {
+  {
+    "id": "nvidia-geforce-rtx-2080",
     "model_name": "GeForce RTX 2080",
     "vendor": "NVIDIA",
     "code_name": "TU104-400-A1",
@@ -1507,7 +1559,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU104-450-A1": {
+  {
+    "id": "nvidia-geforce-rtx-2080-super",
     "model_name": "GeForce RTX 2080 Super",
     "vendor": "NVIDIA",
     "code_name": "TU104-450-A1",
@@ -1536,7 +1589,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU102-300-K1-A1": {
+  {
+    "id": "nvidia-geforce-rtx-2080-ti",
     "model_name": "GeForce RTX 2080 Ti",
     "vendor": "NVIDIA",
     "code_name": "TU102-300-K1-A1",
@@ -1565,7 +1619,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU102-400-A1": {
+  {
+    "id": "nvidia-nvidia-titan-rtx",
     "model_name": "Nvidia Titan RTX",
     "vendor": "NVIDIA",
     "code_name": "TU102-400-A1",
@@ -1594,7 +1649,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA107-325": {
+  {
+    "id": "nvidia-geforce-rtx-3050",
     "model_name": "GeForce RTX 3050",
     "vendor": "NVIDIA",
     "code_name": "GA107-325",
@@ -1623,7 +1679,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA107-150-A1": {
+  {
+    "id": "nvidia-geforce-rtx-3050-2",
     "model_name": "GeForce RTX 3050",
     "vendor": "NVIDIA",
     "code_name": "GA107-150-A1",
@@ -1652,7 +1709,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA106-150": {
+  {
+    "id": "nvidia-geforce-rtx-3050-3",
     "model_name": "GeForce RTX 3050",
     "vendor": "NVIDIA",
     "code_name": "GA106-150",
@@ -1681,7 +1739,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA106-150-A1": {
+  {
+    "id": "nvidia-geforce-rtx-3050-4",
     "model_name": "GeForce RTX 3050",
     "vendor": "NVIDIA",
     "code_name": "GA106-150-A1",
@@ -1710,7 +1769,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA106-302": {
+  {
+    "id": "nvidia-geforce-rtx-3060",
     "model_name": "GeForce RTX 3060",
     "vendor": "NVIDIA",
     "code_name": "GA106-302",
@@ -1739,7 +1799,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA106-300-A1": {
+  {
+    "id": "nvidia-geforce-rtx-3060-2",
     "model_name": "GeForce RTX 3060",
     "vendor": "NVIDIA",
     "code_name": "GA106-300-A1",
@@ -1768,7 +1829,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA104-150-A1": {
+  {
+    "id": "nvidia-geforce-rtx-3060-3",
     "model_name": "GeForce RTX 3060",
     "vendor": "NVIDIA",
     "code_name": "GA104-150-A1",
@@ -1797,7 +1859,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA104-200-A1": {
+  {
+    "id": "nvidia-geforce-rtx-3060-ti",
     "model_name": "GeForce RTX 3060 Ti",
     "vendor": "NVIDIA",
     "code_name": "GA104-200-A1",
@@ -1826,7 +1889,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA104-202": {
+  {
+    "id": "nvidia-geforce-rtx-3060-ti-2",
     "model_name": "GeForce RTX 3060 Ti",
     "vendor": "NVIDIA",
     "code_name": "GA104-202",
@@ -1855,7 +1919,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA104-300-A1": {
+  {
+    "id": "nvidia-geforce-rtx-3070",
     "model_name": "GeForce RTX 3070",
     "vendor": "NVIDIA",
     "code_name": "GA104-300-A1",
@@ -1884,7 +1949,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA104-400-A1": {
+  {
+    "id": "nvidia-geforce-rtx-3070-ti",
     "model_name": "GeForce RTX 3070 Ti",
     "vendor": "NVIDIA",
     "code_name": "GA104-400-A1",
@@ -1913,7 +1979,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA102-200-A1": {
+  {
+    "id": "nvidia-geforce-rtx-3080",
     "model_name": "GeForce RTX 3080",
     "vendor": "NVIDIA",
     "code_name": "GA102-200-A1",
@@ -1942,7 +2009,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA102-220-A1": {
+  {
+    "id": "nvidia-geforce-rtx-3080-2",
     "model_name": "GeForce RTX 3080",
     "vendor": "NVIDIA",
     "code_name": "GA102-220-A1",
@@ -1971,7 +2039,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA102-225-A1": {
+  {
+    "id": "nvidia-geforce-rtx-3080-ti",
     "model_name": "GeForce RTX 3080 Ti",
     "vendor": "NVIDIA",
     "code_name": "GA102-225-A1",
@@ -2000,7 +2069,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA102-300-A1": {
+  {
+    "id": "nvidia-geforce-rtx-3090",
     "model_name": "GeForce RTX 3090",
     "vendor": "NVIDIA",
     "code_name": "GA102-300-A1",
@@ -2029,7 +2099,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA102-350-A1": {
+  {
+    "id": "nvidia-geforce-rtx-3090-ti",
     "model_name": "GeForce RTX 3090 Ti",
     "vendor": "NVIDIA",
     "code_name": "GA102-350-A1",
@@ -2058,7 +2129,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD107-400": {
+  {
+    "id": "nvidia-geforce-rtx-4060",
     "model_name": "GeForce RTX 4060",
     "vendor": "NVIDIA",
     "code_name": "AD107-400",
@@ -2087,7 +2159,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD106-350": {
+  {
+    "id": "nvidia-geforce-rtx-4060-ti",
     "model_name": "GeForce RTX 4060 Ti",
     "vendor": "NVIDIA",
     "code_name": "AD106-350",
@@ -2116,7 +2189,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD106-351": {
+  {
+    "id": "nvidia-geforce-rtx-4060-ti-2",
     "model_name": "GeForce RTX 4060 Ti",
     "vendor": "NVIDIA",
     "code_name": "AD106-351",
@@ -2145,7 +2219,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD104-250": {
+  {
+    "id": "nvidia-geforce-rtx-4070",
     "model_name": "GeForce RTX 4070",
     "vendor": "NVIDIA",
     "code_name": "AD104-250",
@@ -2174,7 +2249,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD104-350": {
+  {
+    "id": "nvidia-geforce-rtx-4070-super",
     "model_name": "GeForce RTX 4070 Super",
     "vendor": "NVIDIA",
     "code_name": "AD104-350",
@@ -2203,7 +2279,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD104-400": {
+  {
+    "id": "nvidia-geforce-rtx-4070-ti",
     "model_name": "GeForce RTX 4070 Ti",
     "vendor": "NVIDIA",
     "code_name": "AD104-400",
@@ -2232,7 +2309,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD103-275": {
+  {
+    "id": "nvidia-geforce-rtx-4070-ti-super",
     "model_name": "GeForce RTX 4070 Ti Super",
     "vendor": "NVIDIA",
     "code_name": "AD103-275",
@@ -2261,7 +2339,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD103-300": {
+  {
+    "id": "nvidia-geforce-rtx-4080",
     "model_name": "GeForce RTX 4080",
     "vendor": "NVIDIA",
     "code_name": "AD103-300",
@@ -2290,7 +2369,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD103-400": {
+  {
+    "id": "nvidia-geforce-rtx-4080-super",
     "model_name": "GeForce RTX 4080 Super",
     "vendor": "NVIDIA",
     "code_name": "AD103-400",
@@ -2319,7 +2399,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD102-250": {
+  {
+    "id": "nvidia-geforce-rtx-4090-d",
     "model_name": "GeForce RTX 4090 D",
     "vendor": "NVIDIA",
     "code_name": "AD102-250",
@@ -2348,7 +2429,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD102-300": {
+  {
+    "id": "nvidia-geforce-rtx-4090",
     "model_name": "GeForce RTX 4090",
     "vendor": "NVIDIA",
     "code_name": "AD102-300",
@@ -2377,7 +2459,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GB207-300": {
+  {
+    "id": "nvidia-geforce-rtx-5050",
     "model_name": "GeForce RTX 5050",
     "vendor": "NVIDIA",
     "code_name": "GB207-300",
@@ -2406,7 +2489,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GB206-250": {
+  {
+    "id": "nvidia-geforce-rtx-5060",
     "model_name": "GeForce RTX 5060",
     "vendor": "NVIDIA",
     "code_name": "GB206-250",
@@ -2435,7 +2519,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GB206-300": {
+  {
+    "id": "nvidia-geforce-rtx-5060-ti",
     "model_name": "GeForce RTX 5060 Ti",
     "vendor": "NVIDIA",
     "code_name": "GB206-300",
@@ -2464,7 +2549,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GB206-300_2": {
+  {
+    "id": "nvidia-geforce-rtx-5060-ti-2",
     "model_name": "GeForce RTX 5060 Ti",
     "vendor": "NVIDIA",
     "code_name": "GB206-300",
@@ -2493,7 +2579,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GF117": {
+  {
+    "id": "nvidia-geforce-810m",
     "model_name": "GeForce 810M",
     "vendor": "NVIDIA",
     "code_name": "GF117",
@@ -2522,7 +2609,8 @@
     "vulkan_version": null,
     "cuda_version": "2.1"
   },
-  "NVIDIA_GF117_2": {
+  {
+    "id": "nvidia-geforce-820m",
     "model_name": "GeForce 820M",
     "vendor": "NVIDIA",
     "code_name": "GF117",
@@ -2551,7 +2639,8 @@
     "vulkan_version": null,
     "cuda_version": "2.1"
   },
-  "NVIDIA_GK208B": {
+  {
+    "id": "nvidia-geforce-910m",
     "model_name": "GeForce 910M",
     "vendor": "NVIDIA",
     "code_name": "GK208B",
@@ -2580,7 +2669,8 @@
     "vulkan_version": "1.2",
     "cuda_version": null
   },
-  "NVIDIA_GK208": {
+  {
+    "id": "nvidia-geforce-920m",
     "model_name": "GeForce 920M",
     "vendor": "NVIDIA",
     "code_name": "GK208",
@@ -2609,7 +2699,8 @@
     "vulkan_version": "1.2",
     "cuda_version": null
   },
-  "NVIDIA_GM108_2": {
+  {
+    "id": "nvidia-geforce-930m",
     "model_name": "GeForce 930M",
     "vendor": "NVIDIA",
     "code_name": "GM108",
@@ -2638,7 +2729,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GM108_3": {
+  {
+    "id": "nvidia-geforce-940m",
     "model_name": "GeForce 940M",
     "vendor": "NVIDIA",
     "code_name": "GM108",
@@ -2667,7 +2759,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GM107": {
+  {
+    "id": "nvidia-geforce-940mx",
     "model_name": "GeForce 940MX",
     "vendor": "NVIDIA",
     "code_name": "GM107",
@@ -2696,7 +2789,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GM107_2": {
+  {
+    "id": "nvidia-geforce-gtx-950m",
     "model_name": "GeForce GTX 950M",
     "vendor": "NVIDIA",
     "code_name": "GM107",
@@ -2725,7 +2819,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GM107_3": {
+  {
+    "id": "nvidia-geforce-gtx-950m-2",
     "model_name": "GeForce GTX 950M",
     "vendor": "NVIDIA",
     "code_name": "GM107",
@@ -2754,7 +2849,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GM107_4": {
+  {
+    "id": "nvidia-geforce-gtx-960m",
     "model_name": "GeForce GTX 960M",
     "vendor": "NVIDIA",
     "code_name": "GM107",
@@ -2783,7 +2879,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GM204": {
+  {
+    "id": "nvidia-geforce-gtx-965m",
     "model_name": "GeForce GTX 965M",
     "vendor": "NVIDIA",
     "code_name": "GM204",
@@ -2812,7 +2909,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GM204_2": {
+  {
+    "id": "nvidia-geforce-gtx-970m",
     "model_name": "GeForce GTX 970M",
     "vendor": "NVIDIA",
     "code_name": "GM204",
@@ -2841,7 +2939,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GM204_3": {
+  {
+    "id": "nvidia-geforce-gtx-980m",
     "model_name": "GeForce GTX 980M",
     "vendor": "NVIDIA",
     "code_name": "GM204",
@@ -2870,7 +2969,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GM204_4": {
+  {
+    "id": "nvidia-geforce-gtx-980",
     "model_name": "GeForce GTX 980",
     "vendor": "NVIDIA",
     "code_name": "GM204",
@@ -2899,7 +2999,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GP107 (N17P-G0-A1)": {
+  {
+    "id": "nvidia-geforce-gtx-1050-notebook",
     "model_name": "GeForce GTX 1050 (Notebook)",
     "vendor": "NVIDIA",
     "code_name": "GP107 (N17P-G0-A1)",
@@ -2928,7 +3029,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GP107 (N17P-G1-A1)": {
+  {
+    "id": "nvidia-geforce-gtx-1050-ti-notebook",
     "model_name": "GeForce GTX 1050 Ti (Notebook)",
     "vendor": "NVIDIA",
     "code_name": "GP107 (N17P-G1-A1)",
@@ -2957,7 +3059,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GP106": {
+  {
+    "id": "nvidia-geforce-gtx-1060-notebook",
     "model_name": "GeForce GTX 1060 (Notebook)",
     "vendor": "NVIDIA",
     "code_name": "GP106",
@@ -2986,7 +3089,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GP104/ GP104B": {
+  {
+    "id": "nvidia-geforce-gtx-1070-notebook",
     "model_name": "GeForce GTX 1070 (Notebook)",
     "vendor": "NVIDIA",
     "code_name": "GP104/ GP104B",
@@ -3015,7 +3119,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GP104/ GP104B_2": {
+  {
+    "id": "nvidia-geforce-gtx-1080-notebook",
     "model_name": "GeForce GTX 1080 (Notebook)",
     "vendor": "NVIDIA",
     "code_name": "GP104/ GP104B",
@@ -3044,7 +3149,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_TU117": {
+  {
+    "id": "nvidia-geforce-gtx-1630-2",
     "model_name": "Geforce GTX 1630",
     "vendor": "NVIDIA",
     "code_name": "TU117",
@@ -3073,7 +3179,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA107 (Ampere)": {
+  {
+    "id": "nvidia-geforce-rtx-2050",
     "model_name": "GeForce RTX 2050",
     "vendor": "NVIDIA",
     "code_name": "GA107 (Ampere)",
@@ -3102,7 +3209,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU106": {
+  {
+    "id": "nvidia-geforce-rtx-2060-4",
     "model_name": "GeForce RTX 2060",
     "vendor": "NVIDIA",
     "code_name": "TU106",
@@ -3131,7 +3239,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU106_2": {
+  {
+    "id": "nvidia-geforce-rtx-2060-max-q",
     "model_name": "GeForce RTX 2060 Max-Q",
     "vendor": "NVIDIA",
     "code_name": "TU106",
@@ -3160,7 +3269,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU106_3": {
+  {
+    "id": "nvidia-geforce-rtx-2070-2",
     "model_name": "GeForce RTX 2070",
     "vendor": "NVIDIA",
     "code_name": "TU106",
@@ -3189,7 +3299,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU106_4": {
+  {
+    "id": "nvidia-geforce-rtx-2070-max-q",
     "model_name": "GeForce RTX 2070 Max-Q",
     "vendor": "NVIDIA",
     "code_name": "TU106",
@@ -3218,7 +3329,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU104": {
+  {
+    "id": "nvidia-geforce-rtx-2070-super-2",
     "model_name": "GeForce RTX 2070 Super",
     "vendor": "NVIDIA",
     "code_name": "TU104",
@@ -3247,7 +3359,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU104_2": {
+  {
+    "id": "nvidia-geforce-rtx-2070-super-max-q",
     "model_name": "GeForce RTX 2070 Super Max-Q",
     "vendor": "NVIDIA",
     "code_name": "TU104",
@@ -3276,7 +3389,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU104_3": {
+  {
+    "id": "nvidia-geforce-rtx-2080-2",
     "model_name": "GeForce RTX 2080",
     "vendor": "NVIDIA",
     "code_name": "TU104",
@@ -3305,7 +3419,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU104_4": {
+  {
+    "id": "nvidia-geforce-rtx-2080-max-q",
     "model_name": "GeForce RTX 2080 Max-Q",
     "vendor": "NVIDIA",
     "code_name": "TU104",
@@ -3334,7 +3449,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU104_5": {
+  {
+    "id": "nvidia-geforce-rtx-2080-super-2",
     "model_name": "GeForce RTX 2080 Super",
     "vendor": "NVIDIA",
     "code_name": "TU104",
@@ -3363,7 +3479,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_TU104_6": {
+  {
+    "id": "nvidia-geforce-rtx-2080-super-max-q",
     "model_name": "GeForce RTX 2080 Super Max-Q",
     "vendor": "NVIDIA",
     "code_name": "TU104",
@@ -3392,7 +3509,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA107": {
+  {
+    "id": "nvidia-geforce-rtx-3050-mobile-laptop",
     "model_name": "GeForce RTX 3050 Mobile/ Laptop",
     "vendor": "NVIDIA",
     "code_name": "GA107",
@@ -3421,7 +3539,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA107_2": {
+  {
+    "id": "nvidia-geforce-rtx-3050-ti-mobile-laptop",
     "model_name": "GeForce RTX 3050 Ti Mobile/ Laptop",
     "vendor": "NVIDIA",
     "code_name": "GA107",
@@ -3450,7 +3569,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA106": {
+  {
+    "id": "nvidia-geforce-rtx-3060-mobile-laptop",
     "model_name": "GeForce RTX 3060 Mobile/ Laptop",
     "vendor": "NVIDIA",
     "code_name": "GA106",
@@ -3479,7 +3599,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA104-770-A1": {
+  {
+    "id": "nvidia-geforce-rtx-3070-mobile-laptop",
     "model_name": "GeForce RTX 3070 Mobile/ Laptop",
     "vendor": "NVIDIA",
     "code_name": "GA104-770-A1",
@@ -3508,7 +3629,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA104": {
+  {
+    "id": "nvidia-geforce-rtx-3070-ti-mobile-laptop",
     "model_name": "GeForce RTX 3070 Ti Mobile/ Laptop",
     "vendor": "NVIDIA",
     "code_name": "GA104",
@@ -3537,7 +3659,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA104-775-A1": {
+  {
+    "id": "nvidia-geforce-rtx-3080-mobile-laptop",
     "model_name": "GeForce RTX 3080 Mobile/ Laptop",
     "vendor": "NVIDIA",
     "code_name": "GA104-775-A1",
@@ -3566,7 +3689,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GA103": {
+  {
+    "id": "nvidia-geforce-rtx-3080-ti-mobile-laptop",
     "model_name": "GeForce RTX 3080 Ti Mobile/ Laptop",
     "vendor": "NVIDIA",
     "code_name": "GA103",
@@ -3595,7 +3719,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD107 GN21-X2": {
+  {
+    "id": "nvidia-geforce-rtx-4050-mobile-laptop",
     "model_name": "GeForce RTX 4050 Mobile/ Laptop",
     "vendor": "NVIDIA",
     "code_name": "AD107 GN21-X2",
@@ -3624,7 +3749,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD107 GN21-X4": {
+  {
+    "id": "nvidia-geforce-rtx-4060-mobile-laptop",
     "model_name": "GeForce RTX 4060 Mobile/ Laptop",
     "vendor": "NVIDIA",
     "code_name": "AD107 GN21-X4",
@@ -3653,7 +3779,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD106 GN21-X6": {
+  {
+    "id": "nvidia-geforce-rtx-4070-mobile-laptop",
     "model_name": "GeForce RTX 4070 Mobile/ Laptop",
     "vendor": "NVIDIA",
     "code_name": "AD106 GN21-X6",
@@ -3682,7 +3809,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD104 GN21-X9": {
+  {
+    "id": "nvidia-geforce-rtx-4080-mobile-laptop",
     "model_name": "GeForce RTX 4080 Mobile/ Laptop",
     "vendor": "NVIDIA",
     "code_name": "AD104 GN21-X9",
@@ -3711,7 +3839,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_AD103 GN21-X11": {
+  {
+    "id": "nvidia-geforce-rtx-4090-mobile-laptop",
     "model_name": "GeForce RTX 4090 Mobile/ Laptop",
     "vendor": "NVIDIA",
     "code_name": "AD103 GN21-X11",
@@ -3740,7 +3869,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_nan": {
+  {
+    "id": "nvidia-geforce-mx110-maxwell",
     "model_name": "GeForce MX110 (Maxwell)",
     "vendor": "NVIDIA",
     "code_name": "GM108 (N16V-GMR1-A1)",
@@ -3769,7 +3899,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_nan_2": {
+  {
+    "id": "nvidia-geforce-mx130-maxwell",
     "model_name": "GeForce MX130 (Maxwell)",
     "vendor": "NVIDIA",
     "code_name": "GM108 (N16S-GTR-A1)",
@@ -3798,7 +3929,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_nan_3": {
+  {
+    "id": "nvidia-geforce-mx150-pascal",
     "model_name": "GeForce MX150 (Pascal)",
     "vendor": "NVIDIA",
     "code_name": "GP108 (N17S-LG-A1)",
@@ -3827,7 +3959,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_nan_4": {
+  {
+    "id": "nvidia-geforce-mx150-pascal-2",
     "model_name": "GeForce MX150 (Pascal)",
     "vendor": "NVIDIA",
     "code_name": "GP108-650-A1 (N17S-G1-A1)",
@@ -3856,7 +3989,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_nan_5": {
+  {
+    "id": "nvidia-geforce-mx230-pascal",
     "model_name": "GeForce MX230 (Pascal)",
     "vendor": "NVIDIA",
     "code_name": "GP108 (N17S-G0-A1)",
@@ -3885,7 +4019,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_nan_6": {
+  {
+    "id": "nvidia-geforce-mx250-pascal",
     "model_name": "GeForce MX250 (Pascal)",
     "vendor": "NVIDIA",
     "code_name": "GP108 (N17S-LG-A1)",
@@ -3914,7 +4049,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_nan_7": {
+  {
+    "id": "nvidia-geforce-mx250-pascal-2",
     "model_name": "GeForce MX250 (Pascal)",
     "vendor": "NVIDIA",
     "code_name": "GP108 (N17S-G2-A1)",
@@ -3943,7 +4079,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_nan_8": {
+  {
+    "id": "nvidia-geforce-mx330-pascal",
     "model_name": "GeForce MX330 (Pascal)",
     "vendor": "NVIDIA",
     "code_name": "GP108-655-A1 (N17S-LP-A1) (N17S-G3-A1)",
@@ -3972,7 +4109,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_nan_9": {
+  {
+    "id": "nvidia-geforce-mx350-pascal",
     "model_name": "GeForce MX350 (Pascal)",
     "vendor": "NVIDIA",
     "code_name": "GP107-670-A1 (N17S-LP-A1) (N17S-G5-A1)",
@@ -4001,7 +4139,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_nan_10": {
+  {
+    "id": "nvidia-geforce-mx450-turing",
     "model_name": "GeForce MX450 (Turing)",
     "vendor": "NVIDIA",
     "code_name": "TU117 (N18S-LP-A1) (N18S-G5-A1)",
@@ -4030,7 +4169,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_nan_11": {
+  {
+    "id": "nvidia-geforce-mx450-turing-2",
     "model_name": "GeForce MX450 (Turing)",
     "vendor": "NVIDIA",
     "code_name": "TU117 (N18S-LP-A1) (N18S-G5-A1)",
@@ -4059,7 +4199,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "NVIDIA_GK107": {
+  {
+    "id": "nvidia-quadro-k420",
     "model_name": "Quadro K420",
     "vendor": "NVIDIA",
     "code_name": "GK107",
@@ -4088,7 +4229,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "3.0"
   },
-  "NVIDIA_GM107-850": {
+  {
+    "id": "nvidia-quadro-k620",
     "model_name": "Quadro K620",
     "vendor": "NVIDIA",
     "code_name": "GM107-850",
@@ -4117,7 +4259,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "5.0"
   },
-  "NVIDIA_GM107-860": {
+  {
+    "id": "nvidia-quadro-k1200",
     "model_name": "Quadro K1200",
     "vendor": "NVIDIA",
     "code_name": "GM107-860",
@@ -4146,7 +4289,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "5.0"
   },
-  "NVIDIA_GM107-875-A2": {
+  {
+    "id": "nvidia-quadro-k2200",
     "model_name": "Quadro K2200",
     "vendor": "NVIDIA",
     "code_name": "GM107-875-A2",
@@ -4175,7 +4319,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "5.0"
   },
-  "NVIDIA_GK104": {
+  {
+    "id": "nvidia-quadro-k4200",
     "model_name": "Quadro K4200",
     "vendor": "NVIDIA",
     "code_name": "GK104",
@@ -4204,7 +4349,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "3.0"
   },
-  "NVIDIA_GK110B": {
+  {
+    "id": "nvidia-quadro-k5200",
     "model_name": "Quadro K5200",
     "vendor": "NVIDIA",
     "code_name": "GK110B",
@@ -4233,7 +4379,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "3.5"
   },
-  "NVIDIA_GM206-875-A1": {
+  {
+    "id": "nvidia-quadro-m2000",
     "model_name": "Quadro M2000",
     "vendor": "NVIDIA",
     "code_name": "GM206-875-A1",
@@ -4262,7 +4409,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "5.2"
   },
-  "NVIDIA_GM204-850-A1": {
+  {
+    "id": "nvidia-quadro-m4000",
     "model_name": "Quadro M4000",
     "vendor": "NVIDIA",
     "code_name": "GM204-850-A1",
@@ -4291,7 +4439,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "5.2"
   },
-  "NVIDIA_GM204-875-A1": {
+  {
+    "id": "nvidia-quadro-m5000",
     "model_name": "Quadro M5000",
     "vendor": "NVIDIA",
     "code_name": "GM204-875-A1",
@@ -4320,7 +4469,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "5.2"
   },
-  "NVIDIA_GM200GL GM200-880-A1": {
+  {
+    "id": "nvidia-quadro-m6000",
     "model_name": "Quadro M6000",
     "vendor": "NVIDIA",
     "code_name": "GM200GL GM200-880-A1",
@@ -4349,7 +4499,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "5.2"
   },
-  "NVIDIA_GM108_4": {
+  {
+    "id": "nvidia-quadro-m500m",
     "model_name": "Quadro M500M",
     "vendor": "NVIDIA",
     "code_name": "GM108",
@@ -4378,7 +4529,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "5.0"
   },
-  "NVIDIA_GM107_5": {
+  {
+    "id": "nvidia-quadro-m600m",
     "model_name": "Quadro M600M",
     "vendor": "NVIDIA",
     "code_name": "GM107",
@@ -4407,7 +4559,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "5.0"
   },
-  "NVIDIA_GM107_6": {
+  {
+    "id": "nvidia-quadro-m1000m",
     "model_name": "Quadro M1000M",
     "vendor": "NVIDIA",
     "code_name": "GM107",
@@ -4436,7 +4589,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "5.0"
   },
-  "NVIDIA_GM107_7": {
+  {
+    "id": "nvidia-quadro-m2000m",
     "model_name": "Quadro M2000M",
     "vendor": "NVIDIA",
     "code_name": "GM107",
@@ -4465,7 +4619,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "5.0"
   },
-  "NVIDIA_GM204_5": {
+  {
+    "id": "nvidia-quadro-m3000m",
     "model_name": "Quadro M3000M",
     "vendor": "NVIDIA",
     "code_name": "GM204",
@@ -4494,7 +4649,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "5.2"
   },
-  "NVIDIA_GM204_6": {
+  {
+    "id": "nvidia-quadro-m4000m",
     "model_name": "Quadro M4000M",
     "vendor": "NVIDIA",
     "code_name": "GM204",
@@ -4523,7 +4679,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "5.2"
   },
-  "NVIDIA_GM204_7": {
+  {
+    "id": "nvidia-quadro-m5000m",
     "model_name": "Quadro M5000M",
     "vendor": "NVIDIA",
     "code_name": "GM204",
@@ -4552,7 +4709,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "5.2"
   },
-  "NVIDIA_GM108_5": {
+  {
+    "id": "nvidia-quadro-m520-mobile",
     "model_name": "Quadro M520 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GM108",
@@ -4581,7 +4739,8 @@
     "vulkan_version": null,
     "cuda_version": "5.0"
   },
-  "NVIDIA_GM107_8": {
+  {
+    "id": "nvidia-quadro-m620-mobile",
     "model_name": "Quadro M620 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GM107",
@@ -4610,7 +4769,8 @@
     "vulkan_version": null,
     "cuda_version": "5.0"
   },
-  "NVIDIA_GM107_9": {
+  {
+    "id": "nvidia-quadro-m1200-mobile",
     "model_name": "Quadro M1200 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GM107",
@@ -4639,7 +4799,8 @@
     "vulkan_version": null,
     "cuda_version": "5.0"
   },
-  "NVIDIA_GM206": {
+  {
+    "id": "nvidia-quadro-m2200-mobile",
     "model_name": "Quadro M2200 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GM206",
@@ -4668,7 +4829,8 @@
     "vulkan_version": null,
     "cuda_version": "5.2"
   },
-  "NVIDIA_GP107-825": {
+  {
+    "id": "nvidia-quadro-p400",
     "model_name": "Quadro P400",
     "vendor": "NVIDIA",
     "code_name": "GP107-825",
@@ -4697,7 +4859,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP107-850": {
+  {
+    "id": "nvidia-quadro-p600",
     "model_name": "Quadro P600",
     "vendor": "NVIDIA",
     "code_name": "GP107-850",
@@ -4726,7 +4889,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP107-855": {
+  {
+    "id": "nvidia-quadro-p620",
     "model_name": "Quadro P620",
     "vendor": "NVIDIA",
     "code_name": "GP107-855",
@@ -4755,7 +4919,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP107-860": {
+  {
+    "id": "nvidia-quadro-p1000",
     "model_name": "Quadro P1000",
     "vendor": "NVIDIA",
     "code_name": "GP107-860",
@@ -4784,7 +4949,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP106-875": {
+  {
+    "id": "nvidia-quadro-p2000",
     "model_name": "Quadro P2000",
     "vendor": "NVIDIA",
     "code_name": "GP106-875",
@@ -4813,7 +4979,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP106-880-K1-A1": {
+  {
+    "id": "nvidia-quadro-p2200",
     "model_name": "Quadro P2200",
     "vendor": "NVIDIA",
     "code_name": "GP106-880-K1-A1",
@@ -4842,7 +5009,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP104-850-A1": {
+  {
+    "id": "nvidia-quadro-p4000",
     "model_name": "Quadro P4000",
     "vendor": "NVIDIA",
     "code_name": "GP104-850-A1",
@@ -4871,7 +5039,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP104-875-A1": {
+  {
+    "id": "nvidia-quadro-p5000",
     "model_name": "Quadro P5000",
     "vendor": "NVIDIA",
     "code_name": "GP104-875-A1",
@@ -4900,7 +5069,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP102-875-A1": {
+  {
+    "id": "nvidia-quadro-p6000",
     "model_name": "Quadro P6000",
     "vendor": "NVIDIA",
     "code_name": "GP102-875-A1",
@@ -4929,7 +5099,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP100-876-A1": {
+  {
+    "id": "nvidia-quadro-gp100",
     "model_name": "Quadro GP100",
     "vendor": "NVIDIA",
     "code_name": "GP100-876-A1",
@@ -4958,7 +5129,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "6.0"
   },
-  "NVIDIA_GP108": {
+  {
+    "id": "nvidia-quadro-p500-mobile",
     "model_name": "Quadro P500 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GP108",
@@ -4987,7 +5159,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP107": {
+  {
+    "id": "nvidia-quadro-p600-mobile",
     "model_name": "Quadro P600 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GP107",
@@ -5016,7 +5189,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP107(N18P-Q1-A1)": {
+  {
+    "id": "nvidia-quadro-p1000-mobile",
     "model_name": "Quadro P1000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GP107(N18P-Q1-A1)",
@@ -5045,7 +5219,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP107(N18P-Q3-A1)": {
+  {
+    "id": "nvidia-quadro-p2000-mobile",
     "model_name": "Quadro P2000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GP107(N18P-Q3-A1)",
@@ -5074,7 +5249,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP106_2": {
+  {
+    "id": "nvidia-quadro-p3000-mobile",
     "model_name": "Quadro P3000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GP106",
@@ -5103,7 +5279,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP104": {
+  {
+    "id": "nvidia-quadro-p4000-mobile",
     "model_name": "Quadro P4000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GP104",
@@ -5132,7 +5309,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP104_2": {
+  {
+    "id": "nvidia-quadro-p4000-max-q",
     "model_name": "Quadro P4000 Max-Q",
     "vendor": "NVIDIA",
     "code_name": "GP104",
@@ -5161,7 +5339,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP104_3": {
+  {
+    "id": "nvidia-quadro-p5000-mobile",
     "model_name": "Quadro P5000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GP104",
@@ -5190,7 +5369,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP104_4": {
+  {
+    "id": "nvidia-quadro-p3200-mobile",
     "model_name": "Quadro P3200 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GP104",
@@ -5219,7 +5399,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP104_5": {
+  {
+    "id": "nvidia-quadro-p4200-mobile",
     "model_name": "Quadro P4200 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GP104",
@@ -5248,7 +5429,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP104_6": {
+  {
+    "id": "nvidia-quadro-p4200-max-q",
     "model_name": "Quadro P4200 Max-Q",
     "vendor": "NVIDIA",
     "code_name": "GP104",
@@ -5277,7 +5459,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP104_7": {
+  {
+    "id": "nvidia-quadro-p5200-mobile",
     "model_name": "Quadro P5200 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GP104",
@@ -5306,7 +5489,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_GP104_8": {
+  {
+    "id": "nvidia-quadro-p5200-max-q",
     "model_name": "Quadro P5200 Max-Q",
     "vendor": "NVIDIA",
     "code_name": "GP104",
@@ -5335,7 +5519,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_TU104-850-A1": {
+  {
+    "id": "nvidia-quadro-rtx-4000",
     "model_name": "Quadro RTX 4000",
     "vendor": "NVIDIA",
     "code_name": "TU104-850-A1",
@@ -5364,7 +5549,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU104-875-A1": {
+  {
+    "id": "nvidia-quadro-rtx-5000",
     "model_name": "Quadro RTX 5000",
     "vendor": "NVIDIA",
     "code_name": "TU104-875-A1",
@@ -5393,7 +5579,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU102-875-A1": {
+  {
+    "id": "nvidia-quadro-rtx-6000",
     "model_name": "Quadro RTX 6000",
     "vendor": "NVIDIA",
     "code_name": "TU102-875-A1",
@@ -5422,7 +5609,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU102-875-A1_2": {
+  {
+    "id": "nvidia-quadro-rtx-8000",
     "model_name": "Quadro RTX 8000",
     "vendor": "NVIDIA",
     "code_name": "TU102-875-A1",
@@ -5451,7 +5639,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU117_2": {
+  {
+    "id": "nvidia-nvidia-t400",
     "model_name": "NVIDIA T400",
     "vendor": "NVIDIA",
     "code_name": "TU117",
@@ -5480,7 +5669,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU117_3": {
+  {
+    "id": "nvidia-nvidia-t1000",
     "model_name": "NVIDIA T1000",
     "vendor": "NVIDIA",
     "code_name": "TU117",
@@ -5509,7 +5699,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU117 (N19P-Q1-A1)": {
+  {
+    "id": "nvidia-quadro-t500-mobile",
     "model_name": "Quadro T500 Mobile",
     "vendor": "NVIDIA",
     "code_name": "TU117 (N19P-Q1-A1)",
@@ -5538,7 +5729,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU117 (N19P-Q1-A1)_2": {
+  {
+    "id": "nvidia-quadro-t500-mobile-2",
     "model_name": "Quadro T500 Mobile",
     "vendor": "NVIDIA",
     "code_name": "TU117 (N19P-Q1-A1)",
@@ -5567,7 +5759,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU117_4": {
+  {
+    "id": "nvidia-quadro-t600-mobile",
     "model_name": "Quadro T600 Mobile",
     "vendor": "NVIDIA",
     "code_name": "TU117",
@@ -5596,7 +5789,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU117 (N19P-Q1-A1)_3": {
+  {
+    "id": "nvidia-quadro-t1000-mobile",
     "model_name": "Quadro T1000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "TU117 (N19P-Q1-A1)",
@@ -5625,7 +5819,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU117_5": {
+  {
+    "id": "nvidia-quadro-t1200-mobile",
     "model_name": "Quadro T1200 Mobile",
     "vendor": "NVIDIA",
     "code_name": "TU117",
@@ -5654,7 +5849,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU117 (N19P-Q3-A1)": {
+  {
+    "id": "nvidia-quadro-t2000-mobile",
     "model_name": "Quadro T2000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "TU117 (N19P-Q3-A1)",
@@ -5683,7 +5879,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU117_6": {
+  {
+    "id": "nvidia-quadro-t2000-max-q",
     "model_name": "Quadro T2000 Max-Q",
     "vendor": "NVIDIA",
     "code_name": "TU117",
@@ -5712,7 +5909,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU106 (N19E-Q1-KA-K1)": {
+  {
+    "id": "nvidia-quadro-rtx-3000-mobile",
     "model_name": "Quadro RTX 3000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "TU106 (N19E-Q1-KA-K1)",
@@ -5741,7 +5939,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU106_5": {
+  {
+    "id": "nvidia-quadro-rtx-3000-max-q",
     "model_name": "Quadro RTX 3000 Max-Q",
     "vendor": "NVIDIA",
     "code_name": "TU106",
@@ -5770,7 +5969,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU104 (N19E-Q3-A1)": {
+  {
+    "id": "nvidia-quadro-rtx-4000-mobile",
     "model_name": "Quadro RTX 4000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "TU104 (N19E-Q3-A1)",
@@ -5799,7 +5999,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU104_7": {
+  {
+    "id": "nvidia-quadro-rtx-4000-max-q",
     "model_name": "Quadro RTX 4000 Max-Q",
     "vendor": "NVIDIA",
     "code_name": "TU104",
@@ -5828,7 +6029,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU104 (N19E-Q5-A1)": {
+  {
+    "id": "nvidia-quadro-rtx-5000-mobile",
     "model_name": "Quadro RTX 5000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "TU104 (N19E-Q5-A1)",
@@ -5857,7 +6059,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU104_8": {
+  {
+    "id": "nvidia-quadro-rtx-5000-max-q",
     "model_name": "Quadro RTX 5000 Max-Q",
     "vendor": "NVIDIA",
     "code_name": "TU104",
@@ -5886,7 +6089,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "7.5"
   },
-  "NVIDIA_TU102": {
+  {
+    "id": "nvidia-quadro-rtx-6000-mobile",
     "model_name": "Quadro RTX 6000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "TU102",
@@ -5915,7 +6119,8 @@
     "vulkan_version": "1.2",
     "cuda_version": "7.5"
   },
-  "NVIDIA_GA107_3": {
+  {
+    "id": "nvidia-rtx-a400",
     "model_name": "RTX A400",
     "vendor": "NVIDIA",
     "code_name": "GA107",
@@ -5944,7 +6149,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA107_4": {
+  {
+    "id": "nvidia-rtx-a1000",
     "model_name": "RTX A1000",
     "vendor": "NVIDIA",
     "code_name": "GA107",
@@ -5973,7 +6179,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA106-850-A1": {
+  {
+    "id": "nvidia-rtx-a2000",
     "model_name": "RTX A2000",
     "vendor": "NVIDIA",
     "code_name": "GA106-850-A1",
@@ -6002,7 +6209,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA106-850-A1_2": {
+  {
+    "id": "nvidia-rtx-a2000-2",
     "model_name": "RTX A2000",
     "vendor": "NVIDIA",
     "code_name": "GA106-850-A1",
@@ -6031,7 +6239,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA104-875-A1": {
+  {
+    "id": "nvidia-rtx-a4000",
     "model_name": "RTX A4000",
     "vendor": "NVIDIA",
     "code_name": "GA104-875-A1",
@@ -6060,7 +6269,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA102-825-KD-A1": {
+  {
+    "id": "nvidia-rtx-a4500",
     "model_name": "RTX A4500",
     "vendor": "NVIDIA",
     "code_name": "GA102-825-KD-A1",
@@ -6089,7 +6299,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA102-850-A1": {
+  {
+    "id": "nvidia-rtx-a5000",
     "model_name": "RTX A5000",
     "vendor": "NVIDIA",
     "code_name": "GA102-850-A1",
@@ -6118,7 +6329,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA102-860-A1": {
+  {
+    "id": "nvidia-rtx-a5500",
     "model_name": "RTX A5500",
     "vendor": "NVIDIA",
     "code_name": "GA102-860-A1",
@@ -6147,7 +6359,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA102-875-A1": {
+  {
+    "id": "nvidia-rtx-a6000",
     "model_name": "RTX A6000",
     "vendor": "NVIDIA",
     "code_name": "GA102-875-A1",
@@ -6176,7 +6389,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA107S": {
+  {
+    "id": "nvidia-rtx-a500-mobile",
     "model_name": "RTX A500 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GA107S",
@@ -6205,7 +6419,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA107_5": {
+  {
+    "id": "nvidia-rtx-a1000-mobile",
     "model_name": "RTX A1000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GA107",
@@ -6234,7 +6449,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA107_6": {
+  {
+    "id": "nvidia-rtx-a1000-mobile-6-gb",
     "model_name": "RTX A1000 Mobile 6 GB",
     "vendor": "NVIDIA",
     "code_name": "GA107",
@@ -6263,7 +6479,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA106_2": {
+  {
+    "id": "nvidia-rtx-a2000-mobile",
     "model_name": "RTX A2000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GA106",
@@ -6292,7 +6509,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA104-A1": {
+  {
+    "id": "nvidia-rtx-a3000-mobile",
     "model_name": "RTX A3000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GA104-A1",
@@ -6321,7 +6539,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA104-A1_2": {
+  {
+    "id": "nvidia-rtx-a3000-mobile-12-gb",
     "model_name": "RTX A3000 Mobile 12 GB",
     "vendor": "NVIDIA",
     "code_name": "GA104-A1",
@@ -6350,7 +6569,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA104-A1_3": {
+  {
+    "id": "nvidia-rtx-a4000-mobile",
     "model_name": "RTX A4000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GA104-A1",
@@ -6379,7 +6599,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA104-A1_4": {
+  {
+    "id": "nvidia-rtx-a4500-mobile",
     "model_name": "RTX A4500 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GA104-A1",
@@ -6408,7 +6629,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA104-A1_5": {
+  {
+    "id": "nvidia-rtx-a5000-mobile",
     "model_name": "RTX A5000 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GA104-A1",
@@ -6437,7 +6659,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_GA103-A1": {
+  {
+    "id": "nvidia-rtx-a5500-mobile",
     "model_name": "RTX A5500 Mobile",
     "vendor": "NVIDIA",
     "code_name": "GA103-A1",
@@ -6466,7 +6689,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.6"
   },
-  "NVIDIA_AD107-875-A1": {
+  {
+    "id": "nvidia-rtx-2000-ada-generation",
     "model_name": "RTX 2000 Ada Generation",
     "vendor": "NVIDIA",
     "code_name": "AD107-875-A1",
@@ -6495,7 +6719,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.9"
   },
-  "NVIDIA_AD104": {
+  {
+    "id": "nvidia-rtx-4000-sff-ada-generation",
     "model_name": "RTX 4000 SFF Ada Generation",
     "vendor": "NVIDIA",
     "code_name": "AD104",
@@ -6524,7 +6749,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.9"
   },
-  "NVIDIA_AD104_2": {
+  {
+    "id": "nvidia-rtx-4000-ada-generation",
     "model_name": "RTX 4000 Ada Generation",
     "vendor": "NVIDIA",
     "code_name": "AD104",
@@ -6553,7 +6779,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.9"
   },
-  "NVIDIA_AD103": {
+  {
+    "id": "nvidia-rtx-4500-ada-generation",
     "model_name": "RTX 4500 Ada Generation",
     "vendor": "NVIDIA",
     "code_name": "AD103",
@@ -6582,7 +6809,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.9"
   },
-  "NVIDIA_AD102-850- KAB-A1": {
+  {
+    "id": "nvidia-rtx-5000-ada-generation",
     "model_name": "RTX 5000 Ada Generation",
     "vendor": "NVIDIA",
     "code_name": "AD102-850- KAB-A1",
@@ -6611,7 +6839,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.9"
   },
-  "NVIDIA_AD102": {
+  {
+    "id": "nvidia-rtx-5880-ada-generation",
     "model_name": "RTX 5880 Ada Generation",
     "vendor": "NVIDIA",
     "code_name": "AD102",
@@ -6640,7 +6869,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.9"
   },
-  "NVIDIA_AD102-870-A1": {
+  {
+    "id": "nvidia-rtx-6000-ada-generation",
     "model_name": "RTX 6000 Ada Generation",
     "vendor": "NVIDIA",
     "code_name": "AD102-870-A1",
@@ -6669,7 +6899,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.9"
   },
-  "NVIDIA_AD107": {
+  {
+    "id": "nvidia-rtx-500-mobile-ada-generation",
     "model_name": "RTX 500 Mobile Ada Generation",
     "vendor": "NVIDIA",
     "code_name": "AD107",
@@ -6698,7 +6929,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.9"
   },
-  "NVIDIA_AD107_2": {
+  {
+    "id": "nvidia-rtx-1000-mobile-ada-generation",
     "model_name": "RTX 1000 Mobile Ada Generation",
     "vendor": "NVIDIA",
     "code_name": "AD107",
@@ -6727,7 +6959,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.9"
   },
-  "NVIDIA_AD107_3": {
+  {
+    "id": "nvidia-rtx-2000-mobile-ada-generation",
     "model_name": "RTX 2000 Mobile Ada Generation",
     "vendor": "NVIDIA",
     "code_name": "AD107",
@@ -6756,7 +6989,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.9"
   },
-  "NVIDIA_AD106": {
+  {
+    "id": "nvidia-rtx-3000-mobile-ada-generation",
     "model_name": "RTX 3000 Mobile Ada Generation",
     "vendor": "NVIDIA",
     "code_name": "AD106",
@@ -6785,7 +7019,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.9"
   },
-  "NVIDIA_AD104_3": {
+  {
+    "id": "nvidia-rtx-3500-mobile-ada-generation",
     "model_name": "RTX 3500 Mobile Ada Generation",
     "vendor": "NVIDIA",
     "code_name": "AD104",
@@ -6814,7 +7049,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.9"
   },
-  "NVIDIA_AD104_4": {
+  {
+    "id": "nvidia-rtx-4000-mobile-ada-generation",
     "model_name": "RTX 4000 Mobile Ada Generation",
     "vendor": "NVIDIA",
     "code_name": "AD104",
@@ -6843,7 +7079,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.9"
   },
-  "NVIDIA_AD103_2": {
+  {
+    "id": "nvidia-rtx-5000-mobile-ada-generation",
     "model_name": "RTX 5000 Mobile Ada Generation",
     "vendor": "NVIDIA",
     "code_name": "AD103",
@@ -6872,7 +7109,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "8.9"
   },
-  "NVIDIA_GB203": {
+  {
+    "id": "nvidia-rtx-pro-4000-blackwell",
     "model_name": "RTX PRO 4000 Blackwell",
     "vendor": "NVIDIA",
     "code_name": "GB203",
@@ -6901,7 +7139,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "11.6"
   },
-  "NVIDIA_GB203_2": {
+  {
+    "id": "nvidia-rtx-pro-4500-blackwell",
     "model_name": "RTX PRO 4500 Blackwell",
     "vendor": "NVIDIA",
     "code_name": "GB203",
@@ -6930,7 +7169,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "11.6"
   },
-  "NVIDIA_GB202": {
+  {
+    "id": "nvidia-rtx-pro-5000-blackwell",
     "model_name": "RTX PRO 5000 Blackwell",
     "vendor": "NVIDIA",
     "code_name": "GB202",
@@ -6959,7 +7199,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "11.6"
   },
-  "NVIDIA_GB202_2": {
+  {
+    "id": "nvidia-rtx-pro-6000-blackwell-max-q-workstation-edition",
     "model_name": "RTX PRO 6000 Blackwell Max-Q Workstation Edition",
     "vendor": "NVIDIA",
     "code_name": "GB202",
@@ -6988,7 +7229,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "11.6"
   },
-  "NVIDIA_GB202_3": {
+  {
+    "id": "nvidia-rtx-pro-6000-blackwell-workstation-edition",
     "model_name": "RTX PRO 6000 Blackwell Workstation Edition",
     "vendor": "NVIDIA",
     "code_name": "GB202",
@@ -7017,7 +7259,8 @@
     "vulkan_version": "1.3",
     "cuda_version": "11.6"
   },
-  "NVIDIA_nan_12": {
+  {
+    "id": "nvidia-k80-gpu-accelerator",
     "model_name": "K80 GPU accelerator",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7046,7 +7289,8 @@
     "vulkan_version": null,
     "cuda_version": "3.7"
   },
-  "NVIDIA_nan_13": {
+  {
+    "id": "nvidia-m4-gpu-accelerator",
     "model_name": "M4 GPU accelerator",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7075,7 +7319,8 @@
     "vulkan_version": null,
     "cuda_version": "5.2"
   },
-  "NVIDIA_nan_14": {
+  {
+    "id": "nvidia-m6-gpu-accelerator",
     "model_name": "M6 GPU accelerator",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7104,7 +7349,8 @@
     "vulkan_version": null,
     "cuda_version": "5.2"
   },
-  "NVIDIA_nan_15": {
+  {
+    "id": "nvidia-m10-gpu-accelerator",
     "model_name": "M10 GPU accelerator",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7133,7 +7379,8 @@
     "vulkan_version": null,
     "cuda_version": "5.2"
   },
-  "NVIDIA_nan_16": {
+  {
+    "id": "nvidia-m40-gpu-accelerator",
     "model_name": "M40 GPU accelerator",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7162,7 +7409,8 @@
     "vulkan_version": null,
     "cuda_version": "5.2"
   },
-  "NVIDIA_nan_17": {
+  {
+    "id": "nvidia-m60-gpu-accelerator",
     "model_name": "M60 GPU accelerator",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7191,7 +7439,8 @@
     "vulkan_version": null,
     "cuda_version": "5.2"
   },
-  "NVIDIA_nan_18": {
+  {
+    "id": "nvidia-p4-gpu-accelerator",
     "model_name": "P4 GPU accelerator",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7220,7 +7469,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_nan_19": {
+  {
+    "id": "nvidia-p6-gpu-accelerator",
     "model_name": "P6 GPU accelerator",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7249,7 +7499,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_nan_20": {
+  {
+    "id": "nvidia-p40-gpu-accelerator",
     "model_name": "P40 GPU accelerator",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7278,7 +7529,8 @@
     "vulkan_version": null,
     "cuda_version": "6.1"
   },
-  "NVIDIA_nan_21": {
+  {
+    "id": "nvidia-p100-gpu-accelerator-mezzanine",
     "model_name": "P100 GPU accelerator (mezzanine)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7307,7 +7559,8 @@
     "vulkan_version": null,
     "cuda_version": "6.0"
   },
-  "NVIDIA_nan_22": {
+  {
+    "id": "nvidia-p100-gpu-accelerator-16-gb-card",
     "model_name": "P100 GPU accelerator (16 GB card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7336,7 +7589,8 @@
     "vulkan_version": null,
     "cuda_version": "6.0"
   },
-  "NVIDIA_nan_23": {
+  {
+    "id": "nvidia-p100-gpu-accelerator-12-gb-card",
     "model_name": "P100 GPU accelerator (12 GB card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7365,7 +7619,8 @@
     "vulkan_version": null,
     "cuda_version": "6.0"
   },
-  "NVIDIA_nan_24": {
+  {
+    "id": "nvidia-v100-gpu-accelerator-mezzanine",
     "model_name": "V100 GPU accelerator (mezzanine)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7394,7 +7649,8 @@
     "vulkan_version": null,
     "cuda_version": "7.0"
   },
-  "NVIDIA_nan_25": {
+  {
+    "id": "nvidia-v100-gpu-accelerator-pcie-card",
     "model_name": "V100 GPU accelerator (PCIe card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7423,7 +7679,8 @@
     "vulkan_version": null,
     "cuda_version": "7.0"
   },
-  "NVIDIA_nan_26": {
+  {
+    "id": "nvidia-v100-gpu-accelerator-pcie-fhhl-card",
     "model_name": "V100 GPU accelerator (PCIe FHHL card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7452,7 +7709,8 @@
     "vulkan_version": null,
     "cuda_version": "7.0"
   },
-  "NVIDIA_nan_27": {
+  {
+    "id": "nvidia-t4-gpu-accelerator-pcie-card",
     "model_name": "T4 GPU accelerator (PCIe card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7481,7 +7739,8 @@
     "vulkan_version": null,
     "cuda_version": "7.5"
   },
-  "NVIDIA_nan_28": {
+  {
+    "id": "nvidia-a2-gpu-accelerator-pcie-card",
     "model_name": "A2 GPU accelerator (PCIe card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7510,7 +7769,8 @@
     "vulkan_version": null,
     "cuda_version": "8.6"
   },
-  "NVIDIA_nan_29": {
+  {
+    "id": "nvidia-a10-gpu-accelerator-pcie-card",
     "model_name": "A10 GPU accelerator (PCIe card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7539,7 +7799,8 @@
     "vulkan_version": null,
     "cuda_version": "8.6"
   },
-  "NVIDIA_nan_30": {
+  {
+    "id": "nvidia-a16-gpu-accelerator-pcie-card",
     "model_name": "A16 GPU accelerator (PCIe card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7568,7 +7829,8 @@
     "vulkan_version": null,
     "cuda_version": "8.6"
   },
-  "NVIDIA_nan_31": {
+  {
+    "id": "nvidia-a30-gpu-accelerator-pcie-card",
     "model_name": "A30 GPU accelerator (PCIe card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7597,7 +7859,8 @@
     "vulkan_version": null,
     "cuda_version": "8.0"
   },
-  "NVIDIA_nan_32": {
+  {
+    "id": "nvidia-a40-gpu-accelerator-pcie-card",
     "model_name": "A40 GPU accelerator (PCIe card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7626,7 +7889,8 @@
     "vulkan_version": null,
     "cuda_version": "8.6"
   },
-  "NVIDIA_nan_33": {
+  {
+    "id": "nvidia-a100-gpu-accelerator-pcie-card",
     "model_name": "A100 GPU accelerator (PCIe card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7655,7 +7919,8 @@
     "vulkan_version": null,
     "cuda_version": "8.0"
   },
-  "NVIDIA_nan_34": {
+  {
+    "id": "nvidia-h100-gpu-accelerator-pcie-card",
     "model_name": "H100 GPU accelerator (PCIe card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7684,7 +7949,8 @@
     "vulkan_version": null,
     "cuda_version": "9.0"
   },
-  "NVIDIA_nan_35": {
+  {
+    "id": "nvidia-h100-gpu-accelerator-sxm-card",
     "model_name": "H100 GPU accelerator (SXM card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7713,7 +7979,8 @@
     "vulkan_version": null,
     "cuda_version": "9.0"
   },
-  "NVIDIA_nan_36": {
+  {
+    "id": "nvidia-h200-gpu-accelerator-pcie-card",
     "model_name": "H200 GPU accelerator (PCIe card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7742,7 +8009,8 @@
     "vulkan_version": null,
     "cuda_version": "9.0"
   },
-  "NVIDIA_nan_37": {
+  {
+    "id": "nvidia-h200-gpu-accelerator-sxm-card",
     "model_name": "H200 GPU accelerator (SXM card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7771,7 +8039,8 @@
     "vulkan_version": null,
     "cuda_version": "9.0"
   },
-  "NVIDIA_nan_38": {
+  {
+    "id": "nvidia-h800-gpu-accelerator-sxm-card",
     "model_name": "H800 GPU accelerator (SXM card)",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7800,7 +8069,8 @@
     "vulkan_version": null,
     "cuda_version": "9.0"
   },
-  "NVIDIA_nan_39": {
+  {
+    "id": "nvidia-l40-gpu-accelerator",
     "model_name": "L40 GPU accelerator",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7829,7 +8099,8 @@
     "vulkan_version": null,
     "cuda_version": "8.9"
   },
-  "NVIDIA_nan_40": {
+  {
+    "id": "nvidia-l4-gpu-accelerator",
     "model_name": "L4 GPU accelerator",
     "vendor": "NVIDIA",
     "code_name": null,
@@ -7858,7 +8129,8 @@
     "vulkan_version": null,
     "cuda_version": "8.9"
   },
-  "NVIDIA_GM20B": {
+  {
+    "id": "nvidia-nx-soc-nintendo-switch",
     "model_name": "NX-SoC (Nintendo Switch)",
     "vendor": "NVIDIA",
     "code_name": "GM20B",
@@ -7887,7 +8159,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GM20B_2": {
+  {
+    "id": "nvidia-nx-soc-nintendo-switch-2",
     "model_name": "NX-SoC (Nintendo Switch)",
     "vendor": "NVIDIA",
     "code_name": "GM20B",
@@ -7916,7 +8189,8 @@
     "vulkan_version": "1.3",
     "cuda_version": null
   },
-  "NVIDIA_GA10F (Ampere)": {
+  {
+    "id": "nvidia-drake-nintendo-switch-2",
     "model_name": "Drake (Nintendo Switch 2)",
     "vendor": "NVIDIA",
     "code_name": "GA10F (Ampere)",
@@ -7945,7 +8219,8 @@
     "vulkan_version": "1.4",
     "cuda_version": null
   },
-  "AMD_nan": {
+  {
+    "id": "amd-radeon-r5-230-caicos-pro",
     "model_name": "Radeon R5 230 (Caicos Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -7974,7 +8249,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_2": {
+  {
+    "id": "amd-radeon-r7-250x-cape-verde-xt",
     "model_name": "Radeon R7 250X (Cape Verde XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -8003,7 +8279,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_3": {
+  {
+    "id": "amd-radeon-r7-265-pitcairn-pro",
     "model_name": "Radeon R7 265 (Pitcairn Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8032,7 +8309,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_4": {
+  {
+    "id": "amd-radeon-r9-280-tahiti-pro",
     "model_name": "Radeon R9 280 (Tahiti Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8061,7 +8339,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_5": {
+  {
+    "id": "amd-radeon-r9-285-tonga-pro",
     "model_name": "Radeon R9 285 (Tonga Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8090,7 +8369,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_6": {
+  {
+    "id": "amd-radeon-r9-295x2-vesuvius",
     "model_name": "Radeon R9 295X2 (Vesuvius)",
     "vendor": "AMD",
     "code_name": null,
@@ -8119,7 +8399,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_7": {
+  {
+    "id": "amd-radeon-r5-330-oland-pro",
     "model_name": "Radeon R5 330 (Oland Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8148,7 +8429,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_8": {
+  {
+    "id": "amd-radeon-r5-340-oland-xt",
     "model_name": "Radeon R5 340 (Oland XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -8177,7 +8459,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_9": {
+  {
+    "id": "amd-radeon-r7-340-oland-xt",
     "model_name": "Radeon R7 340 (Oland XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -8206,7 +8489,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_10": {
+  {
+    "id": "amd-radeon-r5-340x-oland-xt",
     "model_name": "Radeon R5 340X (Oland XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -8235,7 +8519,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_11": {
+  {
+    "id": "amd-radeon-r7-350-oland-xt",
     "model_name": "Radeon R7 350 (Oland XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -8264,7 +8549,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_12": {
+  {
+    "id": "amd-radeon-r7-350-cape-verde-xtl",
     "model_name": "Radeon R7 350 (Cape Verde XTL)",
     "vendor": "AMD",
     "code_name": null,
@@ -8293,7 +8579,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_13": {
+  {
+    "id": "amd-radeon-r7-350x-oland-xt",
     "model_name": "Radeon R7 350X (Oland XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -8322,7 +8609,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_14": {
+  {
+    "id": "amd-radeon-r7-360-bonaire-pro",
     "model_name": "Radeon R7 360 (Bonaire Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8351,7 +8639,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_15": {
+  {
+    "id": "amd-radeon-r9-360-bonaire-pro",
     "model_name": "Radeon R9 360 (Bonaire Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8380,7 +8669,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_16": {
+  {
+    "id": "amd-radeon-r7-370-pitcairn-pro",
     "model_name": "Radeon R7 370 (Pitcairn Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8409,7 +8699,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_17": {
+  {
+    "id": "amd-radeon-r9-370-pitcairn-pro",
     "model_name": "Radeon R9 370 (Pitcairn Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8438,7 +8729,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_18": {
+  {
+    "id": "amd-radeon-r9-370x-pitcairn-xt",
     "model_name": "Radeon R9 370X (Pitcairn XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -8467,7 +8759,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_19": {
+  {
+    "id": "amd-radeon-r9-380-tonga-pro",
     "model_name": "Radeon R9 380 (Tonga Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8496,7 +8789,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_20": {
+  {
+    "id": "amd-radeon-r9-380-tonga-pro-2",
     "model_name": "Radeon R9 380 (Tonga Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8525,7 +8819,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_21": {
+  {
+    "id": "amd-radeon-r9-380x-tonga-xt",
     "model_name": "Radeon R9 380X (Tonga XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -8554,7 +8849,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_22": {
+  {
+    "id": "amd-radeon-r9-390-grenada-pro",
     "model_name": "Radeon R9 390 (Grenada Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8583,7 +8879,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_23": {
+  {
+    "id": "amd-radeon-r9-390x-grenada-xt",
     "model_name": "Radeon R9 390X (Grenada XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -8612,7 +8909,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_24": {
+  {
+    "id": "amd-radeon-r9-fury-fiji-pro",
     "model_name": "Radeon R9 Fury (Fiji Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8641,7 +8939,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_25": {
+  {
+    "id": "amd-radeon-r9-nano-fiji-xt",
     "model_name": "Radeon R9 Nano (Fiji XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -8670,7 +8969,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_26": {
+  {
+    "id": "amd-radeon-r9-fury-x-fiji-xt",
     "model_name": "Radeon R9 Fury X (Fiji XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -8699,7 +8999,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_27": {
+  {
+    "id": "amd-radeon-pro-duo-fiji-xt",
     "model_name": "Radeon Pro Duo (Fiji XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -8728,7 +9029,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_28": {
+  {
+    "id": "amd-radeon-r5430-oland-pro",
     "model_name": "Radeon R5430 (Oland Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8757,7 +9059,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_29": {
+  {
+    "id": "amd-radeon-r5435-oland",
     "model_name": "Radeon R5435 (Oland)",
     "vendor": "AMD",
     "code_name": null,
@@ -8786,7 +9089,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_30": {
+  {
+    "id": "amd-radeon-r7430-oland-pro",
     "model_name": "Radeon R7430 (Oland Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8815,7 +9119,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_31": {
+  {
+    "id": "amd-radeon-r7435-oland",
     "model_name": "Radeon R7435 (Oland)",
     "vendor": "AMD",
     "code_name": null,
@@ -8844,7 +9149,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_32": {
+  {
+    "id": "amd-radeon-r7450-cape-verde-pro",
     "model_name": "Radeon R7450 (Cape Verde Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8873,7 +9179,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_33": {
+  {
+    "id": "amd-radeon-rx-455-bonaire-pro",
     "model_name": "Radeon RX 455 (Bonaire Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8902,7 +9209,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_34": {
+  {
+    "id": "amd-radeon-rx-460-baffin",
     "model_name": "Radeon RX 460 (Baffin)",
     "vendor": "AMD",
     "code_name": null,
@@ -8931,7 +9239,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_35": {
+  {
+    "id": "amd-radeon-rx-470d-ellesmere",
     "model_name": "Radeon RX 470D (Ellesmere)",
     "vendor": "AMD",
     "code_name": null,
@@ -8960,7 +9269,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_36": {
+  {
+    "id": "amd-radeon-rx-470-ellesmere-pro",
     "model_name": "Radeon RX 470 (Ellesmere Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -8989,7 +9299,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_37": {
+  {
+    "id": "amd-radeon-rx-480-ellesmere-xt",
     "model_name": "Radeon RX 480 (Ellesmere XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -9018,7 +9329,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_38": {
+  {
+    "id": "amd-radeon-520-banks",
     "model_name": "Radeon 520 (Banks)",
     "vendor": "AMD",
     "code_name": null,
@@ -9047,7 +9359,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_39": {
+  {
+    "id": "amd-radeon-530-weston",
     "model_name": "Radeon 530 (Weston)",
     "vendor": "AMD",
     "code_name": null,
@@ -9076,7 +9389,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_40": {
+  {
+    "id": "amd-radeon-530-weston-2",
     "model_name": "Radeon 530 (Weston)",
     "vendor": "AMD",
     "code_name": null,
@@ -9105,7 +9419,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_41": {
+  {
+    "id": "amd-radeon-rx-540-polaris-12",
     "model_name": "Radeon RX 540 (Polaris 12)",
     "vendor": "AMD",
     "code_name": null,
@@ -9134,7 +9449,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_42": {
+  {
+    "id": "amd-radeon-rx-550-polaris-12",
     "model_name": "Radeon RX 550 (Polaris 12)",
     "vendor": "AMD",
     "code_name": null,
@@ -9163,7 +9479,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_43": {
+  {
+    "id": "amd-radeon-rx-550-640sp-polaris-11",
     "model_name": "Radeon RX 550 640SP (Polaris 11)",
     "vendor": "AMD",
     "code_name": null,
@@ -9192,7 +9509,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_44": {
+  {
+    "id": "amd-radeon-rx-550x-polaris-12",
     "model_name": "Radeon RX 550X (Polaris 12)",
     "vendor": "AMD",
     "code_name": null,
@@ -9221,7 +9539,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_45": {
+  {
+    "id": "amd-radeon-rx-550x-640sp-polaris-11",
     "model_name": "Radeon RX 550X 640SP (Polaris 11)",
     "vendor": "AMD",
     "code_name": null,
@@ -9250,7 +9569,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_46": {
+  {
+    "id": "amd-radeon-rx-560d-polaris-21",
     "model_name": "Radeon RX 560D (Polaris 21)",
     "vendor": "AMD",
     "code_name": null,
@@ -9279,7 +9599,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_47": {
+  {
+    "id": "amd-radeon-rx-560-polaris-21",
     "model_name": "Radeon RX 560 (Polaris 21)",
     "vendor": "AMD",
     "code_name": null,
@@ -9308,7 +9629,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_48": {
+  {
+    "id": "amd-radeon-rx-560-polaris-21-2",
     "model_name": "Radeon RX 560 (Polaris 21)",
     "vendor": "AMD",
     "code_name": null,
@@ -9337,7 +9659,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_49": {
+  {
+    "id": "amd-radeon-rx-560-xt-polaris-10-20",
     "model_name": "Radeon RX 560 XT (Polaris 10/20)",
     "vendor": "AMD",
     "code_name": null,
@@ -9366,7 +9689,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_50": {
+  {
+    "id": "amd-radeon-rx-570-polaris-20",
     "model_name": "Radeon RX 570 (Polaris 20)",
     "vendor": "AMD",
     "code_name": null,
@@ -9395,7 +9719,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_51": {
+  {
+    "id": "amd-radeon-rx-5802048sp-polaris-20",
     "model_name": "Radeon RX 5802048SP (Polaris 20)",
     "vendor": "AMD",
     "code_name": null,
@@ -9424,7 +9749,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_52": {
+  {
+    "id": "amd-radeon-rx-580-polaris-20",
     "model_name": "Radeon RX 580 (Polaris 20)",
     "vendor": "AMD",
     "code_name": null,
@@ -9453,7 +9779,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_53": {
+  {
+    "id": "amd-radeon-rx-590-polaris-30",
     "model_name": "Radeon RX 590 (Polaris 30)",
     "vendor": "AMD",
     "code_name": null,
@@ -9482,7 +9809,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_54": {
+  {
+    "id": "amd-radeon-rx-vega-56-vega-10",
     "model_name": "Radeon RX Vega 56 (Vega 10)",
     "vendor": "AMD",
     "code_name": null,
@@ -9511,7 +9839,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_55": {
+  {
+    "id": "amd-radeon-rx-vega-64-vega-10",
     "model_name": "Radeon RX Vega 64 (Vega 10)",
     "vendor": "AMD",
     "code_name": null,
@@ -9540,7 +9869,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_56": {
+  {
+    "id": "amd-radeon-rx-vega-64-liquid-vega-10",
     "model_name": "Radeon RX Vega 64 Liquid (Vega 10)",
     "vendor": "AMD",
     "code_name": null,
@@ -9569,7 +9899,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_57": {
+  {
+    "id": "amd-radeon-rx-5300-navi-14",
     "model_name": "Radeon RX 5300 (Navi 14)",
     "vendor": "AMD",
     "code_name": null,
@@ -9598,7 +9929,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_58": {
+  {
+    "id": "amd-radeon-rx-5300-xt-navi-14",
     "model_name": "Radeon RX 5300 XT (Navi 14)",
     "vendor": "AMD",
     "code_name": null,
@@ -9627,7 +9959,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_59": {
+  {
+    "id": "amd-radeon-rx-5500-navi-14",
     "model_name": "Radeon RX 5500 (Navi 14)",
     "vendor": "AMD",
     "code_name": null,
@@ -9656,7 +9989,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_60": {
+  {
+    "id": "amd-radeon-rx-5500-xt-navi-14",
     "model_name": "Radeon RX 5500 XT (Navi 14)",
     "vendor": "AMD",
     "code_name": null,
@@ -9685,7 +10019,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_61": {
+  {
+    "id": "amd-radeon-rx-5600-navi-10",
     "model_name": "Radeon RX 5600 (Navi 10)",
     "vendor": "AMD",
     "code_name": null,
@@ -9714,7 +10049,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_62": {
+  {
+    "id": "amd-radeon-rx-5600-xt-navi-10",
     "model_name": "Radeon RX 5600 XT (Navi 10)",
     "vendor": "AMD",
     "code_name": null,
@@ -9743,7 +10079,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_63": {
+  {
+    "id": "amd-radeon-rx-5700-navi-10",
     "model_name": "Radeon RX 5700 (Navi 10)",
     "vendor": "AMD",
     "code_name": null,
@@ -9772,7 +10109,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_64": {
+  {
+    "id": "amd-radeon-rx-5700-xt-navi-10",
     "model_name": "Radeon RX 5700 XT (Navi 10)",
     "vendor": "AMD",
     "code_name": null,
@@ -9801,7 +10139,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_65": {
+  {
+    "id": "amd-radeon-rx-5700-xt-50th-anniversary-edition-navi-10",
     "model_name": "Radeon RX 5700 XT 50th Anniversary Edition (Navi 10)",
     "vendor": "AMD",
     "code_name": null,
@@ -9830,7 +10169,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_66": {
+  {
+    "id": "amd-radeon-rx-6300-navi-24",
     "model_name": "Radeon RX 6300 (Navi 24)",
     "vendor": "AMD",
     "code_name": null,
@@ -9859,7 +10199,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_67": {
+  {
+    "id": "amd-radeon-rx-6400-navi-24",
     "model_name": "Radeon RX 6400 (Navi 24)",
     "vendor": "AMD",
     "code_name": null,
@@ -9888,7 +10229,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_68": {
+  {
+    "id": "amd-radeon-rx-6500-xt-navi-24",
     "model_name": "Radeon RX 6500 XT (Navi 24)",
     "vendor": "AMD",
     "code_name": null,
@@ -9917,7 +10259,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_69": {
+  {
+    "id": "amd-radeon-rx-6600-navi-23",
     "model_name": "Radeon RX 6600 (Navi 23)",
     "vendor": "AMD",
     "code_name": null,
@@ -9946,7 +10289,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_70": {
+  {
+    "id": "amd-radeon-rx-6600-xt-navi-23",
     "model_name": "Radeon RX 6600 XT (Navi 23)",
     "vendor": "AMD",
     "code_name": null,
@@ -9975,7 +10319,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_71": {
+  {
+    "id": "amd-radeon-rx-6650-xt-navi-23",
     "model_name": "Radeon RX 6650 XT (Navi 23)",
     "vendor": "AMD",
     "code_name": null,
@@ -10004,7 +10349,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_72": {
+  {
+    "id": "amd-radeon-rx-6700-navi-22",
     "model_name": "Radeon RX 6700 (Navi 22)",
     "vendor": "AMD",
     "code_name": null,
@@ -10033,7 +10379,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_73": {
+  {
+    "id": "amd-radeon-rx-6750-gre-10gb-navi-22",
     "model_name": "Radeon RX 6750 GRE 10GB (Navi 22)",
     "vendor": "AMD",
     "code_name": null,
@@ -10062,7 +10409,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_74": {
+  {
+    "id": "amd-radeon-rx-6700-xt-navi-22",
     "model_name": "Radeon RX 6700 XT (Navi 22)",
     "vendor": "AMD",
     "code_name": null,
@@ -10091,7 +10439,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_75": {
+  {
+    "id": "amd-radeon-rx-6750-gre-12gb-navi-22",
     "model_name": "Radeon RX 6750 GRE 12GB (Navi 22)",
     "vendor": "AMD",
     "code_name": null,
@@ -10120,7 +10469,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_76": {
+  {
+    "id": "amd-radeon-rx-6750-xt-navi-22",
     "model_name": "Radeon RX 6750 XT (Navi 22)",
     "vendor": "AMD",
     "code_name": null,
@@ -10149,7 +10499,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_77": {
+  {
+    "id": "amd-radeon-rx-6800-navi-21",
     "model_name": "Radeon RX 6800 (Navi 21)",
     "vendor": "AMD",
     "code_name": null,
@@ -10178,7 +10529,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_78": {
+  {
+    "id": "amd-radeon-rx-6800-xt-navi-21",
     "model_name": "Radeon RX 6800 XT (Navi 21)",
     "vendor": "AMD",
     "code_name": null,
@@ -10207,7 +10559,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_79": {
+  {
+    "id": "amd-radeon-rx-6900-xt-navi-21",
     "model_name": "Radeon RX 6900 XT (Navi 21)",
     "vendor": "AMD",
     "code_name": null,
@@ -10236,7 +10589,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_80": {
+  {
+    "id": "amd-radeon-rx-6950-xt-navi-21",
     "model_name": "Radeon RX 6950 XT (Navi 21)",
     "vendor": "AMD",
     "code_name": null,
@@ -10265,7 +10619,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_81": {
+  {
+    "id": "amd-radeon-rx-7400-navi-33",
     "model_name": "Radeon RX 7400 (Navi 33)",
     "vendor": "AMD",
     "code_name": null,
@@ -10294,7 +10649,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_82": {
+  {
+    "id": "amd-radeon-rx-7600-navi-33",
     "model_name": "Radeon RX 7600 (Navi 33)",
     "vendor": "AMD",
     "code_name": null,
@@ -10323,7 +10679,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_83": {
+  {
+    "id": "amd-radeon-rx-7650-gre-navi-33",
     "model_name": "Radeon RX 7650 GRE (Navi 33)",
     "vendor": "AMD",
     "code_name": null,
@@ -10352,7 +10709,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_84": {
+  {
+    "id": "amd-radeon-rx-7600-xt-navi-33",
     "model_name": "Radeon RX 7600 XT (Navi 33)",
     "vendor": "AMD",
     "code_name": null,
@@ -10381,7 +10739,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_85": {
+  {
+    "id": "amd-radeon-rx-7700-navi-32",
     "model_name": "Radeon RX 7700 (Navi 32)",
     "vendor": "AMD",
     "code_name": null,
@@ -10410,7 +10769,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_86": {
+  {
+    "id": "amd-radeon-rx-7700-xt-navi-32",
     "model_name": "Radeon RX 7700 XT (Navi 32)",
     "vendor": "AMD",
     "code_name": null,
@@ -10439,7 +10799,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_87": {
+  {
+    "id": "amd-radeon-rx-7800-xt-navi-32",
     "model_name": "Radeon RX 7800 XT (Navi 32)",
     "vendor": "AMD",
     "code_name": null,
@@ -10468,7 +10829,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_88": {
+  {
+    "id": "amd-radeon-rx-7900-gre-navi-31",
     "model_name": "Radeon RX 7900 GRE (Navi 31)",
     "vendor": "AMD",
     "code_name": null,
@@ -10497,7 +10859,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_89": {
+  {
+    "id": "amd-radeon-rx-7900-xt-navi-31",
     "model_name": "Radeon RX 7900 XT (Navi 31)",
     "vendor": "AMD",
     "code_name": null,
@@ -10526,7 +10889,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_90": {
+  {
+    "id": "amd-radeon-rx-7900-xtx-navi-31",
     "model_name": "Radeon RX 7900 XTX (Navi 31)",
     "vendor": "AMD",
     "code_name": null,
@@ -10555,7 +10919,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_91": {
+  {
+    "id": "amd-radeon-r5-m230-jet-pro",
     "model_name": "Radeon R5 M230 (Jet Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -10584,7 +10949,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_92": {
+  {
+    "id": "amd-radeon-r5-m255-jet-pro",
     "model_name": "Radeon R5 M255 (Jet Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -10613,7 +10979,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_93": {
+  {
+    "id": "amd-radeon-r7-m260-topaz",
     "model_name": "Radeon R7 M260 (Topaz)",
     "vendor": "AMD",
     "code_name": null,
@@ -10642,7 +11009,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_94": {
+  {
+    "id": "amd-radeon-r7-m260x-opal",
     "model_name": "Radeon R7 M260X (Opal)",
     "vendor": "AMD",
     "code_name": null,
@@ -10671,7 +11039,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_95": {
+  {
+    "id": "amd-radeon-r7-m265-opal-xt",
     "model_name": "Radeon R7 M265 (Opal XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -10700,7 +11069,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_96": {
+  {
+    "id": "amd-radeon-r9-m265x-venus-pro",
     "model_name": "Radeon R9 M265X (Venus Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -10729,7 +11099,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_97": {
+  {
+    "id": "amd-radeon-r9-m270x-venus-xt",
     "model_name": "Radeon R9 M270X (Venus XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -10758,7 +11129,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_98": {
+  {
+    "id": "amd-radeon-r9-m275x-venus-xtx",
     "model_name": "Radeon R9 M275X (Venus XTX)",
     "vendor": "AMD",
     "code_name": null,
@@ -10787,7 +11159,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_99": {
+  {
+    "id": "amd-radeon-r9-m280x-saturn-xt",
     "model_name": "Radeon R9 M280X (Saturn XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -10816,7 +11189,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_100": {
+  {
+    "id": "amd-radeon-r9-m290x-neptune-xt",
     "model_name": "Radeon R9 M290X (Neptune XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -10845,7 +11219,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_101": {
+  {
+    "id": "amd-radeon-r9-m295x-amethyst-xt",
     "model_name": "Radeon R9 M295X (Amethyst XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -10874,7 +11249,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_102": {
+  {
+    "id": "amd-radeon-r5-m330-exo-pro",
     "model_name": "Radeon R5 M330 (Exo Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -10903,7 +11279,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_103": {
+  {
+    "id": "amd-radeon-r5-m335-exo-pro",
     "model_name": "Radeon R5 M335 (Exo Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -10932,7 +11309,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_104": {
+  {
+    "id": "amd-radeon-r7-m360-meso-xt",
     "model_name": "Radeon R7 M360 (Meso XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -10961,7 +11339,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_105": {
+  {
+    "id": "amd-radeon-r9-m365x-strato-pro",
     "model_name": "Radeon R9 M365X (Strato Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -10990,7 +11369,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_106": {
+  {
+    "id": "amd-radeon-r9-m370x-strato-pro",
     "model_name": "Radeon R9 M370X (Strato Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -11019,7 +11399,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_107": {
+  {
+    "id": "amd-radeon-r9-m375-strato-pro",
     "model_name": "Radeon R9 M375 (Strato Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -11048,7 +11429,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_108": {
+  {
+    "id": "amd-radeon-r9-m375x-strato-pro",
     "model_name": "Radeon R9 M375X (Strato Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -11077,7 +11459,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_109": {
+  {
+    "id": "amd-radeon-r9-m380-strato-pro",
     "model_name": "Radeon R9 M380 (Strato Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -11106,7 +11489,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_110": {
+  {
+    "id": "amd-radeon-r9-m385x-strato",
     "model_name": "Radeon R9 M385X (Strato)",
     "vendor": "AMD",
     "code_name": null,
@@ -11135,7 +11519,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_111": {
+  {
+    "id": "amd-radeon-r9-m390-pitcairn",
     "model_name": "Radeon R9 M390 (Pitcairn)",
     "vendor": "AMD",
     "code_name": null,
@@ -11164,7 +11549,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_112": {
+  {
+    "id": "amd-radeon-r9-m390x-amethyst-xt",
     "model_name": "Radeon R9 M390X (Amethyst XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -11193,7 +11579,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_113": {
+  {
+    "id": "amd-radeon-r9-m395-amethyst-pro",
     "model_name": "Radeon R9 M395 (Amethyst Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -11222,7 +11609,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_114": {
+  {
+    "id": "amd-radeon-r9-m395x-amethyst-xt",
     "model_name": "Radeon R9 M395X Amethyst XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -11251,7 +11639,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_115": {
+  {
+    "id": "amd-radeon-r5-m420-jet-pro",
     "model_name": "Radeon R5 M420 (Jet Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -11280,7 +11669,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_116": {
+  {
+    "id": "amd-radeon-r5-m430-exo-pro",
     "model_name": "Radeon R5 M430 (Exo Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -11309,7 +11699,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_117": {
+  {
+    "id": "amd-radeon-r7-m435-jet-pro",
     "model_name": "Radeon R7 M435 (Jet Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -11338,7 +11729,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_118": {
+  {
+    "id": "amd-radeon-r7-m440-meso-pro",
     "model_name": "Radeon R7 M440 (Meso Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -11367,7 +11759,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_119": {
+  {
+    "id": "amd-radeon-r7-m445-meso-pro",
     "model_name": "Radeon R7 M445 (Meso Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -11396,7 +11789,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_120": {
+  {
+    "id": "amd-radeon-r7-m460-meso-xt",
     "model_name": "Radeon R7 M460 (Meso XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -11425,7 +11819,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_121": {
+  {
+    "id": "amd-radeon-rx-460-baffin-2",
     "model_name": "Radeon RX 460 (Baffin)",
     "vendor": "AMD",
     "code_name": null,
@@ -11454,7 +11849,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_122": {
+  {
+    "id": "amd-radeon-r7-m465-litho-xt",
     "model_name": "Radeon R7 M465 (Litho XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -11483,7 +11879,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_123": {
+  {
+    "id": "amd-radeon-r7-m465x-tropo-xt",
     "model_name": "Radeon R7 M465X (Tropo XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -11512,7 +11909,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_124": {
+  {
+    "id": "amd-radeon-r9-m470-strato-pro",
     "model_name": "Radeon R9 M470 (Strato Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -11541,7 +11939,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_125": {
+  {
+    "id": "amd-radeon-r9-m470x-strato-xt",
     "model_name": "Radeon R9 M470X (Strato XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -11570,7 +11969,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_126": {
+  {
+    "id": "amd-radeon-rx-470-ellesmere-pro-2",
     "model_name": "Radeon RX 470 (Ellesmere Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -11599,7 +11999,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_127": {
+  {
+    "id": "amd-radeon-r9-m485x-antigua-xt",
     "model_name": "Radeon R9 M485X (Antigua XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -11628,7 +12029,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_128": {
+  {
+    "id": "amd-radeon-520-banks-2",
     "model_name": "Radeon 520 (Banks)",
     "vendor": "AMD",
     "code_name": null,
@@ -11657,7 +12059,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_129": {
+  {
+    "id": "amd-radeon-520-banks-3",
     "model_name": "Radeon 520 (Banks)",
     "vendor": "AMD",
     "code_name": null,
@@ -11686,7 +12089,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_130": {
+  {
+    "id": "amd-radeon-530-weston-3",
     "model_name": "Radeon 530 (Weston)",
     "vendor": "AMD",
     "code_name": null,
@@ -11715,7 +12119,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_131": {
+  {
+    "id": "amd-radeon-530x-radeon-535-polaris-24-xt",
     "model_name": "Radeon 530X Radeon 535 (Polaris 24 XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -11744,7 +12149,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_132": {
+  {
+    "id": "amd-radeon-rx-540-lexa-pro",
     "model_name": "Radeon RX 540 (Lexa Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -11773,7 +12179,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_133": {
+  {
+    "id": "amd-radeon-540x-polaris-23-xl",
     "model_name": "Radeon 540X (Polaris 23 XL)",
     "vendor": "AMD",
     "code_name": null,
@@ -11802,7 +12209,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_134": {
+  {
+    "id": "amd-radeon-rx-550-lexa-pro",
     "model_name": "Radeon RX 550 (Lexa Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -11831,7 +12239,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_135": {
+  {
+    "id": "amd-radeon-550x-polaris-23-xt",
     "model_name": "Radeon 550X (Polaris 23 XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -11860,7 +12269,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_136": {
+  {
+    "id": "amd-radeon-rx-560-baffin-xt",
     "model_name": "Radeon RX 560 (Baffin XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -11889,7 +12299,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_137": {
+  {
+    "id": "amd-radeon-rx-560-baffin-xt-2",
     "model_name": "Radeon RX 560 (Baffin XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -11918,7 +12329,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_138": {
+  {
+    "id": "amd-radeon-rx-560-baffin-xt-3",
     "model_name": "Radeon RX 560 (Baffin XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -11947,7 +12359,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_139": {
+  {
+    "id": "amd-radeon-rx-560x-polaris-31-xl",
     "model_name": "Radeon RX 560X (Polaris 31 XL)",
     "vendor": "AMD",
     "code_name": null,
@@ -11976,7 +12389,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_140": {
+  {
+    "id": "amd-radeon-rx-570-ellesmere-pro",
     "model_name": "Radeon RX 570 (Ellesmere Pro)",
     "vendor": "AMD",
     "code_name": null,
@@ -12005,7 +12419,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_141": {
+  {
+    "id": "amd-radeon-rx-580-polaris-20-xt",
     "model_name": "Radeon RX 580 (Polaris 20 XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -12034,7 +12449,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_142": {
+  {
+    "id": "amd-radeon-rx-580x-polaris-20-xt",
     "model_name": "Radeon RX 580X (Polaris 20 XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -12063,7 +12479,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_Pitcairn XT GL": {
+  {
+    "id": "amd-firepro-d300",
     "model_name": "FirePro D300",
     "vendor": "AMD",
     "code_name": "Pitcairn XT GL",
@@ -12092,7 +12509,8 @@
     "vulkan_version": "1.1",
     "cuda_version": null
   },
-  "AMD_Tahiti LE GL": {
+  {
+    "id": "amd-firepro-d500",
     "model_name": "FirePro D500",
     "vendor": "AMD",
     "code_name": "Tahiti LE GL",
@@ -12121,7 +12539,8 @@
     "vulkan_version": "1.1",
     "cuda_version": null
   },
-  "AMD_Tahiti XT GL": {
+  {
+    "id": "amd-firepro-d700",
     "model_name": "FirePro D700",
     "vendor": "AMD",
     "code_name": "Tahiti XT GL",
@@ -12150,7 +12569,8 @@
     "vulkan_version": "1.1",
     "cuda_version": null
   },
-  "AMD_Oland XT": {
+  {
+    "id": "amd-firepro-w2100",
     "model_name": "FirePro W2100",
     "vendor": "AMD",
     "code_name": "Oland XT",
@@ -12179,7 +12599,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_Cape Verde": {
+  {
+    "id": "amd-firepro-w4100",
     "model_name": "FirePro W4100",
     "vendor": "AMD",
     "code_name": "Cape Verde",
@@ -12208,7 +12629,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_Bonaire Pro": {
+  {
+    "id": "amd-firepro-w5100",
     "model_name": "FirePro W5100",
     "vendor": "AMD",
     "code_name": "Bonaire Pro",
@@ -12237,7 +12659,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_Tonga Pro GL": {
+  {
+    "id": "amd-firepro-w7100",
     "model_name": "FirePro W7100",
     "vendor": "AMD",
     "code_name": "Tonga Pro GL",
@@ -12266,7 +12689,8 @@
     "vulkan_version": "1.1",
     "cuda_version": null
   },
-  "AMD_Hawaii Pro GL": {
+  {
+    "id": "amd-firepro-w8100",
     "model_name": "FirePro W8100",
     "vendor": "AMD",
     "code_name": "Hawaii Pro GL",
@@ -12295,7 +12719,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_Hawaii XT": {
+  {
+    "id": "amd-firepro-w9100",
     "model_name": "FirePro W9100",
     "vendor": "AMD",
     "code_name": "Hawaii XT",
@@ -12324,7 +12749,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_nan_143": {
+  {
+    "id": "amd-firepro-w4170m-mars-xtx",
     "model_name": "FirePro W4170M (Mars XTX)",
     "vendor": "AMD",
     "code_name": null,
@@ -12353,7 +12779,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_144": {
+  {
+    "id": "amd-firepro-w4190m-opal",
     "model_name": "FirePro W4190M (Opal)",
     "vendor": "AMD",
     "code_name": null,
@@ -12382,7 +12809,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_145": {
+  {
+    "id": "amd-firepro-w5130m-tropo-le",
     "model_name": "FirePro W5130M (Tropo LE)",
     "vendor": "AMD",
     "code_name": null,
@@ -12411,7 +12839,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_146": {
+  {
+    "id": "amd-firepro-w5170m-tropo-xt",
     "model_name": "FirePro W5170M (Tropo XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -12440,7 +12869,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_147": {
+  {
+    "id": "amd-firepro-w6150m-saturn-xt-gl",
     "model_name": "FirePro W6150M (Saturn XT GL)",
     "vendor": "AMD",
     "code_name": null,
@@ -12469,7 +12899,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_148": {
+  {
+    "id": "amd-firepro-w6170m-saturn-xt-gl",
     "model_name": "FirePro W6170M (Saturn XT GL)",
     "vendor": "AMD",
     "code_name": null,
@@ -12498,7 +12929,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_149": {
+  {
+    "id": "amd-firepro-w7170m-amethyst-xt",
     "model_name": "FirePro W7170M (Amethyst XT)",
     "vendor": "AMD",
     "code_name": null,
@@ -12527,7 +12959,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_Venus XT": {
+  {
+    "id": "amd-firepro-s4000x",
     "model_name": "FirePro S4000x",
     "vendor": "AMD",
     "code_name": "Venus XT",
@@ -12556,7 +12989,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_Amethyst XT": {
+  {
+    "id": "amd-firepro-s7100x",
     "model_name": "FirePro S7100X",
     "vendor": "AMD",
     "code_name": "Amethyst XT",
@@ -12585,7 +13019,8 @@
     "vulkan_version": "1.1",
     "cuda_version": null
   },
-  "AMD_Tonga PRO GL": {
+  {
+    "id": "amd-firepro-s7150",
     "model_name": "FirePro S7150",
     "vendor": "AMD",
     "code_name": "Tonga PRO GL",
@@ -12614,21 +13049,22 @@
     "vulkan_version": "1.1",
     "cuda_version": null
   },
-  "AMD_2× Tonga PRO GL": {
+  {
+    "id": "amd-firepro-s7150-x2",
     "model_name": "FirePro S7150 X2",
     "vendor": "AMD",
-    "code_name": "2× Tonga PRO GL",
+    "code_name": "2├Ч Tonga PRO GL",
     "launch_date": "2016-02-01",
     "process_nm": 28,
     "fab": null,
     "transistors_billion": null,
     "die_size_mm2": null,
     "bus_interface": "PCIe 3.0 x16",
-    "core_config": "2× 1792:112:32:28",
+    "core_config": "2├Ч 1792:112:32:28",
     "memory_gb": 16.0,
     "memory_type": "GDDR5",
     "memory_bus_width_bit": 256,
-    "memory_bandwidth_gbs": 160.0,
+    "memory_bandwidth_gbs": 2.0,
     "clock_base_mhz": 1050.0,
     "clock_boost_mhz": null,
     "clock_memory_mhz": 1250.0,
@@ -12643,7 +13079,8 @@
     "vulkan_version": "1.1",
     "cuda_version": null
   },
-  "AMD_Tahiti PRO GL": {
+  {
+    "id": "amd-firepro-s9050",
     "model_name": "FirePro S9050",
     "vendor": "AMD",
     "code_name": "Tahiti PRO GL",
@@ -12672,7 +13109,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_Hawaii Pro GL_2": {
+  {
+    "id": "amd-firepro-s9100",
     "model_name": "FirePro S9100",
     "vendor": "AMD",
     "code_name": "Hawaii Pro GL",
@@ -12701,7 +13139,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_Hawaii XT GL": {
+  {
+    "id": "amd-firepro-s9150",
     "model_name": "FirePro S9150",
     "vendor": "AMD",
     "code_name": "Hawaii XT GL",
@@ -12730,7 +13169,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_Grenada XT GL": {
+  {
+    "id": "amd-firepro-s9170",
     "model_name": "FirePro S9170",
     "vendor": "AMD",
     "code_name": "Grenada XT GL",
@@ -12759,21 +13199,22 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_2× Capsaicin XT": {
+  {
+    "id": "amd-firepro-s9300-x2",
     "model_name": "FirePro S9300 x2",
     "vendor": "AMD",
-    "code_name": "2× Capsaicin XT",
+    "code_name": "2├Ч Capsaicin XT",
     "launch_date": "2016-03-31",
     "process_nm": 28,
     "fab": null,
     "transistors_billion": null,
     "die_size_mm2": null,
     "bus_interface": "PCIe 3.0 x16",
-    "core_config": "2× 4096:256:64:64",
+    "core_config": "2├Ч 4096:256:64:64",
     "memory_gb": 4.0,
     "memory_type": "HBM",
-    "memory_bus_width_bit": 4096,
-    "memory_bandwidth_gbs": 512.0,
+    "memory_bus_width_bit": null,
+    "memory_bandwidth_gbs": 2.0,
     "clock_base_mhz": 850.0,
     "clock_boost_mhz": null,
     "clock_memory_mhz": 500.0,
@@ -12788,7 +13229,8 @@
     "vulkan_version": "1.1",
     "cuda_version": null
   },
-  "AMD_nan_150": {
+  {
+    "id": "amd-radeon-instinct-mi6-polaris-10",
     "model_name": "Radeon Instinct MI6 (Polaris 10)",
     "vendor": "AMD",
     "code_name": null,
@@ -12817,7 +13259,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_151": {
+  {
+    "id": "amd-radeon-instinct-mi8-fiji",
     "model_name": "Radeon Instinct MI8 (Fiji)",
     "vendor": "AMD",
     "code_name": null,
@@ -12846,7 +13289,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_152": {
+  {
+    "id": "amd-radeon-instinct-mi25-vega-10",
     "model_name": "Radeon Instinct MI25 (Vega 10)",
     "vendor": "AMD",
     "code_name": null,
@@ -12875,7 +13319,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_153": {
+  {
+    "id": "amd-radeon-instinct-mi50-vega-20",
     "model_name": "Radeon Instinct MI50 (Vega 20)",
     "vendor": "AMD",
     "code_name": null,
@@ -12904,7 +13349,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_154": {
+  {
+    "id": "amd-radeon-instinct-mi60-vega-20",
     "model_name": "Radeon Instinct MI60 (Vega 20)",
     "vendor": "AMD",
     "code_name": null,
@@ -12933,7 +13379,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_155": {
+  {
+    "id": "amd-amd-instinct-mi100-arcturus",
     "model_name": "AMD Instinct MI100 (Arcturus)",
     "vendor": "AMD",
     "code_name": null,
@@ -12962,7 +13409,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_156": {
+  {
+    "id": "amd-amd-instinct-mi210-aldebaran",
     "model_name": "AMD Instinct MI210 (Aldebaran)",
     "vendor": "AMD",
     "code_name": null,
@@ -12991,7 +13439,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_157": {
+  {
+    "id": "amd-amd-instinct-mi250-aldebaran",
     "model_name": "AMD Instinct MI250 (Aldebaran)",
     "vendor": "AMD",
     "code_name": null,
@@ -13020,7 +13469,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_158": {
+  {
+    "id": "amd-amd-instinct-mi250x-aldebaran",
     "model_name": "AMD Instinct MI250X (Aldebaran)",
     "vendor": "AMD",
     "code_name": null,
@@ -13049,7 +13499,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_159": {
+  {
+    "id": "amd-amd-instinct-mi300a-antares",
     "model_name": "AMD Instinct MI300A (Antares)",
     "vendor": "AMD",
     "code_name": null,
@@ -13078,7 +13529,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_160": {
+  {
+    "id": "amd-amd-instinct-mi300x-aqua-vanjaram",
     "model_name": "AMD Instinct MI300X (Aqua Vanjaram)",
     "vendor": "AMD",
     "code_name": null,
@@ -13107,7 +13559,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_161": {
+  {
+    "id": "amd-amd-instinct-mi350x",
     "model_name": "AMD Instinct MI350X",
     "vendor": "AMD",
     "code_name": null,
@@ -13136,7 +13589,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_162": {
+  {
+    "id": "amd-amd-instinct-mi355x",
     "model_name": "AMD Instinct MI355X",
     "vendor": "AMD",
     "code_name": null,
@@ -13165,7 +13619,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_163": {
+  {
+    "id": "amd-radeon-e6465-caicos",
     "model_name": "Radeon E6465 (Caicos)",
     "vendor": "AMD",
     "code_name": null,
@@ -13194,7 +13649,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_164": {
+  {
+    "id": "amd-radeon-e8860-venus",
     "model_name": "Radeon E8860 (Venus)",
     "vendor": "AMD",
     "code_name": null,
@@ -13223,7 +13679,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_nan_165": {
+  {
+    "id": "amd-radeon-e8870-saturn",
     "model_name": "Radeon E8870 (Saturn)",
     "vendor": "AMD",
     "code_name": null,
@@ -13252,7 +13709,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_nan_166": {
+  {
+    "id": "amd-radeon-e8950-amethyst",
     "model_name": "Radeon E8950 (Amethyst)",
     "vendor": "AMD",
     "code_name": null,
@@ -13281,7 +13739,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_nan_167": {
+  {
+    "id": "amd-radeon-e9171-polaris12",
     "model_name": "Radeon E9171 (Polaris12)",
     "vendor": "AMD",
     "code_name": null,
@@ -13310,7 +13769,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_nan_168": {
+  {
+    "id": "amd-radeon-e9172-polaris12",
     "model_name": "Radeon E9172 (Polaris12)",
     "vendor": "AMD",
     "code_name": null,
@@ -13339,7 +13799,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_nan_169": {
+  {
+    "id": "amd-radeon-e9173-polaris12",
     "model_name": "Radeon E9173 (Polaris12)",
     "vendor": "AMD",
     "code_name": null,
@@ -13368,7 +13829,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_nan_170": {
+  {
+    "id": "amd-radeon-e9174-polaris12",
     "model_name": "Radeon E9174 (Polaris12)",
     "vendor": "AMD",
     "code_name": null,
@@ -13397,7 +13859,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_nan_171": {
+  {
+    "id": "amd-radeon-e9175-polaris12",
     "model_name": "Radeon E9175 (Polaris12)",
     "vendor": "AMD",
     "code_name": null,
@@ -13426,7 +13889,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_nan_172": {
+  {
+    "id": "amd-radeon-e9260-polaris11",
     "model_name": "Radeon E9260 (Polaris11)",
     "vendor": "AMD",
     "code_name": null,
@@ -13455,7 +13919,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_nan_173": {
+  {
+    "id": "amd-radeon-e9390-polaris10",
     "model_name": "Radeon E9390 (Polaris10)",
     "vendor": "AMD",
     "code_name": null,
@@ -13484,7 +13949,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_nan_174": {
+  {
+    "id": "amd-radeon-e9550-polaris10",
     "model_name": "Radeon E9550 (Polaris10)",
     "vendor": "AMD",
     "code_name": null,
@@ -13513,7 +13979,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_nan_175": {
+  {
+    "id": "amd-radeon-e9560-polaris10",
     "model_name": "Radeon E9560 (Polaris10)",
     "vendor": "AMD",
     "code_name": null,
@@ -13542,7 +14009,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_nan_176": {
+  {
+    "id": "amd-radeon-e9565-polaris10",
     "model_name": "Radeon E9565 (Polaris10)",
     "vendor": "AMD",
     "code_name": null,
@@ -13571,7 +14039,8 @@
     "vulkan_version": "1.0",
     "cuda_version": null
   },
-  "AMD_nan_177": {
+  {
+    "id": "amd-unknown",
     "model_name": null,
     "vendor": "AMD",
     "code_name": null,
@@ -13600,7 +14069,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_178": {
+  {
+    "id": "amd-unknown-2",
     "model_name": null,
     "vendor": "AMD",
     "code_name": null,
@@ -13629,7 +14099,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_179": {
+  {
+    "id": "amd-unknown-3",
     "model_name": null,
     "vendor": "AMD",
     "code_name": null,
@@ -13658,7 +14129,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_180": {
+  {
+    "id": "amd-unknown-4",
     "model_name": null,
     "vendor": "AMD",
     "code_name": null,
@@ -13687,7 +14159,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_181": {
+  {
+    "id": "amd-unknown-5",
     "model_name": null,
     "vendor": "AMD",
     "code_name": null,
@@ -13716,7 +14189,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "AMD_nan_182": {
+  {
+    "id": "amd-unknown-6",
     "model_name": null,
     "vendor": "AMD",
     "code_name": null,
@@ -13745,7 +14219,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Cherryview Braswell (Gen8LP)": {
+  {
+    "id": "intel-unknown",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Cherryview Braswell (Gen8LP)",
@@ -13774,7 +14249,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Cherryview Braswell (Gen8LP)_2": {
+  {
+    "id": "intel-unknown-2",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Cherryview Braswell (Gen8LP)",
@@ -13803,7 +14279,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Cherryview Braswell (Gen8LP)_3": {
+  {
+    "id": "intel-unknown-3",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Cherryview Braswell (Gen8LP)",
@@ -13832,7 +14309,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Cherryview Braswell (Gen8LP)_4": {
+  {
+    "id": "intel-unknown-4",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Cherryview Braswell (Gen8LP)",
@@ -13861,36 +14339,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Cherryview Braswell (Gen8LP)_5": {
-    "model_name": null,
-    "vendor": "Intel",
-    "code_name": "Cherryview Braswell (Gen8LP)",
-    "launch_date": "2015-01-01",
-    "process_nm": null,
-    "fab": null,
-    "transistors_billion": null,
-    "die_size_mm2": null,
-    "bus_interface": null,
-    "core_config": "128:16:2",
-    "memory_gb": null,
-    "memory_type": null,
-    "memory_bus_width_bit": null,
-    "memory_bandwidth_gbs": null,
-    "clock_base_mhz": null,
-    "clock_boost_mhz": null,
-    "clock_memory_mhz": null,
-    "tdp_watts": null,
-    "tflops_fp16": null,
-    "tflops_fp32": null,
-    "tflops_fp64": null,
-    "price_usd": null,
-    "direct3d_version": null,
-    "opengl_version": null,
-    "opencl_version": null,
-    "vulkan_version": null,
-    "cuda_version": null
-  },
-  "Intel_Cherryview Braswell (Gen8LP)_6": {
+  {
+    "id": "intel-unknown-5",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Cherryview Braswell (Gen8LP)",
@@ -13919,7 +14369,38 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Cherryview Braswell (Gen8LP)_7": {
+  {
+    "id": "intel-unknown-6",
+    "model_name": null,
+    "vendor": "Intel",
+    "code_name": "Cherryview Braswell (Gen8LP)",
+    "launch_date": "2015-01-01",
+    "process_nm": null,
+    "fab": null,
+    "transistors_billion": null,
+    "die_size_mm2": null,
+    "bus_interface": null,
+    "core_config": "128:16:2",
+    "memory_gb": null,
+    "memory_type": null,
+    "memory_bus_width_bit": null,
+    "memory_bandwidth_gbs": null,
+    "clock_base_mhz": null,
+    "clock_boost_mhz": null,
+    "clock_memory_mhz": null,
+    "tdp_watts": null,
+    "tflops_fp16": null,
+    "tflops_fp32": null,
+    "tflops_fp64": null,
+    "price_usd": null,
+    "direct3d_version": null,
+    "opengl_version": null,
+    "opencl_version": null,
+    "vulkan_version": null,
+    "cuda_version": null
+  },
+  {
+    "id": "intel-unknown-7",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Cherryview Braswell (Gen8LP)",
@@ -13948,7 +14429,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Cherryview Braswell (Gen8LP)_8": {
+  {
+    "id": "intel-unknown-8",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Cherryview Braswell (Gen8LP)",
@@ -13977,7 +14459,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Cherryview Braswell (Gen8LP)_9": {
+  {
+    "id": "intel-unknown-9",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Cherryview Braswell (Gen8LP)",
@@ -14006,7 +14489,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Cherryview Braswell (Gen8LP)_10": {
+  {
+    "id": "intel-unknown-10",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Cherryview Braswell (Gen8LP)",
@@ -14035,7 +14519,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Cherryview Braswell (Gen8LP)_11": {
+  {
+    "id": "intel-unknown-11",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Cherryview Braswell (Gen8LP)",
@@ -14064,7 +14549,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Cherryview Braswell (Gen8LP)_12": {
+  {
+    "id": "intel-unknown-12",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Cherryview Braswell (Gen8LP)",
@@ -14093,7 +14579,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)": {
+  {
+    "id": "intel-unknown-13",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14122,7 +14609,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_2": {
+  {
+    "id": "intel-unknown-14",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14151,7 +14639,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_3": {
+  {
+    "id": "intel-unknown-15",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14180,7 +14669,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_4": {
+  {
+    "id": "intel-unknown-16",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14209,7 +14699,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_5": {
+  {
+    "id": "intel-unknown-17",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14238,7 +14729,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_6": {
+  {
+    "id": "intel-unknown-18",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14267,7 +14759,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_7": {
+  {
+    "id": "intel-unknown-19",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14296,7 +14789,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_8": {
+  {
+    "id": "intel-unknown-20",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14325,7 +14819,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_9": {
+  {
+    "id": "intel-unknown-21",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14354,7 +14849,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_10": {
+  {
+    "id": "intel-unknown-22",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14383,7 +14879,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_11": {
+  {
+    "id": "intel-unknown-23",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14412,7 +14909,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_12": {
+  {
+    "id": "intel-unknown-24",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14441,7 +14939,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_13": {
+  {
+    "id": "intel-unknown-25",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14470,7 +14969,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_14": {
+  {
+    "id": "intel-unknown-26",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14499,7 +14999,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_15": {
+  {
+    "id": "intel-unknown-27",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14528,7 +15029,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_16": {
+  {
+    "id": "intel-unknown-28",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14557,7 +15059,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_17": {
+  {
+    "id": "intel-unknown-29",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14586,7 +15089,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_18": {
+  {
+    "id": "intel-unknown-30",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14615,7 +15119,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_19": {
+  {
+    "id": "intel-unknown-31",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14644,7 +15149,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_20": {
+  {
+    "id": "intel-unknown-32",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14673,7 +15179,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_21": {
+  {
+    "id": "intel-unknown-33",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14702,7 +15209,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_22": {
+  {
+    "id": "intel-unknown-34",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14731,7 +15239,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_23": {
+  {
+    "id": "intel-unknown-35",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14760,7 +15269,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_24": {
+  {
+    "id": "intel-unknown-36",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14789,7 +15299,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_25": {
+  {
+    "id": "intel-unknown-37",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14818,7 +15329,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_26": {
+  {
+    "id": "intel-unknown-38",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14847,7 +15359,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_27": {
+  {
+    "id": "intel-unknown-39",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14876,7 +15389,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_28": {
+  {
+    "id": "intel-unknown-40",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14905,7 +15419,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_Broadwell (Gen8)_29": {
+  {
+    "id": "intel-unknown-41",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "Broadwell (Gen8)",
@@ -14934,7 +15449,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_nan": {
+  {
+    "id": "intel-data-center-gpu-max-1100",
     "model_name": "Data Center GPU Max 1100",
     "vendor": "Intel",
     "code_name": "Xe-HPC (Ponte Vecchio)",
@@ -14963,7 +15479,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_nan_2": {
+  {
+    "id": "intel-data-center-gpu-max-1550",
     "model_name": "Data Center GPU Max 1550",
     "vendor": "Intel",
     "code_name": "Xe-HPC (Ponte Vecchio)",
@@ -14992,7 +15509,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_ACM-G11 (DG2-128)": {
+  {
+    "id": "intel-unknown-42",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "ACM-G11 (DG2-128)",
@@ -15021,7 +15539,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_ACM-G11 (DG2-128)_2": {
+  {
+    "id": "intel-unknown-43",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "ACM-G11 (DG2-128)",
@@ -15050,7 +15569,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_ACM-G10 (DG2-512)": {
+  {
+    "id": "intel-unknown-44",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "ACM-G10 (DG2-512)",
@@ -15079,7 +15599,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_ACM-G10 (DG2-512)_2": {
+  {
+    "id": "intel-unknown-45",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "ACM-G10 (DG2-512)",
@@ -15108,7 +15629,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_ACM-G10 (DG2-512)_3": {
+  {
+    "id": "intel-unknown-46",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "ACM-G10 (DG2-512)",
@@ -15137,7 +15659,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_ACM-G10 (DG2-512)_4": {
+  {
+    "id": "intel-unknown-47",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "ACM-G10 (DG2-512)",
@@ -15166,7 +15689,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_ACM-G11 (DG2-128)_3": {
+  {
+    "id": "intel-unknown-48",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "ACM-G11 (DG2-128)",
@@ -15195,7 +15719,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_ACM-G11 (DG2-128)_4": {
+  {
+    "id": "intel-unknown-49",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "ACM-G11 (DG2-128)",
@@ -15224,7 +15749,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_ACM-G11 (DG2-128)_5": {
+  {
+    "id": "intel-unknown-50",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "ACM-G11 (DG2-128)",
@@ -15253,7 +15779,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_ACM-G11 (DG2-128)_6": {
+  {
+    "id": "intel-unknown-51",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "ACM-G11 (DG2-128)",
@@ -15282,7 +15809,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_ACM-G11 (DG2-128)_7": {
+  {
+    "id": "intel-unknown-52",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "ACM-G11 (DG2-128)",
@@ -15311,7 +15839,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_BMG-G21": {
+  {
+    "id": "intel-unknown-53",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "BMG-G21",
@@ -15340,7 +15869,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_BMG-G21_2": {
+  {
+    "id": "intel-unknown-54",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "BMG-G21",
@@ -15369,7 +15899,8 @@
     "vulkan_version": null,
     "cuda_version": null
   },
-  "Intel_BMG-G21_3": {
+  {
+    "id": "intel-unknown-55",
     "model_name": null,
     "vendor": "Intel",
     "code_name": "BMG-G21",
@@ -15397,5 +15928,95 @@
     "opencl_version": null,
     "vulkan_version": null,
     "cuda_version": null
+  },
+  {
+    "id": "nvidia-geforce-gtx-titan-z-2",
+    "model_name": "GeForce GTX TITAN Z",
+    "vendor": "NVIDIA",
+    "code_name": "2× GK110-350-B1",
+    "launch_date": "2014-05-28",
+    "process_nm": 28,
+    "fab": "TSMC",
+    "transistors_billion": 7.08,
+    "die_size_mm2": 561.0,
+    "bus_interface": "PCIe 3.0 x16",
+    "core_config": "2x 2880:240:48",
+    "memory_gb": 6.0,
+    "memory_type": "GDDR5",
+    "memory_bus_width_bit": 384,
+    "memory_bandwidth_gbs": 336.5,
+    "clock_base_mhz": 705.0,
+    "clock_boost_mhz": 876.0,
+    "clock_memory_mhz": 1752.5,
+    "tdp_watts": 375.0,
+    "tflops_fp16": null,
+    "tflops_fp32": 5.046,
+    "tflops_fp64": 1.682,
+    "price_usd": 2999.0,
+    "direct3d_version": "12",
+    "opengl_version": "4.5",
+    "opencl_version": "1.2",
+    "vulkan_version": "1.2",
+    "cuda_version": null
+  },
+  {
+    "id": "amd-firepro-s7150-x2-2",
+    "model_name": "FirePro S7150 X2",
+    "vendor": "AMD",
+    "code_name": "2× Tonga PRO GL",
+    "launch_date": "2016-02-01",
+    "process_nm": 28,
+    "fab": null,
+    "transistors_billion": null,
+    "die_size_mm2": null,
+    "bus_interface": "PCIe 3.0 x16",
+    "core_config": "2× 1792:112:32:28",
+    "memory_gb": 16.0,
+    "memory_type": "GDDR5",
+    "memory_bus_width_bit": 256,
+    "memory_bandwidth_gbs": 160.0,
+    "clock_base_mhz": 1050.0,
+    "clock_boost_mhz": null,
+    "clock_memory_mhz": 1250.0,
+    "tdp_watts": 265.0,
+    "tflops_fp16": null,
+    "tflops_fp32": 7.54,
+    "tflops_fp64": 0.5,
+    "price_usd": null,
+    "direct3d_version": "11.2",
+    "opengl_version": "4.5",
+    "opencl_version": "2.0",
+    "vulkan_version": "1.1",
+    "cuda_version": null
+  },
+  {
+    "id": "amd-firepro-s9300-x2-2",
+    "model_name": "FirePro S9300 x2",
+    "vendor": "AMD",
+    "code_name": "2× Capsaicin XT",
+    "launch_date": "2016-03-31",
+    "process_nm": 28,
+    "fab": null,
+    "transistors_billion": null,
+    "die_size_mm2": null,
+    "bus_interface": "PCIe 3.0 x16",
+    "core_config": "2× 4096:256:64:64",
+    "memory_gb": 4.0,
+    "memory_type": "HBM",
+    "memory_bus_width_bit": 4096,
+    "memory_bandwidth_gbs": 512.0,
+    "clock_base_mhz": 850.0,
+    "clock_boost_mhz": null,
+    "clock_memory_mhz": 500.0,
+    "tdp_watts": 300.0,
+    "tflops_fp16": null,
+    "tflops_fp32": 13.9,
+    "tflops_fp64": 0.868,
+    "price_usd": null,
+    "direct3d_version": "11.2",
+    "opengl_version": "4.5",
+    "opencl_version": "2.0",
+    "vulkan_version": "1.1",
+    "cuda_version": null
   }
-}
+]

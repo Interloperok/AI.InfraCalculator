@@ -4,7 +4,7 @@ const QUANT_LABELS = { 1: 'INT8', 2: 'FP16', 4: 'FP32' };
 
 const OPTIMIZATION_MODE_LABELS = {
   min_servers: 'Min Servers',
-  min_total_gpus: 'Min GPUs',
+  min_cost: 'Min Cost',
   balanced: 'Balanced',
   max_performance: 'Max Performance',
 };
@@ -14,6 +14,13 @@ const fmt = (v, digits = 2) => {
   if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(1) + 'M';
   if (Math.abs(v) >= 1e3) return (v / 1e3).toFixed(1) + 'K';
   return Number(v).toFixed(digits);
+};
+
+const fmtCost = (v) => {
+  if (v === undefined || v === null || isNaN(v)) return '—';
+  if (v >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M';
+  if (v >= 1e3) return '$' + (v / 1e3).toFixed(1) + 'K';
+  return '$' + Number(v).toLocaleString();
 };
 
 const OptimizeResultsTable = ({
@@ -99,6 +106,7 @@ const OptimizeResultsTable = ({
                   <th className="py-2 px-2 text-center text-xs font-semibold text-gray-500 uppercase">Total GPU</th>
                   <th className="py-2 px-2 text-center text-xs font-semibold text-gray-500 uppercase">Sess/Srv</th>
                   <th className="py-2 px-2 text-center text-xs font-semibold text-gray-500 uppercase">Throughput</th>
+                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-500 uppercase">Cost</th>
                 </tr>
               </thead>
               <tbody>
@@ -150,6 +158,12 @@ const OptimizeResultsTable = ({
                       <td className="py-2.5 px-2 text-center font-semibold text-gray-700">{config.total_gpus}</td>
                       <td className="py-2.5 px-2 text-center">{config.sessions_per_server}</td>
                       <td className="py-2.5 px-2 text-center text-gray-600">{fmt(config.th_server_comp, 2)}</td>
+                      <td className="py-2.5 px-2 text-center text-gray-600">
+                        <div>{fmtCost(config.cost_estimate_usd)}</div>
+                        {config.gpu_price_usd != null && (
+                          <div className="text-xs text-gray-400">{fmtCost(config.gpu_price_usd)}/gpu</div>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}

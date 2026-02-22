@@ -108,6 +108,25 @@ export const getGPUStats = async () => {
   }
 };
 
+export const getGpuDetails = async (gpuId) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/v1/gpus/${encodeURIComponent(gpuId)}`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      const status = error.response.status;
+      const errorData = error.response.data;
+      return { error: errorData?.detail || `Server error (${status})` };
+    }
+    if (error.request) {
+      return { error: 'Network error: Unable to connect to the server.' };
+    }
+    return { error: `Request error: ${error.message}` };
+  }
+};
+
 export const healthCheck = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/v1/healthz`);

@@ -287,29 +287,31 @@ def calc_servers_by_compute(Ssim, R, KSLA, th_server_comp):
 def refresh_gpu_data_internal():
     """Внутренняя функция для обновления данных GPU.
 
-    Pipeline: gpu_scraper -> gpu_data_raw.json -> gpu_normalizer -> gpu_data.json
+    Pipeline: gpu_scraper (merge) -> gpu_data_raw.json -> gpu_normalizer -> gpu_data.json
+
+    Scraper uses merge strategy: existing entries are preserved, new ones added,
+    existing ones updated. No data loss even if a partial scrape occurs.
     """
     import sys
     import io
     try:
         logger.info("Начинаем обновление данных GPU...")
+
+        raw_path = os.path.join(os.path.dirname(__file__), "gpu_data_raw.json")
+        out_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
+
         # На Windows stdout может не поддерживать UTF-8 emoji из скрапера.
-        # Перенаправляем в StringIO, чтобы не трогать sys.stdout.buffer
-        # (TextIOWrapper закрывает buffer при GC, ломая логгер).
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
         try:
             from gpu_scraper import main as scrape_gpus
-            scrape_gpus()  # writes gpu_data_raw.json
+            scrape_gpus()  # merges into gpu_data_raw.json
         finally:
             sys.stdout = old_stdout
 
         logger.info("Скрапинг завершён, запускаем нормализацию...")
 
-        # Normalize raw data into clean gpu_data.json
         from gpu_normalizer import normalize as normalize_gpu_data
-        raw_path = os.path.join(os.path.dirname(__file__), "gpu_data_raw.json")
-        out_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
         normalize_gpu_data(raw_path, out_path)
 
         logger.info("Данные GPU успешно обновлены и нормализованы")
@@ -361,7 +363,7 @@ def _extract_gpu_tflops(gpu_info: dict) -> float:
 
 def _lookup_gpu_tflops(gpu_id, gpu_mem_gb):
     """
-    Поиск TFLOPS GPU из нормализованного каталога gpu_data.json.
+    Поиск TFLOPS GPU из нормализованного каталога gpu_data.json (массив).
     """
     gpu_data_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
     try:
@@ -371,19 +373,92 @@ def _lookup_gpu_tflops(gpu_id, gpu_mem_gb):
         return 0.0
 
     target_gpu = None
-    if gpu_id and gpu_id in gpu_data:
-        target_gpu = gpu_data[gpu_id]
-    else:
-        for gid, ginfo in gpu_data.items():
-            mem = ginfo.get("memory_gb", 0)
-            if mem and float(mem) == float(gpu_mem_gb):
-                target_gpu = ginfo
-                break
+    for gpu in gpu_data:
+        if gpu_id and gpu.get("id") == gpu_id:
+            target_gpu = gpu
+            break
+        mem = gpu.get("memory_gb", 0)
+        if mem and float(mem) == float(gpu_mem_gb):
+            target_gpu = gpu
+            break
 
     if not target_gpu:
         return 0.0
 
     return _extract_gpu_tflops(target_gpu)
+
+
+def _price_from_gpu_entry(gpu: dict) -> Optional[float]:
+    """Извлечь price_usd из одной записи каталога GPU."""
+    p = gpu.get("price_usd")
+    if p is None or str(p).strip() == "":
+        return None
+    try:
+        return float(p)
+    except (TypeError, ValueError):
+        return None
+
+
+def _lookup_gpu_price_in_catalog(
+    catalog: list,
+    gpu_id: Optional[str],
+    gpu_mem_gb: float,
+) -> Optional[float]:
+    """
+    Поиск цены GPU (USD) в переданном каталоге (массив записей).
+    По gpu_id или по памяти (memory_gb).
+    """
+    target_gpu = None
+    for gpu in catalog:
+        if not isinstance(gpu, dict):
+            continue
+        if gpu_id and gpu.get("id") == gpu_id:
+            target_gpu = gpu
+            break
+        if not gpu_id:
+            mem = gpu.get("memory_gb", 0)
+            if mem is not None and float(mem) == float(gpu_mem_gb):
+                target_gpu = gpu
+                break
+    if not target_gpu:
+        return None
+    return _price_from_gpu_entry(target_gpu)
+
+
+def _lookup_gpu_price_usd(
+    gpu_id: Optional[str],
+    gpu_mem_gb: float,
+    custom_catalog: Optional[list] = None,
+) -> Optional[float]:
+    """
+    Поиск цены GPU (USD). Сначала в custom_catalog (если передан), иначе в gpu_data.json.
+    """
+    if custom_catalog:
+        price = _lookup_gpu_price_in_catalog(custom_catalog, gpu_id, gpu_mem_gb)
+        if price is not None:
+            return price
+
+    gpu_data_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
+    try:
+        with open(gpu_data_path, "r", encoding="utf-8") as f:
+            gpu_data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+    target_gpu = None
+    for gpu in gpu_data:
+        if gpu_id and gpu.get("id") == gpu_id:
+            target_gpu = gpu
+            break
+        if not gpu_id:
+            mem = gpu.get("memory_gb", 0)
+            if mem and float(mem) == float(gpu_mem_gb):
+                target_gpu = gpu
+                break
+
+    if not target_gpu:
+        return None
+    return _price_from_gpu_entry(target_gpu)
 
 
 def run_sizing(inp: SizingInput) -> SizingOutput:
@@ -499,6 +574,17 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     # ── Section 7: Итоговое количество серверов ──
     servers_final = max(servers_mem, servers_comp)
 
+    # ── Cost estimate (from GPU catalog price: custom catalog или gpu_data.json) ──
+    custom_catalog_list = None
+    if getattr(inp, "custom_gpu_catalog", None) is not None:
+        raw = inp.custom_gpu_catalog
+        custom_catalog_list = raw if isinstance(raw, list) else list(raw.values()) if isinstance(raw, dict) else None
+    price_per_gpu = _lookup_gpu_price_usd(inp.gpu_id, inp.gpu_mem_gb, custom_catalog_list)
+    cost_estimate_usd = (
+        round(servers_final * inp.gpus_per_server * price_per_gpu, 2)
+        if price_per_gpu is not None and price_per_gpu > 0 else None
+    )
+
     return SizingOutput(
         # Section 2
         Ssim_concurrent_sessions=Ssim,
@@ -537,6 +623,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         gpu_id=inp.gpu_id,
         gpu_mem_gb=inp.gpu_mem_gb,
         gpus_per_server=inp.gpus_per_server,
+        cost_estimate_usd=cost_estimate_usd,
     )
 
 
@@ -571,9 +658,15 @@ async def startup_event():
 
     logger.info("🚀 Запуск AI Server Calculator API...")
 
-    # Запускаем обновление GPU данных при старте
-    logger.info("🔄 Первоначальное обновление данных GPU...")
-    refresh_gpu_data_internal()
+    # При старте: скрапим только если gpu_data.json не существует.
+    # Если файл уже есть — используем его как есть.
+    # Обновление по расписанию или вручную через /v1/gpus/refresh.
+    gpu_data_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
+    if not os.path.exists(gpu_data_path):
+        logger.info("🔄 Файл gpu_data.json не найден, запускаем первичный скрапинг...")
+        refresh_gpu_data_internal()
+    else:
+        logger.info("📂 Используем существующий gpu_data.json")
 
     # Запускаем планировщик для автоматического обновления
     scheduler = start_scheduler()
@@ -731,15 +824,20 @@ def _load_gpu_catalog_for_optimize(min_memory_gb: float = 0,
 
     gpu_id_set = set(gpu_ids) if gpu_ids else None
 
-    results = []
-    seen = set()  # дедупликация по (memory_gb, tflops) для ускорения
+    # gpu_data is a list (array) of normalized GPU entries
+    gpu_list = gpu_data if isinstance(gpu_data, list) else list(gpu_data.values())
 
-    for gpu_id, gpu_info in gpu_data.items():
+    results = []
+    seen = set()
+
+    for gpu_info in gpu_list:
+        gpu_id = gpu_info.get("id", "")
+
         # Фильтр по конкретным ID
         if gpu_id_set is not None and gpu_id not in gpu_id_set:
             continue
 
-        # Memory (normalized field)
+        # Memory
         memory_gb = gpu_info.get("memory_gb")
         if not memory_gb or float(memory_gb) <= 0:
             continue
@@ -754,7 +852,7 @@ def _load_gpu_catalog_for_optimize(min_memory_gb: float = 0,
             if not any(v.lower() == vendor.lower() for v in vendors):
                 continue
 
-        # Launch date filter (skip old GPUs unless specific IDs requested)
+        # Launch date filter
         if gpu_id_set is None:
             launch_date = gpu_info.get("launch_date")
             if launch_date:
@@ -767,20 +865,20 @@ def _load_gpu_catalog_for_optimize(min_memory_gb: float = 0,
             else:
                 continue
 
-        # TFLOPS (normalized: fp16 preferred, fallback fp32)
+        # TFLOPS
         tflops = _extract_gpu_tflops(gpu_info)
         if tflops <= 0:
             continue
 
-        # Model name
         model_name = gpu_info.get("model_name") or "Unknown"
         full_name = f"{vendor} {model_name}".strip()
 
-        # Дедупликация по (memory, tflops) — одинаковые характеристики дают одинаковый результат
         dedup_key = (int(memory_gb), round(tflops, 1))
         if dedup_key in seen:
             continue
         seen.add(dedup_key)
+
+        price = _price_from_gpu_entry(gpu_info)
 
         results.append({
             "id": gpu_id,
@@ -788,6 +886,7 @@ def _load_gpu_catalog_for_optimize(min_memory_gb: float = 0,
             "memory_gb": int(memory_gb),
             "tflops": tflops,
             "vendor": vendor,
+            "price_usd": price,
         })
 
     return results
@@ -797,9 +896,11 @@ def _score_config(mode: OptimizationMode,
                   servers_final: int,
                   total_gpus: int,
                   th_server_comp: float,
+                  cost: Optional[float],
                   all_servers: list,
                   all_gpus: list,
-                  all_throughputs: list) -> float:
+                  all_throughputs: list,
+                  all_costs: list) -> float:
     """
     Вычислить скор конфигурации для ранжирования.
 
@@ -807,19 +908,23 @@ def _score_config(mode: OptimizationMode,
     """
     if mode == OptimizationMode.min_servers:
         return servers_final * 1000 + total_gpus
-    elif mode == OptimizationMode.min_total_gpus:
-        return total_gpus * 1000 + servers_final
+    elif mode == OptimizationMode.min_cost:
+        if cost is not None:
+            return cost * 1000 + total_gpus
+        # No price available — push to the end
+        return float('inf')
     elif mode == OptimizationMode.max_performance:
-        # Больше throughput = лучше → инвертируем
         return -th_server_comp * 1000 + servers_final
     else:  # balanced
-        # Нормализуем по диапазонам всех валидных результатов
         min_s = min(all_servers) if all_servers else 1
         max_s = max(all_servers) if all_servers else 1
         min_g = min(all_gpus) if all_gpus else 1
         max_g = max(all_gpus) if all_gpus else 1
         min_t = min(all_throughputs) if all_throughputs else 0.001
         max_t = max(all_throughputs) if all_throughputs else 0.001
+        costs_valid = [c for c in all_costs if c is not None]
+        min_c = min(costs_valid) if costs_valid else 0
+        max_c = max(costs_valid) if costs_valid else 0
 
         def norm(val, lo, hi):
             if hi == lo:
@@ -828,8 +933,9 @@ def _score_config(mode: OptimizationMode,
 
         ns = norm(servers_final, min_s, max_s)
         ng = norm(total_gpus, min_g, max_g)
-        nt = 1.0 - norm(th_server_comp, min_t, max_t)  # Инвертируем: больше throughput лучше
-        return 0.4 * ns + 0.3 * ng + 0.3 * nt
+        nt = 1.0 - norm(th_server_comp, min_t, max_t)
+        nc = norm(cost, min_c, max_c) if cost is not None and max_c > min_c else 0.5
+        return 0.3 * ns + 0.2 * ng + 0.25 * nt + 0.25 * nc
 
 
 @app.post("/v1/auto-optimize", response_model=AutoOptimizeResponse, tags=["Sizing"])
@@ -941,6 +1047,12 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
                     if inp.max_servers and servers > inp.max_servers:
                         continue
 
+                    gpu_price = gpu.get("price_usd")
+                    total_cost = (
+                        round(servers * gps * gpu_price, 2)
+                        if gpu_price is not None else None
+                    )
+
                     raw_results.append({
                         "gpu": gpu,
                         "Z": Z,
@@ -950,6 +1062,8 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
                         "servers": servers,
                         "total_gpus": total_gpus_count,
                         "th_server": result.th_server_comp,
+                        "gpu_price": gpu_price,
+                        "total_cost": total_cost,
                         "sizing_input_dict": sizing_inp.dict(),
                     })
 
@@ -964,11 +1078,13 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
     all_servers = [r["servers"] for r in raw_results]
     all_gpus = [r["total_gpus"] for r in raw_results]
     all_throughputs = [r["th_server"] for r in raw_results]
+    all_costs = [r["total_cost"] for r in raw_results]
 
     for r in raw_results:
         r["score"] = _score_config(
             inp.mode, r["servers"], r["total_gpus"], r["th_server"],
-            all_servers, all_gpus, all_throughputs,
+            r["total_cost"],
+            all_servers, all_gpus, all_throughputs, all_costs,
         )
 
     # Сортировка по скору
@@ -1010,6 +1126,8 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
             sessions_per_server=r["result"].sessions_per_server,
             instances_per_server_tp=r["result"].instances_per_server_tp,
             th_server_comp=round(r["result"].th_server_comp, 4),
+            gpu_price_usd=r["gpu_price"],
+            cost_estimate_usd=r["total_cost"],
             sizing_input=r["sizing_input_dict"],
         ))
 
@@ -1094,9 +1212,11 @@ def get_gpus(
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="GPU data not found. Run /v1/gpus/refresh first.")
 
-    # Фильтрация данных (normalized catalog)
+    # Фильтрация данных (normalized catalog — JSON array)
     filtered_gpus = []
-    for gpu_id, gpu_info in gpu_data.items():
+    for gpu_info in gpu_data:
+        gpu_id = gpu_info.get("id", "")
+
         # Vendor filter
         gpu_vendor = gpu_info.get("vendor", "Unknown")
         if vendor and gpu_vendor.lower() != vendor.lower():
@@ -1145,6 +1265,13 @@ def get_gpus(
         tdp_val = gpu_info.get("tdp_watts")
         tdp_str = f"{int(tdp_val)} W" if tdp_val else "Unknown"
 
+        price_usd = gpu_info.get("price_usd")
+        if price_usd is not None:
+            try:
+                price_usd = float(price_usd)
+            except (TypeError, ValueError):
+                price_usd = None
+
         gpu = GPUInfo(
             id=gpu_id,
             vendor=gpu_vendor,
@@ -1158,6 +1285,7 @@ def get_gpus(
             full_name=full_name,
             tdp_watts=tdp_str,
             tflops=_extract_gpu_tflops(gpu_info) or None,
+            price_usd=price_usd,
         )
         filtered_gpus.append(gpu)
 
@@ -1213,10 +1341,9 @@ def get_gpu_details(gpu_id: str):
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="GPU data not found")
 
-    if gpu_id not in gpu_data:
+    gpu_info = next((g for g in gpu_data if g.get("id") == gpu_id), None)
+    if gpu_info is None:
         raise HTTPException(status_code=404, detail="GPU not found")
-
-    gpu_info = gpu_data[gpu_id]
 
     gpu_vendor = gpu_info.get("vendor", "Unknown")
     model_name = gpu_info.get("model_name") or "Unknown"
@@ -1224,6 +1351,13 @@ def get_gpu_details(gpu_id: str):
     mem_gb = gpu_info.get("memory_gb") or 0
     tdp_val = gpu_info.get("tdp_watts")
     tdp_str = f"{int(tdp_val)} W" if tdp_val else "Unknown"
+
+    price_usd = gpu_info.get("price_usd")
+    if price_usd is not None:
+        try:
+            price_usd = float(price_usd)
+        except (TypeError, ValueError):
+            price_usd = None
 
     return GPUInfo(
         id=gpu_id,
@@ -1238,6 +1372,7 @@ def get_gpu_details(gpu_id: str):
         full_name=full_name,
         tdp_watts=tdp_str,
         tflops=_extract_gpu_tflops(gpu_info) or None,
+        price_usd=price_usd,
     )
 
 
@@ -1297,7 +1432,7 @@ def get_gpu_stats():
     memory_ranges = {"0-4GB": 0, "4-8GB": 0, "8-16GB": 0, "16-32GB": 0, "32GB+": 0}
     year_ranges = {}
 
-    for gpu_info in gpu_data.values():
+    for gpu_info in gpu_data:
         # Вендоры (normalized: "vendor")
         v = gpu_info.get("vendor", "Unknown")
         vendors[v] = vendors.get(v, 0) + 1

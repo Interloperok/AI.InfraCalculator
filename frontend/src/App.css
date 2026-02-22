@@ -115,6 +115,24 @@ input[type="range"]::-moz-range-thumb {
   animation: download-glow 3s ease-in-out infinite;
 }
 
+/* Tour button — wave runs once, then 5s pause */
+@keyframes tour-wave {
+  0% {
+    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.45),
+                0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  }
+  16.67% {
+    box-shadow: 0 0 0 20px rgba(79, 70, 229, 0),
+                0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  }
+  16.68%, 100% {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  }
+}
+.tour-btn-pulse {
+  animation: tour-wave 6s ease-out infinite;
+}
+
 /* Docs drawer — slide in from right */
 @keyframes drawer-slide-in {
   from { transform: translateX(100%); }
@@ -126,34 +144,42 @@ input[type="range"]::-moz-range-thumb {
 
 /* ── Auto-Optimize toggle ── */
 
-/* OFF state: gentle attention-grabbing shimmer (purple) */
+/* OFF state: gentle attention-grabbing shimmer (purple), no long fade */
 @keyframes toggle-shimmer {
-  0%, 100% {
+  0%, 88% {
     box-shadow: 0 0 0 0 rgba(147, 51, 234, 0),
                 inset 0 0 0 0 rgba(147, 51, 234, 0);
   }
-  50% {
+  94% {
     box-shadow: 0 0 10px 3px rgba(147, 51, 234, 0.3),
                 inset 0 0 4px 0 rgba(147, 51, 234, 0.1);
   }
+  100% {
+    box-shadow: 0 0 0 0 rgba(147, 51, 234, 0),
+                inset 0 0 0 0 rgba(147, 51, 234, 0);
+  }
 }
 .toggle-shimmer {
-  animation: toggle-shimmer 2.5s ease-in-out infinite;
+  animation: toggle-shimmer 5s ease-in-out infinite;
 }
 
-/* ON state: electric glow */
+/* ON state: electric glow, no long fade */
 @keyframes toggle-electric {
-  0%, 100% {
+  0%, 88% {
     box-shadow: 0 0 6px 1px rgba(99, 102, 241, 0.35),
                 0 0 16px 4px rgba(99, 102, 241, 0.15);
   }
-  50% {
+  94% {
     box-shadow: 0 0 10px 3px rgba(99, 102, 241, 0.55),
                 0 0 28px 8px rgba(99, 102, 241, 0.25);
   }
+  100% {
+    box-shadow: 0 0 6px 1px rgba(99, 102, 241, 0.35),
+                0 0 16px 4px rgba(99, 102, 241, 0.15);
+  }
 }
 .toggle-electric {
-  animation: toggle-electric 2s ease-in-out infinite;
+  animation: toggle-electric 5s ease-in-out infinite;
 }
 
 /* Thumb: bolt zap on activation */
@@ -169,13 +195,14 @@ input[type="range"]::-moz-range-thumb {
   animation: bolt-zap 0.6s ease-out;
 }
 
-/* ON state: subtle continuous bolt glow */
+/* ON state: subtle continuous bolt glow, no long fade */
 @keyframes bolt-glow {
-  0%, 100% { filter: drop-shadow(0 0 1px rgba(250,204,21,0)); }
-  50%      { filter: drop-shadow(0 0 4px rgba(250,204,21,0.6)); }
+  0%, 88% { filter: drop-shadow(0 0 1px rgba(250,204,21,0)); }
+  94%     { filter: drop-shadow(0 0 4px rgba(250,204,21,0.6)); }
+  100%    { filter: drop-shadow(0 0 1px rgba(250,204,21,0)); }
 }
 .bolt-glow {
-  animation: bolt-glow 2s ease-in-out infinite;
+  animation: bolt-glow 5s ease-in-out infinite;
 }
 
 /* Spark particles on toggle activation */
