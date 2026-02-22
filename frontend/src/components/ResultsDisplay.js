@@ -101,7 +101,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
       )}
 
       {/* ── Cost Estimate (above) ── */}
-      <div data-tour="cost-estimate" className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-xl p-5 text-white shadow-lg flex items-center justify-between">
+      <div data-tour="cost-estimate" className="bg-gradient-to-br from-purple-600 to-violet-800 rounded-xl p-5 text-white shadow-lg flex items-center justify-between">
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-wider opacity-90">Cost Estimate</h3>
           <p className="text-3xl font-extrabold mt-1">

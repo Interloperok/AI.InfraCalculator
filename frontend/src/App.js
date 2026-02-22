@@ -318,17 +318,12 @@ function App() {
         </div>
       </div>
 
-      {/* Docs Drawer */}
+      {/* Docs Drawer — no overlay, rest of page stays interactive */}
       {docsOpen && (
-        <div className="fixed inset-0 z-[9999]">
-          {/* Overlay */}
+        <div className="fixed inset-0 z-[9999] pointer-events-none">
+          {/* Panel — only this receives clicks */}
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setDocsOpen(false)}
-          />
-          {/* Panel */}
-          <div
-            className="absolute right-0 top-0 h-full bg-white shadow-2xl flex flex-col docs-drawer"
+            className="absolute right-0 top-0 h-full bg-white shadow-2xl flex flex-col docs-drawer pointer-events-auto"
             style={{ width: Math.min(drawerWidth, window.innerWidth * 0.92) }}
           >
             {/* Drag handle — left edge */}
@@ -351,7 +346,8 @@ function App() {
               <div className="flex items-center gap-2">
                 {/* Open in Google Docs */}
                 <a
-                  href="https://docs.google.com/document/d/e/2PACX-1vRKlgJr0CsZhTEObcFnpBxWlAmHA1hscr0w6GDSnbcJRW-eCqhwkQOuP9pecS735w/pub"
+                  //href="https://docs.google.com/document/d/e/2PACX-1vRKlgJr0CsZhTEObcFnpBxWlAmHA1hscr0w6GDSnbcJRW-eCqhwkQOuP9pecS735w/pub"
+                  href="https://docs.google.com/document/d/1_H4QWAda19SFJbaHD4oHycYAh5TdECCr/edit?usp=sharing&ouid=114772934094426194553&rtpof=true&sd=true"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
@@ -378,7 +374,8 @@ function App() {
             {/* Iframe */}
             <div className="relative flex-1">
               <iframe
-                src="https://docs.google.com/document/d/e/2PACX-1vRKlgJr0CsZhTEObcFnpBxWlAmHA1hscr0w6GDSnbcJRW-eCqhwkQOuP9pecS735w/pub?embedded=true"
+                src="https://docs.google.com/document/d/1_H4QWAda19SFJbaHD4oHycYAh5TdECCr/preview?usp=sharing&ouid=114772934094426194553&rtpof=true&sd=true"
+                //src="https://docs.google.com/document/d/e/2PACX-1vRKlgJr0CsZhTEObcFnpBxWlAmHA1hscr0w6GDSnbcJRW-eCqhwkQOuP9pecS735w/pub?embedded=true"
                 title="Documentation"
                 className="absolute inset-0 w-full h-full border-0"
               />
