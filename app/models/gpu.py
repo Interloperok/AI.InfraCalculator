@@ -28,6 +28,7 @@ class GPUInfo(BaseModel):
     full_name: Optional[str] = Field(None, description="Полное название модели GPU (Vendor + Model)")
     tdp_watts: Optional[str] = Field(None, description="Тепловой пакет (TDP) в ваттах")
     tflops: Optional[float] = Field(None, description="Пиковая производительность Half Precision / Tensor Core (TFLOPS) для LLM-инференса")
+    price_usd: Optional[float] = Field(None, description="Цена в USD (MSRP)")
 
     class Config:
         json_schema_extra = {

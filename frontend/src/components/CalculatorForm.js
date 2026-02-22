@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import { getGPUs, searchGPUs } from '../services/api';
+import { getGPUs } from '../services/api';
 
 // ── Spark burst helper for toggle activation ──
 const useSparkBurst = () => {
@@ -407,12 +407,11 @@ const CalculatorForm = ({
   autoMode, setAutoMode,
   optimizeMode, setOptimizeMode,
   gpuFilter, onOpenGpuFilter,
+  onOpenGpuPicker,
+  gpuPickerResult,
+  onClearGpuPickerResult,
   appliedConfig, onAppliedConfigConsumed,
 }) => {
-  // State for GPU search
-  const [gpuSearch, setGpuSearch] = useState('');
-  const [gpuSearchResults, setGpuSearchResults] = useState([]);
-  const [isGpuSearching, setIsGpuSearching] = useState(false);
 
   // Initial form values based on the SizingInput (Methodology v2)
   const [formData, setFormData] = useState({
@@ -498,14 +497,29 @@ const CalculatorForm = ({
     loadGpuData();
   }, []);
 
-  // Handle GPU search when gpuSearch changes
+  // Handle GPU selection (used when applying from modal or elsewhere) — must be before useEffect that uses it
+  const handleGpuSelect = useCallback((gpu) => {
+    setSelectedGpu(gpu);
+    setFormData(prev => ({
+      ...prev,
+      gpu_id: gpu.id,
+      gpu_mem_gb: gpu.memory_gb,
+      gpus_per_server: gpu.recommended_gpus_per_server || 8,
+      gpu_flops_Fcount: gpu.tflops ?? prev.gpu_flops_Fcount,
+    }));
+  }, []);
+
+  // Apply GPU picked from modal (single-selection mode; modal passes full object)
   useEffect(() => {
-    if (gpuSearch.trim()) {
-      searchGPUsByQuery(gpuSearch);
-    } else {
-      setGpuSearchResults([]);
-    }
-  }, [gpuSearch]);
+    if (!gpuPickerResult || !onClearGpuPickerResult) return;
+    const gpu = {
+      ...gpuPickerResult,
+      recommended_gpus_per_server: gpuPickerResult.recommended_gpus_per_server ?? 8,
+      memory_size_formatted: gpuPickerResult.memory_size_formatted || `${gpuPickerResult.memory_gb} GB`,
+    };
+    handleGpuSelect(gpu);
+    onClearGpuPickerResult();
+  }, [gpuPickerResult, onClearGpuPickerResult, handleGpuSelect]);
 
   // Apply config from Auto-Optimize
   useEffect(() => {
@@ -525,7 +539,6 @@ const CalculatorForm = ({
           setSelectedGpu(appliedConfig._gpuInfo);
         }
         // Don't clear selectedModel — LLM model stays the same across configs
-        setGpuSearch('');
       }
       // Signal that we consumed the config
       if (onAppliedConfigConsumed) {
@@ -591,8 +604,6 @@ const CalculatorForm = ({
     setSelectedGpu(preset.gpu || null);
     setSelectedModel(preset.model || null);
     setSelectedPreset(preset.id);
-    setGpuSearch('');
-    setGpuSearchResults([]);
     setModelSearch('');
     setSearchResults([]);
   };
@@ -602,45 +613,6 @@ const CalculatorForm = ({
       ...prev,
       [sectionKey]: !prev[sectionKey]
     }));
-  };
-
-  // Handle GPU selection
-  const handleGpuSelect = (gpu) => {
-    setSelectedGpu(gpu);
-    setGpuSearch('');
-    setGpuSearchResults([]);
-
-    setFormData(prev => ({
-      ...prev,
-      gpu_id: gpu.id,
-      gpu_mem_gb: gpu.memory_gb,
-      gpus_per_server: gpu.recommended_gpus_per_server || 8,
-      // Auto-fill TFLOPS from GPU catalog (Half Precision / Tensor Core)
-      gpu_flops_Fcount: gpu.tflops || prev.gpu_flops_Fcount,
-    }));
-  };
-
-  // Function to search for GPUs using the API service
-  const searchGPUsByQuery = async (query) => {
-    if (!query.trim()) {
-      setGpuSearchResults([]);
-      return;
-    }
-
-    setIsGpuSearching(true);
-    try {
-      const data = await searchGPUs(query, { per_page: 10 });
-      if (data && data.gpus) {
-        setGpuSearchResults(data.gpus);
-      } else {
-        setGpuSearchResults([]);
-      }
-    } catch (error) {
-      console.error('Error searching for GPUs:', error);
-      setGpuSearchResults([]);
-    } finally {
-      setIsGpuSearching(false);
-    }
   };
 
   // Function to search for models on Hugging Face
@@ -1006,60 +978,36 @@ const CalculatorForm = ({
             </button>
           </div>
         ) : (
-          <div className="mb-4 relative">
+          <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-              Search GPU
-              <InfoTooltip text="Search the GPU catalog by name (e.g. A100, H100, RTX 4090). Memory and compute specs will be filled in automatically." />
+              GPU
+              <InfoTooltip text="Open the catalog to choose one GPU. Memory and compute specs will be filled in automatically." />
             </label>
-            <input
-              type="text"
-              value={gpuSearch}
-              onChange={(e) => setGpuSearch(e.target.value)}
-              placeholder="Search for a GPU (e.g., RTX, A100, etc.)"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            />
-
-            {isGpuSearching && (
-              <div className="absolute right-3 top-2">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-              </div>
-            )}
-
-            {gpuSearchResults.length > 0 && (
-              <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto">
-                {gpuSearchResults.map((gpu, index) => (
-                  <div
-                    key={gpu.id}
-                    onClick={() => handleGpuSelect(gpu)}
-                    className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 cursor-pointer border-b border-gray-100 last:border-b-0"
-                  >
-                    <div className="font-medium">{gpu.full_name || `${gpu.vendor} ${gpu.model}`}</div>
-                    <div className="text-xs text-gray-500">
-                      Memory: {gpu.memory_size_formatted || `${gpu.memory_gb} GB`} |
-                      TDP: {gpu.tdp_watts || 'Unknown W'} |
-                      Cores: {gpu.cores || 'Unknown'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
+            <button
+              type="button"
+              onClick={() => onOpenGpuPicker(selectedGpu?.id)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-400 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              {selectedGpu ? (selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`) : 'Select GPU'}
+            </button>
             {selectedGpu && (
-              <div className="mt-4">
-                <div className="p-3 bg-purple-50 border-2 border-purple-400 rounded-md shadow-sm">
-                  <div className="flex items-center">
-                    <svg className="w-5 h-5 text-purple-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-purple-700 uppercase tracking-wide mb-0.5">Selected GPU</div>
-                      <div className="text-sm font-semibold text-purple-900">
-                        {selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`}
-                        <span className="text-purple-700 font-normal ml-1">
-                          ({selectedGpu.memory_size_formatted || `${selectedGpu.memory_gb} GB`})
-                          {selectedGpu.tflops ? ` | ${selectedGpu.tflops} TFLOPS` : ''}
-                        </span>
-                      </div>
+              <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-purple-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-purple-700 uppercase tracking-wide mb-0.5">Selected GPU</div>
+                    <div className="text-sm font-semibold text-purple-900">
+                      {selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`}
+                      <span className="text-purple-700 font-normal ml-1">
+                        ({selectedGpu.memory_size_formatted || `${selectedGpu.memory_gb} GB`})
+                        {selectedGpu.tflops ? ` | ${selectedGpu.tflops} TFLOPS` : ''}
+                      </span>
                     </div>
                   </div>
                 </div>

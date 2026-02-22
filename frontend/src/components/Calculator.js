@@ -22,6 +22,9 @@ const Calculator = () => {
   const [optimizeLoading, setOptimizeLoading] = useState(false);
   const [gpuFilter, setGpuFilter] = useState([]);
   const [gpuModalOpen, setGpuModalOpen] = useState(false);
+  const [gpuModalMode, setGpuModalMode] = useState('filter'); // 'filter' | 'picker'
+  const [gpuPickerInitialId, setGpuPickerInitialId] = useState(null);
+  const [gpuPickerResult, setGpuPickerResult] = useState(null); // { id, ... } or null when applied from picker
 
   // ── Custom GPU catalog state (persisted in localStorage) ──
   const [customCatalog, setCustomCatalog] = useState(() => {
@@ -306,7 +309,14 @@ const Calculator = () => {
             optimizeMode={optimizeMode}
             setOptimizeMode={setOptimizeMode}
             gpuFilter={gpuFilter}
-            onOpenGpuFilter={() => setGpuModalOpen(true)}
+            onOpenGpuFilter={() => { setGpuModalMode('filter'); setGpuModalOpen(true); }}
+            onOpenGpuPicker={(selectedGpuId) => {
+              setGpuPickerInitialId(selectedGpuId || null);
+              setGpuModalMode('picker');
+              setGpuModalOpen(true);
+            }}
+            gpuPickerResult={gpuPickerResult}
+            onClearGpuPickerResult={() => setGpuPickerResult(null)}
             appliedConfig={appliedConfig}
             onAppliedConfigConsumed={handleAppliedConfigConsumed}
           />
@@ -388,12 +398,22 @@ const Calculator = () => {
         </>
       )}
 
-      {/* GPU Filter Modal */}
+      {/* GPU Filter / Picker Modal */}
       <GpuFilterModal
         isOpen={gpuModalOpen}
         onClose={() => setGpuModalOpen(false)}
-        selectedGpuIds={gpuFilter}
-        onApply={handleGpuFilterApply}
+        selectedGpuIds={gpuModalMode === 'picker' ? (gpuPickerInitialId ? [gpuPickerInitialId] : []) : gpuFilter}
+        onApply={(ids, singleGpuObj) => {
+          if (gpuModalMode === 'picker') {
+            setGpuPickerResult(singleGpuObj || null);
+          } else {
+            handleGpuFilterApply(ids);
+          }
+          setGpuModalOpen(false);
+        }}
+        singleSelection={gpuModalMode === 'picker'}
+        modalTitle="Select GPU"
+        modalSubtitle="Choose one GPU for calculation"
         customCatalog={customCatalog}
         customCatalogName={customCatalogName}
         useCustomCatalog={useCustomCatalog}

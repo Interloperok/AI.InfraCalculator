@@ -1158,6 +1158,13 @@ def get_gpus(
         tdp_val = gpu_info.get("tdp_watts")
         tdp_str = f"{int(tdp_val)} W" if tdp_val else "Unknown"
 
+        price_usd = gpu_info.get("price_usd")
+        if price_usd is not None:
+            try:
+                price_usd = float(price_usd)
+            except (TypeError, ValueError):
+                price_usd = None
+
         gpu = GPUInfo(
             id=gpu_id,
             vendor=gpu_vendor,
@@ -1171,6 +1178,7 @@ def get_gpus(
             full_name=full_name,
             tdp_watts=tdp_str,
             tflops=_extract_gpu_tflops(gpu_info) or None,
+            price_usd=price_usd,
         )
         filtered_gpus.append(gpu)
 
@@ -1237,6 +1245,13 @@ def get_gpu_details(gpu_id: str):
     tdp_val = gpu_info.get("tdp_watts")
     tdp_str = f"{int(tdp_val)} W" if tdp_val else "Unknown"
 
+    price_usd = gpu_info.get("price_usd")
+    if price_usd is not None:
+        try:
+            price_usd = float(price_usd)
+        except (TypeError, ValueError):
+            price_usd = None
+
     return GPUInfo(
         id=gpu_id,
         vendor=gpu_vendor,
@@ -1250,6 +1265,7 @@ def get_gpu_details(gpu_id: str):
         full_name=full_name,
         tdp_watts=tdp_str,
         tflops=_extract_gpu_tflops(gpu_info) or None,
+        price_usd=price_usd,
     )
 
 
