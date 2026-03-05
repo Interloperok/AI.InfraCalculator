@@ -30,12 +30,14 @@ class SizingInput(BaseModel):
     # ── Section 3.1: Model ──
     params_billions: confloat(gt=0) = Field(..., description="Параметры модели в миллиардах (P)")
     bytes_per_param: confloat(gt=0) = Field(..., description="Байт на параметр (Bquant): FP8→1, FP16→2, FP32→4")
-    overhead_factor: confloat(ge=1.0) = Field(default=1.15, description="Коэф. накладных расходов (Koverhead, 1.1-1.2)")
+    safe_margin: confloat(ge=0.0) = Field(default=5.0, description="Безопасный отступ по памяти (SM, GiB). Учитывает буферы фреймворка, фрагментацию, CUDA-графы и пр.")
     emp_model: confloat(ge=1.0) = Field(default=1.0, description="Коэф. поправки на практич. память модели (EMPmodel, 1.0-1.15)")
     layers_L: conint(gt=0) = Field(..., description="Число слоёв модели (L)")
     hidden_size_H: conint(gt=0) = Field(..., description="Размер скрытого состояния (H)")
 
     # ── Section 3.2: KV-cache ──
+    num_kv_heads: conint(gt=0) = Field(default=32, description="Количество голов KV-кэша (Nkv). Для GQA/MQA < num_attention_heads")
+    num_attention_heads: conint(gt=0) = Field(default=32, description="Количество голов внимания трансформера (Nattention)")
     bytes_per_kv_state: confloat(gt=0) = Field(default=2, description="Байт на значение KV (Bstate): FP8→1, FP16→2, FP32→4")
     emp_kv: confloat(ge=1.0) = Field(default=1.0, description="Коэф. поправки на практич. KV-кэш (EMPkv, 1.0-1.2)")
     max_context_window_TSmax: conint(gt=0) = Field(..., description="Макс. контекстное окно модели (TSmax)")
@@ -58,6 +60,10 @@ class SizingInput(BaseModel):
     # ── Section 6.4: SLA ──
     rps_per_session_R: confloat(gt=0) = Field(default=0.02, description="Запросов/сек на сессию (R, чат ≈ 0.017-0.033)")
     sla_reserve_KSLA: confloat(gt=0) = Field(default=1.25, description="Коэф. запаса для SLA (KSLA, 1.25-2.0)")
+
+    # ── Section 7: SLA validation (TTFT & e2eLatency targets) ──
+    ttft_sla: Optional[confloat(gt=0)] = Field(default=None, description="Целевой TTFT по SLA (сек). Если задан — выполняется проверка")
+    e2e_latency_sla: Optional[confloat(gt=0)] = Field(default=None, description="Целевой e2eLatency по SLA (сек). Если задан — выполняется проверка")
 
     # ── Optional: пользовательский каталог GPU (для расчёта Cost Estimate по ценам из каталога) ──
     custom_gpu_catalog: Optional[Union[List[Dict[str, Any]], Dict[str, Any]]] = Field(
@@ -82,10 +88,12 @@ class SizingInput(BaseModel):
                 "dialog_turns": 5,
                 "params_billions": 7,
                 "bytes_per_param": 2,
-                "overhead_factor": 1.15,
+                "safe_margin": 5.0,
                 "emp_model": 1.0,
                 "layers_L": 32,
                 "hidden_size_H": 4096,
+                "num_kv_heads": 32,
+                "num_attention_heads": 32,
                 "bytes_per_kv_state": 2,
                 "emp_kv": 1.0,
                 "max_context_window_TSmax": 32768,
@@ -142,7 +150,18 @@ class SizingOutput(BaseModel):
     th_server_comp: float = Field(..., description="Пропускная способность сервера (req/sec)")
     servers_by_compute: int = Field(..., description="Серверов по вычислениям (Servers_comp)")
 
-    # ── Section 7: Final ──
+    # ── Section 7: SLA validation ──
+    ttft_analyt: Optional[float] = Field(None, description="Расчётный TTFT (сек)")
+    generation_time_analyt: Optional[float] = Field(None, description="Расчётное время генерации (сек)")
+    e2e_latency_analyt: Optional[float] = Field(None, description="Расчётный e2eLatency (сек)")
+    ttft_sla_target: Optional[float] = Field(None, description="Целевой TTFT по SLA (сек)")
+    e2e_latency_sla_target: Optional[float] = Field(None, description="Целевой e2eLatency по SLA (сек)")
+    ttft_sla_pass: Optional[bool] = Field(None, description="TTFT проходит SLA?")
+    e2e_latency_sla_pass: Optional[bool] = Field(None, description="e2eLatency проходит SLA?")
+    sla_passed: Optional[bool] = Field(None, description="Все SLA проверки пройдены?")
+    sla_recommendations: Optional[List[str]] = Field(None, description="Рекомендации при невыполнении SLA (Приложение Б)")
+
+    # ── Section 8: Final ──
     servers_final: int = Field(..., description="Итоговое количество серверов")
 
     # ── Context ──
@@ -227,7 +246,7 @@ class WhatIfRequest(BaseModel):
                     "dialog_turns": 5,
                     "params_billions": 7,
                     "bytes_per_param": 2,
-                    "overhead_factor": 1.15,
+                    "safe_margin": 5.0,
                     "emp_model": 1.0,
                     "layers_L": 32,
                     "hidden_size_H": 4096,
@@ -274,8 +293,9 @@ class OptimizationMode(str, Enum):
     """Режим оптимизации"""
     min_servers = "min_servers"
     min_cost = "min_cost"
-    balanced = "balanced"
     max_performance = "max_performance"
+    best_sla = "best_sla"
+    balanced = "balanced"
 
 
 class AutoOptimizeInput(BaseModel):
@@ -290,7 +310,7 @@ class AutoOptimizeInput(BaseModel):
     params_billions: confloat(gt=0) = Field(..., description="Параметры модели в миллиардах (P)")
     layers_L: conint(gt=0) = Field(..., description="Число слоёв модели (L)")
     hidden_size_H: conint(gt=0) = Field(..., description="Размер скрытого состояния (H)")
-    overhead_factor: confloat(ge=1.0) = Field(default=1.15, description="Коэф. накладных расходов")
+    safe_margin: confloat(ge=0.0) = Field(default=5.0, description="Безопасный отступ по памяти (SM, GiB)")
     emp_model: confloat(ge=1.0) = Field(default=1.0, description="Коэф. поправки на память модели")
 
     # ── Users & behavior ──
@@ -310,6 +330,8 @@ class AutoOptimizeInput(BaseModel):
     dialog_turns: conint(gt=0) = Field(default=5, description="Ходов диалога")
 
     # ── KV-cache ──
+    num_kv_heads: conint(gt=0) = Field(default=32, description="Кол-во голов KV-кэша (Nkv)")
+    num_attention_heads: conint(gt=0) = Field(default=32, description="Кол-во голов внимания (Nattention)")
     bytes_per_kv_state: confloat(gt=0) = Field(default=2, description="Байт на KV")
     emp_kv: confloat(ge=1.0) = Field(default=1.0, description="Поправка KV")
     max_context_window_TSmax: conint(gt=0) = Field(default=32768, description="Макс. контекст")
@@ -317,6 +339,8 @@ class AutoOptimizeInput(BaseModel):
     # ── SLA ──
     rps_per_session_R: confloat(gt=0) = Field(default=0.02, description="req/s на сессию")
     sla_reserve_KSLA: confloat(gt=0) = Field(default=1.25, description="Запас SLA")
+    ttft_sla: Optional[confloat(gt=0)] = Field(default=None, description="Целевой TTFT по SLA (сек)")
+    e2e_latency_sla: Optional[confloat(gt=0)] = Field(default=None, description="Целевой e2eLatency по SLA (сек)")
 
     # ── Optional tuning ──
     kavail: confloat(gt=0.0, le=1.0) = Field(default=0.9, description="Доступная память GPU")

@@ -37,6 +37,9 @@ from main import (
     calc_Cmodel,
     calc_th_server_comp,
     calc_servers_by_compute,
+    calc_ttft,
+    calc_generation_time,
+    calc_e2e_latency,
     run_sizing,
 )
 from models.sizing import SizingInput
@@ -64,11 +67,13 @@ EXCEL_INPUT = dict(
     # Модель
     params_billions=32,
     bytes_per_param=2,
-    overhead_factor=1.1,          # K_overhead = 1.1 (Excel)
+    safe_margin=5.0,              # SM = 5 GiB (safe margin)
     emp_model=1.0,
     layers_L=64,
     hidden_size_H=4096,
     # KV-cache
+    num_kv_heads=32,
+    num_attention_heads=32,
     bytes_per_kv_state=2,
     emp_kv=1.0,
     max_context_window_TSmax=32768,
@@ -96,33 +101,33 @@ EXCEL_EXPECTED = dict(
     # Section 2
     Ssim=2500.0,
     T=1600.0,
-    # Section 3
-    Mmodel_gb=65.56510925,        # M_model = (32e9 × 2 / 1024³) × 1.1 × 1.0
+    # Section 3 (Mmodel = (P×10⁹×Bquant/1024³)×EMPmodel + SM)
+    Mmodel_gb=64.60464477539062,  # (32e9 × 2 / 1024³) × 1.0 + 5.0
     TS=4000.0,                    # SP + 5 × (200 + 0 + 400)
     SL=4000.0,                    # min(4000, 32768)
     MKV_gb=3.90625,               # 2 × 64 × 4096 × 4000 × 2 × 1 / 1024³
     # Section 4
     GPUcount_model=1,
     Ncount_model=8,
-    kv_free_base_gb=6.43489075,   # 1 × 80 × 0.9 − 65.565...
-    S_TP_min=1,                   # floor(6.435 / 3.906)
-    S_TP_Z=56,                    # floor(222.435 / 3.906)
-    Kbatch=9.333333333,           # (56/1) × ((1+10)/(56+10))
+    kv_free_base_gb=7.395355224609375,  # 1 × 80 × 0.9 − 64.605...
+    S_TP_min=1,                   # floor(7.395 / 3.906)
+    S_TP_Z=57,                    # floor(223.395 / 3.906)
+    Kbatch=9.35820895522388,      # (57/1) × ((1+10)/(57+10))
     # Section 5
     NcountTP=2,                   # floor(8 / (4 × 1))
-    Sserver=112,                  # 2 × 56
-    Servers_mem=23,               # ceil(2500 / 112)
+    Sserver=114,                  # 2 × 57
+    Servers_mem=22,               # ceil(2500 / 114)
     # Section 6
     FPS=64_000_000_000.0,         # 2 × 32 × 10⁹
     Tdec=400.0,                   # A + MRT = 400 + 0
     Fcount_model_tflops=312.0,    # 1 × 312
-    th_prefill=8540.302721,       # из Excel
-    th_decode=6385.638637,        # из Excel
-    Cmodel=1.883210673,           # 1 / (SL/Th_pf + Tdec/Th_dec)
-    th_server_comp=15.06568538,   # Ncount_model × Cmodel = 8 × 1.883
-    Servers_comp=5,               # ceil(2500 × 0.02 × 1.25 / 15.066)
-    # Section 7
-    Servers_final=23,
+    th_prefill=8563.064721739373, # аналитический расчёт
+    th_decode=6402.657929509471,  # аналитический расчёт
+    Cmodel=1.888229890920555,     # 1 / (SL/Th_pf + Tdec/Th_dec)
+    th_server_comp=3.77645978184111,   # NcountTP × Cmodel = 2 × 1.888 (изм.8)
+    Servers_comp=17,              # ceil(2500 × 0.02 × 1.25 / 3.776)
+    # Section 8
+    Servers_final=22,
 )
 
 
@@ -146,7 +151,7 @@ class TestSection3Memory:
     """Раздел 3: Память GPU"""
 
     def test_model_memory(self):
-        result = calc_model_mem_gb(32, 2, 1.1, 1.0)
+        result = calc_model_mem_gb(32, 2, 1.0, 5.0)
         assert result == pytest.approx(EXCEL_EXPECTED["Mmodel_gb"], rel=1e-6)
 
     def test_session_context_TS(self):
@@ -163,7 +168,7 @@ class TestSection3Memory:
         assert result == 32768
 
     def test_kv_per_session(self):
-        result = calc_kv_per_session_gb(64, 4096, 4000, 2, 1.0)
+        result = calc_kv_per_session_gb(64, 4096, 4000, 2, 1.0, 32, 32)
         assert result == pytest.approx(EXCEL_EXPECTED["MKV_gb"], rel=1e-6)
 
 
@@ -171,7 +176,7 @@ class TestSection4GpuTP:
     """Раздел 4: GPU и Tensor Parallelism"""
 
     def test_gpus_per_instance(self):
-        result = calc_gpus_per_instance(65.565, 80, 0.9)
+        result = calc_gpus_per_instance(EXCEL_EXPECTED["Mmodel_gb"], 80, 0.9)
         assert result == EXCEL_EXPECTED["GPUcount_model"]
 
     def test_instances_per_server(self):
@@ -198,7 +203,7 @@ class TestSection4GpuTP:
         assert result == EXCEL_EXPECTED["S_TP_Z"]
 
     def test_Kbatch(self):
-        result = calc_Kbatch(56, 1, 10)
+        result = calc_Kbatch(EXCEL_EXPECTED["S_TP_Z"], EXCEL_EXPECTED["S_TP_min"], 10)
         assert result == pytest.approx(EXCEL_EXPECTED["Kbatch"], rel=1e-6)
 
     def test_Kbatch_no_tp(self):
@@ -215,11 +220,11 @@ class TestSection5ServersByMemory:
         assert result == EXCEL_EXPECTED["NcountTP"]
 
     def test_sessions_per_server(self):
-        result = calc_sessions_per_server(2, 56)
+        result = calc_sessions_per_server(EXCEL_EXPECTED["NcountTP"], EXCEL_EXPECTED["S_TP_Z"])
         assert result == EXCEL_EXPECTED["Sserver"]
 
     def test_servers_by_memory(self):
-        result = calc_servers_by_memory(2500, 112)
+        result = calc_servers_by_memory(EXCEL_EXPECTED["Ssim"], EXCEL_EXPECTED["Sserver"])
         assert result == EXCEL_EXPECTED["Servers_mem"]
 
 
@@ -237,7 +242,7 @@ class TestSection6Compute:
     def test_th_prefill_analyt(self):
         Fcount_flops = 312 * 1e12 * 1  # 312 TFLOPS × 1 GPU
         result = calc_th_prefill_analyt(
-            Fcount_flops, 0.20, 9.333333333,
+            Fcount_flops, 0.20, EXCEL_EXPECTED["Kbatch"],
             64e9, 64, 4096, 4000
         )
         assert result == pytest.approx(EXCEL_EXPECTED["th_prefill"], rel=1e-4)
@@ -245,28 +250,30 @@ class TestSection6Compute:
     def test_th_decode_analyt(self):
         Fcount_flops = 312 * 1e12 * 1
         result = calc_th_decode_analyt(
-            Fcount_flops, 0.15, 9.333333333,
+            Fcount_flops, 0.15, EXCEL_EXPECTED["Kbatch"],
             64e9, 64, 4096, 4000, 400
         )
         assert result == pytest.approx(EXCEL_EXPECTED["th_decode"], rel=1e-4)
 
     def test_Cmodel(self):
-        """Cmodel использует SL (не TS!) согласно Excel"""
+        """Cmodel использует SL (не TS!)"""
         result = calc_Cmodel(
-            4000,     # SL, не TS!
-            8540.302721,
+            4000,
+            EXCEL_EXPECTED["th_prefill"],
             400,
-            6385.638637
+            EXCEL_EXPECTED["th_decode"]
         )
         assert result == pytest.approx(EXCEL_EXPECTED["Cmodel"], rel=1e-4)
 
     def test_th_server_comp(self):
-        """Th_server = Ncount_model × Cmodel (раздел 6.3, Ncount_model из 4.2)"""
-        result = calc_th_server_comp(8, 1.883210673)
+        """Th_server = NcountTP × Cmodel (раздел 6.3, изм.8: N_model_TP=Z)"""
+        result = calc_th_server_comp(EXCEL_EXPECTED["NcountTP"], EXCEL_EXPECTED["Cmodel"])
         assert result == pytest.approx(EXCEL_EXPECTED["th_server_comp"], rel=1e-4)
 
     def test_servers_by_compute(self):
-        result = calc_servers_by_compute(2500, 0.02, 1.25, 15.06568538)
+        result = calc_servers_by_compute(
+            EXCEL_EXPECTED["Ssim"], 0.02, 1.25, EXCEL_EXPECTED["th_server_comp"]
+        )
         assert result == EXCEL_EXPECTED["Servers_comp"]
 
 
