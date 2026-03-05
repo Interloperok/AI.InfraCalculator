@@ -9,7 +9,7 @@
 
 The repository currently has mixed maturity across backend and frontend:
 
-- Backend uses `./app/requirements.txt` and does not yet use `pyproject.toml` + `uv.lock`.
+- Backend uses `./backend/requirements.txt` and does not yet use `pyproject.toml` + `uv.lock`.
 - Runtime references are inconsistent (`Python 3.10+` / `3.11`) across docs and deployment assets.
 - Pre-commit, CI workflows, and coverage thresholds are not yet standardized.
 - Frontend is JavaScript CRA with no strict TypeScript gate yet.

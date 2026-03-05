@@ -4,13 +4,13 @@ This plan is dependency-ordered and atomic (one milestone per commit).
 
 ## Detected Current State (from repository scan)
 
-- Repository structure: monorepo with backend in `./app`, frontend in `./frontend`, deployment files in `./docker-compose*.yml` and `./nginx/`.
+- Repository structure: monorepo with backend in `./backend`, frontend in `./frontend`, deployment files in `./docker-compose*.yml` and `./nginx/`.
 - Languages/frameworks:
   - Backend: Python + FastAPI + Pydantic + APScheduler + pandas/requests/openpyxl/lxml.
   - Frontend: React 18 (Create React App via `react-scripts`), Tailwind CSS, Recharts, Axios; JavaScript (no TypeScript config yet).
 - Existing Python packaging/tooling state:
-  - Uses `./app/requirements.txt`.
-  - No `./app/pyproject.toml`.
+  - Uses `./backend/requirements.txt`.
+  - No `./backend/pyproject.toml`.
   - No uv lockfile (`uv.lock`) yet.
   - No pre-commit config yet.
   - No centralized linter/type/test config files.
@@ -19,7 +19,7 @@ This plan is dependency-ordered and atomic (one milestone per commit).
   - No explicit project ESLint/Prettier config files committed.
   - No TypeScript config (`tsconfig.json`) at repo state scanned.
 - Tests and quality gates:
-  - Backend has existing tests in `./app/tests/test_sizing.py`.
+  - Backend has existing tests in `./backend/tests/test_sizing.py`.
   - Frontend has no source test files in `./frontend/src` at scan time.
   - No enforced coverage thresholds in current repo state.
   - No CI workflows (`.github/workflows`) at scan time.
@@ -30,7 +30,7 @@ This plan is dependency-ordered and atomic (one milestone per commit).
   - `LICENSE` exists (MIT).
   - Missing OSS community/release files (`CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, issue/PR templates, `CITATION.cff`).
 - Code structure risks identified:
-  - `./app/main.py` is monolithic and mixes math, API, scheduler, and data operations.
+  - `./backend/main.py` is monolithic and mixes math, API, scheduler, and data operations.
   - Python cache artifacts are tracked (`__pycache__`, `.pyc`) and should be removed from version control.
 - Environment note during scan:
   - Local scan environment had `python3`, `uv`, `node`, `npm`, and `docker` available.
@@ -52,7 +52,7 @@ This plan is dependency-ordered and atomic (one milestone per commit).
 
 2. **M02 — Repository Hygiene Guardrails**
    - Objective: Remove generated artifacts from version control and enforce ignore rules.
-   - Exact files/areas impacted (paths): `./.gitignore`, `./app/__pycache__/`, `./app/models/__pycache__/`, `./app/tests/__pycache__/`, `./.editorconfig`.
+   - Exact files/areas impacted (paths): `./.gitignore`, `./backend/__pycache__/`, `./backend/models/__pycache__/`, `./backend/tests/__pycache__/`, `./.editorconfig`.
    - Exact commands to run/verify locally:
      ```bash
      git ls-files | rg "__pycache__|\.pyc$"
@@ -62,16 +62,15 @@ This plan is dependency-ordered and atomic (one milestone per commit).
 
 3. **M03 — Rename Backend Directory (`app` -> `backend`)**
    - Objective: Align backend naming with OSS conventions by renaming `app` to `backend`.
-   - Exact files/areas impacted (paths): `./app/`, `./backend/`, `./docker-compose.yml`, `./docker-compose.prod.yml`, `./README.md`, `./docs/**/*.md`.
+   - Exact files/areas impacted (paths): `./backend/` (renamed from `app`), `./docker-compose.yml`, `./docker-compose.prod.yml`, `./README.md`, `./docs/**/*.md`.
    - Exact commands to run/verify locally:
      ```bash
      git mv app backend
      test -d backend
      ! test -d app
-     ! rg -n "(^|/)app/" README.md docker-compose*.yml docs
      docker compose config
      ```
-   - Done criteria: backend code lives under `./backend`, compose/docs references are updated, and no runtime path still depends on `./app`.
+   - Done criteria: backend code lives under `./backend`, compose/docs references are updated, and no runtime path still depends on `app`.
    - Risk/notes: Medium (path-only migration; no behavior changes).
 
 4. **M04 — Introduce Backend `pyproject.toml` (Metadata + Runtime Constraint)**

@@ -2,7 +2,7 @@ services:
   # Backend API сервис
   backend:
     build:
-      context: ./app
+      context: ./backend
       dockerfile: Dockerfile
     container_name: ai-server-calculator-backend
     ports:

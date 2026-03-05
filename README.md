@@ -43,31 +43,31 @@ docker-compose up --build
 
 ```
 AI.ServerCalculationApp/
-├── app/                    # FastAPI Backend
-│   ├── main.py            # Основной API сервер
-│   ├── models/             # Pydantic модели (новая структура)
-│   │   ├── __init__.py    # Импорты всех моделей
-│   │   ├── sizing.py      # Модели для расчета серверов
-│   │   ├── gpu.py         # Модели для GPU каталога
-│   │   └── README.md       # Документация моделей
-│   ├── gpu_scraper.py     # Скрапер GPU данных
-│   ├── requirements.txt   # Python зависимости
-│   ├── Dockerfile         # Docker конфигурация
-│   └── tests/             # Тесты
-├── frontend/              # React Frontend
+├── backend/                     # FastAPI Backend
+│   ├── main.py                # Основной API сервер
+│   ├── models/                # Pydantic модели (новая структура)
+│   │   ├── __init__.py      # Импорты всех моделей
+│   │   ├── sizing.py        # Модели для расчета серверов
+│   │   ├── gpu.py           # Модели для GPU каталога
+│   │   └── README.md        # Документация моделей
+│   ├── gpu_scraper.py         # Скрапер GPU данных
+│   ├── requirements.txt       # Python зависимости
+│   ├── Dockerfile             # Docker конфигурация
+│   └── tests/                 # Тесты
+├── frontend/                    # React Frontend
 │   ├── src/
-│   │   ├── components/    # React компоненты
-│   │   ├── services/      # API клиент
-│   │   └── App.js        # Главный компонент
-│   ├── package.json      # Node.js зависимости
-│   └── Dockerfile        # Docker конфигурация
-├── nginx/                 # Nginx конфигурация
-│   ├── nginx-site.conf   # Конфигурация сайта
-│   └── certbot-setup.sh  # Скрипт SSL
-├── docker-compose.yml     # Локальная разработка
-├── docker-compose.prod.yml # Production
-├── redeploy.sh           # Скрипт деплоя
-└── README.md             # Этот файл
+│   │   ├── components/      # React компоненты
+│   │   ├── services/        # API клиент
+│   │   └── App.js           # Главный компонент
+│   ├── package.json           # Node.js зависимости
+│   └── Dockerfile             # Docker конфигурация
+├── nginx/                       # Nginx конфигурация
+│   ├── nginx-site.conf        # Конфигурация сайта
+│   └── certbot-setup.sh       # Скрипт SSL
+├── docker-compose.yml           # Локальная разработка
+├── docker-compose.prod.yml      # Production
+├── redeploy.sh                  # Скрипт деплоя
+└── README.md                    # Этот файл
 ```
 
 ## 🛠️ Технологии
@@ -132,7 +132,7 @@ docker-compose down
 
 #### Backend
 ```bash
-cd app
+cd backend
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -251,7 +251,7 @@ lsof -i :8000
 ```
 
 ### Проблемы с CORS
-Backend настроен на разрешение всех origins. Для продакшена измените в `app/main.py`:
+Backend настроен на разрешение всех origins. Для продакшена измените в `backend/main.py`:
 ```python
 origins = [
     "http://localhost:3000",
@@ -311,7 +311,7 @@ docker-compose logs -f
 ## 📚 Дополнительная документация
 
 - [Методология расчета](METHODOLOGY_README.md)
-- [Backend документация](app/README.md)
+- [Backend документация](backend/README.md)
 - [Frontend документация](frontend/README.md)
 
 ## 🤝 Вклад в проект

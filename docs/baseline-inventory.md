@@ -40,7 +40,7 @@ Docker version 29.2.0, build 0b9d198
 
 Top-level directories (depth <= 2):
 
-- `./app`
+- `./backend`
 - `./frontend`
 - `./docs`
 - `./nginx`
@@ -48,10 +48,10 @@ Top-level directories (depth <= 2):
 
 Backend highlights:
 
-- Main API module: `./app/main.py` (monolithic).
-- Data/model scripts: `./app/gpu_scraper.py`, `./app/gpu_normalizer.py`, `./app/report_generator.py`.
-- Tests: `./app/tests/test_sizing.py`.
-- Packaging: `./app/requirements.txt`.
+- Main API module: `./backend/main.py` (monolithic).
+- Data/model scripts: `./backend/gpu_scraper.py`, `./backend/gpu_normalizer.py`, `./backend/report_generator.py`.
+- Tests: `./backend/tests/test_sizing.py`.
+- Packaging: `./backend/requirements.txt`.
 
 Frontend highlights:
 
@@ -79,7 +79,7 @@ Frontend highlights:
 
 1. Packaging inconsistency: backend still uses `requirements.txt` and mixed version constraints in docs/deploy assets.
 2. Determinism gap: no lockfile strategy for Python, no CI quality gates, no coverage thresholds.
-3. Architecture risk: `./app/main.py` mixes API layer + business math + scheduler + data operations.
+3. Architecture risk: `./backend/main.py` mixes API layer + business math + scheduler + data operations.
 4. Frontend maintainability gap: JavaScript-only, no strict typecheck gate.
 5. OSS release gap: missing contribution/governance/security/citation templates and policies.
 
