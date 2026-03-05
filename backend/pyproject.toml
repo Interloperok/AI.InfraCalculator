@@ -21,5 +21,66 @@ dependencies = [
   "uvicorn==0.35.0",
 ]
 
+[dependency-groups]
+dev = [
+  "coverage==7.11.2",
+  "hypothesis==6.147.0",
+  "mypy==1.18.2",
+  "pytest==9.0.2",
+  "pytest-cov==7.0.0",
+  "ruff==0.15.4",
+  "ty==0.0.20",
+  "types-requests==2.32.4.20250913",
+]
+
 [tool.uv]
 package = false
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+extend-exclude = [
+  "__pycache__",
+  "gpu_normalizer.py",
+  "gpu_scraper.py",
+  "main.py",
+  "models/sizing.py",
+  "report_generator.py",
+  "tests",
+]
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = ["E501"]
+
+[tool.ty.rules]
+deprecated = "ignore"
+
+[[tool.ty.overrides]]
+include = ["gpu_scraper.py", "main.py", "models/sizing.py", "tests/**"]
+
+[tool.ty.overrides.rules]
+all = "ignore"
+
+[tool.mypy]
+python_version = "3.14"
+warn_unused_configs = true
+exclude = "(^main\\.py$|^gpu_scraper\\.py$|^gpu_normalizer\\.py$|^report_generator\\.py$|^models/sizing\\.py$|^tests/)"
+
+[[tool.mypy.overrides]]
+module = ["models.sizing"]
+ignore_errors = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["."]
+
+[tool.coverage.run]
+branch = true
+source = ["."]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
