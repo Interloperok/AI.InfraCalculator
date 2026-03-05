@@ -30,7 +30,8 @@ services:
     environment:
       - REACT_APP_API_URL=http://localhost:8000
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - ai-calculator-network
     restart: unless-stopped
