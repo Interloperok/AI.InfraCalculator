@@ -12,31 +12,26 @@ FastAPI backend that calculates AI/LLM server capacity and compares â€œwhat-ifâ€
 
 ## Prerequisites
 
-- Python 3.10+
+- Python 3.14
+- uv
 - (Optional) Frontend running at http://localhost:3000 or http://localhost:5173
 
 ## Installation
 
 1) Go to the backend folder:
 ```bash
-cd app
+cd backend
 ```
 
-2) Create & activate a virtual environment:
+2) Sync the project environment:
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-```
-
-3) Install dependencies:
-```bash
-pip install -r requirements.txt
+uv sync --frozen --all-groups
 ```
 
 ## Run
 
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
+uv run uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 The API will be available at http://localhost:8000  

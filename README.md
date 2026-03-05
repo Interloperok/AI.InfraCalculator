@@ -76,7 +76,7 @@ AI.ServerCalculationApp/
 - **FastAPI** - современный веб-фреймворк для Python
 - **Pydantic** - валидация данных и схемы
 - **Uvicorn** - ASGI сервер
-- **Python 3.11** - язык программирования
+- **Python 3.14** - язык программирования
 - **Pandas** - обработка данных GPU
 - **Requests** - HTTP клиент для скрапинга
 - **APScheduler** - планировщик задач
@@ -133,10 +133,8 @@ docker-compose down
 #### Backend
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 8000
+uv sync --frozen --all-groups
+uv run uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 #### Frontend
