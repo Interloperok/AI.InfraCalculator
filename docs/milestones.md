@@ -9,7 +9,7 @@
 | M05 | Add uv lock | backend | med | M04 | `cd backend && uv lock && uv sync --frozen --all-groups` | `./backend/uv.lock`, `./backend/pyproject.toml` | `Lock backend dependencies with uv` | DONE |
 | M06 | Consolidate tool config | backend | med | M05 | `cd backend && uv run ruff check . && uv run ty check . && uv run mypy .` | `./backend/pyproject.toml` | `Configure ruff ty mypy pytest and coverage in pyproject` | DONE |
 | M07 | Standardize Python 3.14 docs/local | backend/docs | low | M04 | `rg -n "3\.14" ./README.md ./backend/README.md` | `./.python-version`, `./README.md`, `./backend/README.md` | `Align local workflow docs to Python 3.14` | DONE |
-| M08 | Dockerize backend with uv | backend/ci | med | M05,M07 | `docker compose build backend` | `./backend/Dockerfile` | `Use Python 3.14 and uv sync in backend image` | TODO |
+| M08 | Dockerize backend with uv | backend/ci | med | M05,M07 | `docker compose build backend` | `./backend/Dockerfile` | `Use Python 3.14 and uv sync in backend image` | DONE |
 | M09 | Align compose/deploy artifacts | ci/repo | low | M08 | `docker compose config` | `./docker-compose.yml`, `./docker-compose.prod.yml`, `./redeploy.sh` | `Update compose and deploy scripts for uv backend` | TODO |
 | M10 | Requirements migration bridge | backend/docs | low | M08 | `cd backend && uv export --frozen --format requirements-txt -o requirements.txt` | `./backend/requirements.txt`, `./backend/scripts/export_requirements.sh` | `Bridge requirements.txt to uv lock export` | TODO |
 | M11 | Pre-commit backend | repo/backend | low | M06 | `uvx pre-commit run --all-files` | `./.pre-commit-config.yaml` | `Add backend pre-commit quality hooks` | TODO |

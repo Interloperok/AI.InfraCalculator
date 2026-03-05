@@ -1,21 +1,26 @@
-# Используем официальный Python образ
-FROM python:3.11-slim
+FROM python:3.14-slim
 
-# Устанавливаем рабочую директорию
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
 WORKDIR /app
 
-# Копируем файл зависимостей
-COPY requirements.txt .
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем зависимости
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir uv==0.10.2
 
-# Копируем исходный код приложения
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+
 COPY . .
 
-# Открываем порт 8000
+ENV PATH="/app/.venv/bin:${PATH}"
+
 EXPOSE 8000
 
-# Команда для запуска приложения
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-
