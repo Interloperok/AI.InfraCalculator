@@ -74,13 +74,13 @@ def calc_T(SP, Prp, MRT, A):
 # Section 3: Память GPU
 # ═══════════════════════════════════════════════════════════
 
-def calc_model_mem_gb(params_b, bytes_per_param, overhead, emp_model):
+def calc_model_mem_gb(params_b, bytes_per_param, emp_model, safe_margin):
     """
     Раздел 3.1 — Память, требуемая для весов модели (GiB)
 
-    Mmodel = (P × 10⁹ × Bquant / 1024³) × Koverhead × EMPmodel
+    Mmodel = (P × 10⁹ × Bquant / 1024³) × EMPmodel + SM
     """
-    return (params_b * 1e9 * bytes_per_param / (1024 ** 3)) * overhead * emp_model
+    return (params_b * 1e9 * bytes_per_param / (1024 ** 3)) * emp_model + safe_margin
 
 
 def calc_session_context_TS(SP, Prp, MRT, A, dialog_turns):
@@ -103,13 +103,14 @@ def calc_SL(TS, TSmax):
     return min(TS, TSmax)
 
 
-def calc_kv_per_session_gb(L, H, SL, bytes_state, emp_kv):
+def calc_kv_per_session_gb(L, H, SL, bytes_state, emp_kv, num_kv_heads=32, num_attention_heads=32):
     """
     Раздел 3.2 — KV-кэш на 1 сессию (GiB)
 
-    MKV_s1 = 2 × L × H × SL × Bstate × EMPkv / 1024³
+    MKV_s1 = 2 × L × H × SL × Bstate × EMPkv × (Nkv / Nattention) / 1024³
     """
-    return (2 * L * H * SL * bytes_state * emp_kv) / (1024 ** 3)
+    kv_ratio = num_kv_heads / num_attention_heads if num_attention_heads > 0 else 1.0
+    return (2 * L * H * SL * bytes_state * emp_kv * kv_ratio) / (1024 ** 3)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -270,6 +271,37 @@ def calc_th_server_comp(Ncount_model, Cmodel):
     Th_server_comp = Ncount_model × Cmodel
     """
     return Ncount_model * Cmodel
+
+
+def calc_ttft(SL, th_pf, th_dec):
+    """
+    Раздел 7.1 — Time To First Token (TTFT)
+
+    TTFT_analyt = SL / Th_pf + 1 / Th_dec
+    """
+    if th_pf <= 0 or th_dec <= 0:
+        return float('inf')
+    return SL / th_pf + 1.0 / th_dec
+
+
+def calc_generation_time(T_out, th_dec):
+    """
+    Раздел 7.2 — Время генерации всех токенов
+
+    GenerationTime_analyt = T_out / Th_dec
+    """
+    if th_dec <= 0:
+        return float('inf')
+    return T_out / th_dec
+
+
+def calc_e2e_latency(ttft, generation_time):
+    """
+    Раздел 7.2 — End-to-end Latency
+
+    e2eLatency_analyt = TTFT_analyt + GenerationTime_analyt
+    """
+    return ttft + generation_time
 
 
 def calc_servers_by_compute(Ssim, R, KSLA, th_server_comp):
@@ -484,15 +516,18 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
 
     # ── Section 3.1: Mmodel — память для весов модели ──
     Mmodel = calc_model_mem_gb(inp.params_billions, inp.bytes_per_param,
-                               inp.overhead_factor, inp.emp_model)
+                               inp.emp_model, inp.safe_margin)
 
-    # ── Section 3.2: KV-кэш на 1 сессию ──
+    # ── Section 2.2: TS и SL — оценка длины контекста сессии ──
     TS = calc_session_context_TS(inp.system_prompt_tokens_SP, inp.user_prompt_tokens_Prp,
                                   inp.reasoning_tokens_MRT, inp.answer_tokens_A,
                                   inp.dialog_turns)
     SL = calc_SL(TS, inp.max_context_window_TSmax)
+
+    # ── Section 3.2: KV-кэш на 1 сессию ──
     MKV = calc_kv_per_session_gb(inp.layers_L, inp.hidden_size_H, SL,
-                                  inp.bytes_per_kv_state, inp.emp_kv)
+                                  inp.bytes_per_kv_state, inp.emp_kv,
+                                  inp.num_kv_heads, inp.num_attention_heads)
 
     # ── Section 4.1: GPU на 1 экземпляр модели ──
     GPUcount_model = calc_gpus_per_instance(Mmodel, inp.gpu_mem_gb, inp.kavail)
@@ -555,11 +590,9 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     Cmodel = calc_Cmodel(SL, th_pf, Tdec, th_dec)
 
     # ── Section 6.3: Пропускная способность сервера по compute ──
-    # Методика v2, раздел 6.3: Th_server_comp = Ncount_model × Cmodel
-    # Используется Ncount_model из раздела 4.2 (без учёта TP-множителя Z).
-    # Итоговое количество серверов = max(по памяти, по compute),
-    # поэтому при Z > 1 ограничение по памяти (NcountTP) доминирует.
-    th_server = calc_th_server_comp(Ncount_model, Cmodel)
+    # Методика v3, изм.8: Th_server_comp = N_model_TP=Z × Cmodel
+    # Используется NcountTP (с учётом TP-множителя Z) вместо Ncount_model.
+    th_server = calc_th_server_comp(NcountTP, Cmodel)
 
     # ── Section 6.4: Серверы по compute ──
     servers_comp = calc_servers_by_compute(Ssim, inp.rps_per_session_R,
@@ -571,7 +604,55 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
                    "Проверьте TFLOPS GPU, throughput или кол-во экземпляров на сервер."
         )
 
-    # ── Section 7: Итоговое количество серверов ──
+    # ── Section 7: Проверка конфигурации по TTFT и e2eLatency ──
+    # Изм.9: T_out удалён, используем Tdec (уже рассчитан в п.6.1)
+    ttft_analyt = calc_ttft(SL, th_pf, th_dec)
+    gen_time_analyt = calc_generation_time(Tdec, th_dec)
+    e2e_latency_analyt = calc_e2e_latency(ttft_analyt, gen_time_analyt)
+
+    ttft_sla_pass = None
+    e2e_latency_sla_pass = None
+    sla_passed = None
+
+    if inp.ttft_sla is not None:
+        ttft_sla_pass = inp.ttft_sla >= ttft_analyt
+    if inp.e2e_latency_sla is not None:
+        e2e_latency_sla_pass = inp.e2e_latency_sla >= e2e_latency_analyt
+
+    checks = [v for v in (ttft_sla_pass, e2e_latency_sla_pass) if v is not None]
+    if checks:
+        sla_passed = all(checks)
+
+    # ── Приложение Б: рекомендации при невыполнении SLA ──
+    sla_recommendations = None
+    if sla_passed is False:
+        sla_recommendations = []
+        ttft_fail = ttft_sla_pass is False
+        e2e_fail = e2e_latency_sla_pass is False
+
+        if ttft_fail and e2e_fail:
+            sla_recommendations.extend([
+                "1. Увеличить TP-множитель (Z) — штатный механизм, повышает Th_pf и Th_dec",
+                "2. Применить более агрессивную квантизацию (FP16→FP8/INT4)",
+                "5. Сменить на модель с меньшим числом параметров или MoE",
+                "6. Использовать более производительное оборудование (GPU с большей bandwidth)",
+            ])
+        elif ttft_fail:
+            sla_recommendations.extend([
+                "3. Сократить длину контекста (SL): уменьшить системный промпт, глубину диалога, применить суммаризацию",
+                "1. Увеличить TP-множитель (Z) — повышает Th_pf",
+                "2. Применить более агрессивную квантизацию",
+            ])
+        elif e2e_fail:
+            sla_recommendations.extend([
+                "4. Сократить объём генерации (T_out): ограничить max_tokens, уменьшить MRT",
+                "1. Увеличить TP-множитель (Z) — повышает Th_dec",
+                "2. Применить более агрессивную квантизацию",
+            ])
+
+        sla_recommendations.append("7. Пересмотреть целевые значения SLA, если техническая стоимость несоразмерна бизнес-ценности")
+
+    # ── Section 8: Итоговое количество серверов ──
     servers_final = max(servers_mem, servers_comp)
 
     # ── Cost estimate (from GPU catalog price: custom catalog или gpu_data.json) ──
@@ -617,7 +698,17 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         Cmodel_rps=Cmodel,
         th_server_comp=th_server,
         servers_by_compute=servers_comp,
-        # Section 7
+        # Section 7: SLA validation
+        ttft_analyt=round(ttft_analyt, 4) if ttft_analyt != float('inf') else None,
+        generation_time_analyt=round(gen_time_analyt, 4) if gen_time_analyt != float('inf') else None,
+        e2e_latency_analyt=round(e2e_latency_analyt, 4) if e2e_latency_analyt != float('inf') else None,
+        ttft_sla_target=inp.ttft_sla,
+        e2e_latency_sla_target=inp.e2e_latency_sla,
+        ttft_sla_pass=ttft_sla_pass,
+        e2e_latency_sla_pass=e2e_latency_sla_pass,
+        sla_passed=sla_passed,
+        sla_recommendations=sla_recommendations,
+        # Section 8
         servers_final=servers_final,
         # Context
         gpu_id=inp.gpu_id,
@@ -897,10 +988,12 @@ def _score_config(mode: OptimizationMode,
                   total_gpus: int,
                   th_server_comp: float,
                   cost: Optional[float],
+                  e2e_latency: Optional[float],
                   all_servers: list,
                   all_gpus: list,
                   all_throughputs: list,
-                  all_costs: list) -> float:
+                  all_costs: list,
+                  all_latencies: list) -> float:
     """
     Вычислить скор конфигурации для ранжирования.
 
@@ -911,10 +1004,12 @@ def _score_config(mode: OptimizationMode,
     elif mode == OptimizationMode.min_cost:
         if cost is not None:
             return cost * 1000 + total_gpus
-        # No price available — push to the end
         return float('inf')
     elif mode == OptimizationMode.max_performance:
         return -th_server_comp * 1000 + servers_final
+    elif mode == OptimizationMode.best_sla:
+        lat = e2e_latency if e2e_latency is not None else float('inf')
+        return lat * 1000 + servers_final
     else:  # balanced
         min_s = min(all_servers) if all_servers else 1
         max_s = max(all_servers) if all_servers else 1
@@ -976,7 +1071,7 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
         for bpp in BYTES_PER_PARAM_VALUES:
             # Ранний выход: посчитаем модельную память, чтобы отсечь невалидные
             Mmodel = calc_model_mem_gb(inp.params_billions, bpp,
-                                       inp.overhead_factor, inp.emp_model)
+                                       inp.emp_model, inp.safe_margin)
             GPUcount_model = calc_gpus_per_instance(Mmodel, gpu["memory_gb"], inp.kavail)
 
             for gps in GPUS_PER_SERVER_VALUES:
@@ -998,7 +1093,7 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
                             # Модель
                             params_billions=inp.params_billions,
                             bytes_per_param=bpp,
-                            overhead_factor=inp.overhead_factor,
+                            safe_margin=inp.safe_margin,
                             emp_model=inp.emp_model,
                             layers_L=inp.layers_L,
                             hidden_size_H=inp.hidden_size_H,
@@ -1017,6 +1112,8 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
                             answer_tokens_A=inp.answer_tokens_A,
                             dialog_turns=inp.dialog_turns,
                             # KV
+                            num_kv_heads=inp.num_kv_heads,
+                            num_attention_heads=inp.num_attention_heads,
                             bytes_per_kv_state=inp.bytes_per_kv_state,
                             emp_kv=inp.emp_kv,
                             max_context_window_TSmax=inp.max_context_window_TSmax,
@@ -1034,6 +1131,8 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
                             # SLA
                             rps_per_session_R=inp.rps_per_session_R,
                             sla_reserve_KSLA=inp.sla_reserve_KSLA,
+                            ttft_sla=getattr(inp, 'ttft_sla', None),
+                            e2e_latency_sla=getattr(inp, 'e2e_latency_sla', None),
                         )
 
                         result = run_sizing(sizing_inp)
@@ -1062,6 +1161,7 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
                         "servers": servers,
                         "total_gpus": total_gpus_count,
                         "th_server": result.th_server_comp,
+                        "e2e_latency": result.e2e_latency_analyt,
                         "gpu_price": gpu_price,
                         "total_cost": total_cost,
                         "sizing_input_dict": sizing_inp.dict(),
@@ -1079,12 +1179,13 @@ def auto_optimize_endpoint(inp: AutoOptimizeInput):
     all_gpus = [r["total_gpus"] for r in raw_results]
     all_throughputs = [r["th_server"] for r in raw_results]
     all_costs = [r["total_cost"] for r in raw_results]
+    all_latencies = [r["e2e_latency"] for r in raw_results]
 
     for r in raw_results:
         r["score"] = _score_config(
             inp.mode, r["servers"], r["total_gpus"], r["th_server"],
-            r["total_cost"],
-            all_servers, all_gpus, all_throughputs, all_costs,
+            r["total_cost"], r["e2e_latency"],
+            all_servers, all_gpus, all_throughputs, all_costs, all_latencies,
         )
 
     # Сортировка по скору

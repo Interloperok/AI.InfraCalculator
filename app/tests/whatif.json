@@ -16,11 +16,13 @@
 
     "params_billions": 7,
     "bytes_per_param": 2,
-    "overhead_factor": 1.15,
+    "safe_margin": 5.0,
     "emp_model": 1.0,
     "layers_L": 32,
     "hidden_size_H": 4096,
 
+    "num_kv_heads": 32,
+    "num_attention_heads": 32,
     "bytes_per_kv_state": 2,
     "emp_kv": 1.0,
     "max_context_window_TSmax": 32768,

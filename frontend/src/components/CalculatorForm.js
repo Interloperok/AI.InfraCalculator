@@ -217,10 +217,12 @@ const PRESETS = [
       dialog_turns: 5,
       params_billions: 32,
       bytes_per_param: 2,
-      overhead_factor: 1.1,
+      safe_margin: 5.0,
       emp_model: 1.0,
       layers_L: 64,
       hidden_size_H: 4096,
+      num_kv_heads: 32,
+      num_attention_heads: 32,
       bytes_per_kv_state: 2,
       emp_kv: 1.0,
       max_context_window_TSmax: 32768,
@@ -267,10 +269,12 @@ const PRESETS = [
       dialog_turns: 5,
       params_billions: 7,
       bytes_per_param: 2,
-      overhead_factor: 1.15,
+      safe_margin: 5.0,
       emp_model: 1.0,
       layers_L: 32,
       hidden_size_H: 4096,
+      num_kv_heads: 32,
+      num_attention_heads: 32,
       bytes_per_kv_state: 2,
       emp_kv: 1.0,
       max_context_window_TSmax: 32768,
@@ -319,10 +323,12 @@ const PRESETS = [
       dialog_turns: 5,
       params_billions: 70,
       bytes_per_param: 2,
-      overhead_factor: 1.15,
+      safe_margin: 5.0,
       emp_model: 1.0,
       layers_L: 80,
       hidden_size_H: 8192,
+      num_kv_heads: 8,
+      num_attention_heads: 64,
       bytes_per_kv_state: 2,
       emp_kv: 1.0,
       max_context_window_TSmax: 32768,
@@ -343,7 +349,7 @@ const PRESETS = [
 ];
 
 // ── Optimization Mode Cards ──
-const OPTIMIZATION_MODES = [
+const OPTIMIZATION_MODES_GRID = [
   {
     id: 'min_servers',
     name: 'Min Servers',
@@ -369,18 +375,6 @@ const OPTIMIZATION_MODES = [
     color: 'emerald',
   },
   {
-    id: 'balanced',
-    name: 'Balanced',
-    description: 'Best balance of cost & performance',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-      </svg>
-    ),
-    color: 'violet',
-  },
-  {
     id: 'max_performance',
     name: 'Max Performance',
     description: 'Maximize throughput per server',
@@ -392,11 +386,37 @@ const OPTIMIZATION_MODES = [
     ),
     color: 'amber',
   },
+  {
+    id: 'best_sla',
+    name: 'Best SLA',
+    description: 'Minimize end-to-end latency (TTFT + decode)',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    color: 'rose',
+  },
 ];
+
+const OPTIMIZATION_MODE_BALANCED = {
+  id: 'balanced',
+  name: 'Balanced',
+  description: 'Best balance of cost, performance & latency',
+  icon: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+    </svg>
+  ),
+  color: 'violet',
+};
 
 const CARD_COLOR_MAP = {
   blue: { selected: 'border-blue-500 bg-blue-50 text-blue-700' },
   emerald: { selected: 'border-emerald-500 bg-emerald-50 text-emerald-700' },
+  rose: { selected: 'border-rose-500 bg-rose-50 text-rose-700' },
   violet: { selected: 'border-violet-500 bg-violet-50 text-violet-700' },
   amber: { selected: 'border-amber-500 bg-amber-50 text-amber-700' },
   indigo: { selected: 'border-indigo-500 bg-indigo-50 text-indigo-700' },
@@ -434,12 +454,14 @@ const CalculatorForm = ({
     // Model (Section 3.1)
     params_billions: 7,
     bytes_per_param: 2,
-    overhead_factor: 1.15,
+    safe_margin: 5.0,
     emp_model: 1.0,
     layers_L: 32,
     hidden_size_H: 4096,
 
     // KV-cache (Section 3.2)
+    num_kv_heads: 32,
+    num_attention_heads: 32,
     bytes_per_kv_state: 2,
     emp_kv: 1.0,
     max_context_window_TSmax: 32768,
@@ -461,6 +483,10 @@ const CalculatorForm = ({
     // SLA (Section 6.4)
     rps_per_session_R: 0.02,
     sla_reserve_KSLA: 1.25,
+
+    // SLA targets (Section 7)
+    ttft_sla: null,
+    e2e_latency_sla: null,
   });
 
   // State for model search
@@ -568,7 +594,8 @@ const CalculatorForm = ({
     const integerFields = [
       'internal_users', 'external_users', 'layers_L', 'hidden_size_H',
       'gpus_per_server', 'bytes_per_param', 'bytes_per_kv_state',
-      'dialog_turns', 'tp_multiplier_Z', 'max_context_window_TSmax'
+      'dialog_turns', 'tp_multiplier_Z', 'max_context_window_TSmax',
+      'num_kv_heads', 'num_attention_heads'
     ];
 
     const parsedValue = parseFloat(value) || 0;
@@ -590,6 +617,12 @@ const CalculatorForm = ({
     }
     if (payload.th_decode_empir === null || payload.th_decode_empir === '' || payload.th_decode_empir === 0) {
       delete payload.th_decode_empir;
+    }
+    if (payload.ttft_sla === null || payload.ttft_sla === '' || payload.ttft_sla === 0) {
+      delete payload.ttft_sla;
+    }
+    if (payload.e2e_latency_sla === null || payload.e2e_latency_sla === '' || payload.e2e_latency_sla === 0) {
+      delete payload.e2e_latency_sla;
     }
     return payload;
   };
@@ -781,7 +814,8 @@ const CalculatorForm = ({
     const integerFields = [
       'internal_users', 'external_users', 'layers_L', 'hidden_size_H',
       'gpus_per_server', 'bytes_per_param', 'bytes_per_kv_state',
-      'dialog_turns', 'tp_multiplier_Z', 'max_context_window_TSmax'
+      'dialog_turns', 'tp_multiplier_Z', 'max_context_window_TSmax',
+      'num_kv_heads', 'num_attention_heads'
     ];
 
     const isInteger = integerFields.includes(name);
@@ -1119,7 +1153,7 @@ const CalculatorForm = ({
         <>
           {renderSliderInput('params_billions', 'Parameters', 0.1, 200, 0.1, formData.params_billions, 'B', 'Total number of trainable parameters in the model (in billions).')}
           {renderSliderInput('bytes_per_param', 'Precision (bytes/param)', 1, 4, 0.5, formData.bytes_per_param, '', 'Bytes per parameter after quantization. FP16 = 2, INT8 = 1, FP32 = 4.')}
-          {renderSliderInput('overhead_factor', 'Memory Overhead', 1.0, 2.0, 0.05, formData.overhead_factor, '', 'Multiplier for extra memory used by framework buffers, activations, etc. Typically 1.1–1.2.')}
+          {renderSliderInput('safe_margin', 'Safe Margin (SM)', 0, 20, 0.5, formData.safe_margin, 'GiB', 'Fixed memory reserve for framework buffers, CUDA graphs, memory fragmentation, etc. Default 5 GiB.')}
           {renderSliderInput('emp_model', 'Empirical Correction', 1.0, 1.5, 0.01, formData.emp_model, '', 'Empirical correction factor if measured model memory differs from the theoretical estimate.')}
           {renderSliderInput('layers_L', 'Transformer Layers', 1, 128, 1, formData.layers_L, '', 'Number of transformer blocks in the model (e.g. 32 for 7B, 80 for 70B).')}
           {renderSliderInput('hidden_size_H', 'Hidden Dimension', 512, 16384, 256, formData.hidden_size_H, '', 'Size of the hidden representation (embedding dimension). Found in model config as hidden_size.')}
@@ -1161,6 +1195,8 @@ const CalculatorForm = ({
         'kv',
         'KV-Cache',
         <>
+          {renderSliderInput('num_kv_heads', 'KV Heads (Nkv)', 1, 128, 1, formData.num_kv_heads, '', 'Number of KV-cache heads. For GQA/MQA architectures this is less than attention heads (e.g. 8 for Llama-2 70B).')}
+          {renderSliderInput('num_attention_heads', 'Attention Heads (Nattention)', 1, 128, 1, formData.num_attention_heads, '', 'Number of attention heads in the transformer. Found in model config as num_attention_heads.')}
           {renderSliderInput('bytes_per_kv_state', 'KV Precision (bytes)', 1, 4, 0.5, formData.bytes_per_kv_state, '', 'Bytes per KV-cache element. FP16 = 2, INT8 = 1. Lower values save memory per session.')}
           {renderSliderInput('emp_kv', 'KV Empirical Factor', 1.0, 1.5, 0.01, formData.emp_kv, '', 'Empirical correction if measured KV-cache size differs from theoretical estimate.')}
           {renderSliderInput('max_context_window_TSmax', 'Max Context Length', 1024, 131072, 1024, formData.max_context_window_TSmax, 'tok', 'Maximum sequence length (context window) the model supports, in tokens.')}
@@ -1197,6 +1233,14 @@ const CalculatorForm = ({
         <>
           {renderSliderInput('rps_per_session_R', 'Request Rate', 0.001, 1, 0.001, formData.rps_per_session_R, '', 'Average requests per second generated by each active session. A typical chat session ≈ 0.02 req/s.')}
           {renderSliderInput('sla_reserve_KSLA', 'SLA Headroom', 1, 3, 0.05, formData.sla_reserve_KSLA, '', 'Safety multiplier to ensure capacity meets SLA targets. 1.25 = 25% extra headroom.')}
+          <div className="text-xs text-gray-500 mb-4 p-2 bg-amber-50 rounded flex items-center">
+            <svg className="w-4 h-4 mr-1.5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.072 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            Set TTFT and Latency targets below to validate your configuration against SLA requirements.
+          </div>
+          {renderSliderInput('ttft_sla', 'TTFT Target (SLA)', 0, 60, 0.5, formData.ttft_sla || 0, 'sec', 'Maximum acceptable Time To First Token (seconds). Leave at 0 to skip this check.')}
+          {renderSliderInput('e2e_latency_sla', 'e2e Latency Target (SLA)', 0, 300, 1, formData.e2e_latency_sla || 0, 'sec', 'Maximum acceptable end-to-end latency (seconds). Leave at 0 to skip this check.')}
         </>,
         expandedSections.sla,
         'Service-level parameters that add safety margin to the final server count.'
@@ -1222,7 +1266,7 @@ const CalculatorForm = ({
         <div className="mb-2" data-tour="optimize-mode">
           <label className="block text-sm font-medium text-gray-600 mb-2">Optimization Mode</label>
           <div className="grid grid-cols-2 gap-2">
-            {OPTIMIZATION_MODES.map((mode) => {
+            {OPTIMIZATION_MODES_GRID.map((mode) => {
               const isSelected = optimizeMode === mode.id;
               const colors = CARD_COLOR_MAP[mode.color];
               return (
@@ -1245,6 +1289,29 @@ const CalculatorForm = ({
               );
             })}
           </div>
+          {(() => {
+            const mode = OPTIMIZATION_MODE_BALANCED;
+            const isSelected = optimizeMode === mode.id;
+            const colors = CARD_COLOR_MAP[mode.color];
+            return (
+              <button
+                type="button"
+                onClick={() => setOptimizeMode(mode.id)}
+                className={`mt-2 w-full p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
+                  isSelected
+                    ? `${colors.selected} border-current shadow-sm`
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-0.5">
+                  {mode.icon}
+                  <span className="text-sm font-semibold">{mode.name}</span>
+                  <span className="ml-auto text-xs opacity-50">recommended</span>
+                </div>
+                <p className="text-xs opacity-75 leading-relaxed">{mode.description}</p>
+              </button>
+            );
+          })()}
         </div>
       ) : (
         <div className="mb-2" data-tour="presets">

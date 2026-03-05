@@ -67,7 +67,7 @@ const AutoOptimize = ({ onApplyConfig }) => {
     params_billions: 7,
     layers_L: 32,
     hidden_size_H: 4096,
-    overhead_factor: 1.15,
+    safe_margin: 5.0,
     emp_model: 1.0,
     // Users
     internal_users: 1000,

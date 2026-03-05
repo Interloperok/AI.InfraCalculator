@@ -232,6 +232,111 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
         </div>
       </div>
 
+      {/* ── SLA Validation ── */}
+      {(results.ttft_analyt != null || results.e2e_latency_analyt != null) && (
+        <div className="bg-white border rounded-lg p-6" data-tour="sla-validation">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">SLA Validation</h3>
+            {results.sla_passed != null && (
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${
+                results.sla_passed
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {results.sla_passed ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+                {results.sla_passed ? 'SLA Passed' : 'SLA Failed'}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* TTFT */}
+            <div className={`rounded-lg p-4 border-l-4 ${
+              results.ttft_sla_pass === true ? 'bg-green-50 border-green-500'
+                : results.ttft_sla_pass === false ? 'bg-red-50 border-red-500'
+                : 'bg-gray-50 border-gray-300'
+            }`}>
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">Time To First Token (TTFT)</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Calculated</span>
+                  <span className="text-sm font-bold text-gray-900">{fmt(results.ttft_analyt, 2)} sec</span>
+                </div>
+                {results.ttft_sla_target != null && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">SLA Target</span>
+                    <span className="text-sm font-semibold text-gray-700">{fmt(results.ttft_sla_target, 2)} sec</span>
+                  </div>
+                )}
+                {results.ttft_sla_pass != null && (
+                  <div className={`text-center py-1.5 rounded text-xs font-semibold ${
+                    results.ttft_sla_pass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {results.ttft_sla_pass ? 'PASS' : 'FAIL — exceeds target'}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* e2e Latency */}
+            <div className={`rounded-lg p-4 border-l-4 ${
+              results.e2e_latency_sla_pass === true ? 'bg-green-50 border-green-500'
+                : results.e2e_latency_sla_pass === false ? 'bg-red-50 border-red-500'
+                : 'bg-gray-50 border-gray-300'
+            }`}>
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">End-to-End Latency</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Calculated</span>
+                  <span className="text-sm font-bold text-gray-900">{fmt(results.e2e_latency_analyt, 2)} sec</span>
+                </div>
+                {results.e2e_latency_sla_target != null && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">SLA Target</span>
+                    <span className="text-sm font-semibold text-gray-700">{fmt(results.e2e_latency_sla_target, 2)} sec</span>
+                  </div>
+                )}
+                {results.e2e_latency_sla_pass != null && (
+                  <div className={`text-center py-1.5 rounded text-xs font-semibold ${
+                    results.e2e_latency_sla_pass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {results.e2e_latency_sla_pass ? 'PASS' : 'FAIL — exceeds target'}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Recommendations when SLA fails */}
+          {results.sla_recommendations && results.sla_recommendations.length > 0 && (
+            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-1.5">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.072 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                Recommendations
+              </h4>
+              <ul className="space-y-1.5">
+                {results.sla_recommendations.map((rec, i) => (
+                  <li key={i} className="text-sm text-amber-900 flex items-start gap-2">
+                    <span className="text-amber-500 mt-0.5 flex-shrink-0">&#x2022;</span>
+                    <span>{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* GPU Memory Donut Chart */}
       <div className="bg-white border rounded-lg p-6" data-tour="donut-chart">
         <h3 className="text-lg font-medium text-gray-800 mb-1">GPU Memory per Instance</h3>

@@ -73,19 +73,16 @@ class ReportGenerator:
         ws = wb.active
 
         # ── Раздел 2.1: Пользователи и нагрузка ──
-        # Сегмент 1 — внутренние пользователи
         ws["D4"] = inp.internal_users
         ws["D5"] = inp.penetration_internal
         ws["D6"] = inp.concurrency_internal
         ws["D7"] = inp.sessions_per_user_J
 
-        # Сегмент 2 — внешние пользователи (если заданы)
         ws["E4"] = inp.external_users
         ws["E5"] = inp.penetration_external
         ws["E6"] = inp.concurrency_external
         ws["E7"] = inp.sessions_per_user_J
 
-        # Сегменты 3 и 4 — обнуляем
         for col in ("F", "G"):
             ws[f"{col}4"] = 0
             ws[f"{col}5"] = 0
@@ -97,36 +94,40 @@ class ReportGenerator:
         ws["D14"] = inp.user_prompt_tokens_Prp
         ws["D15"] = inp.answer_tokens_A
         ws["D16"] = inp.reasoning_tokens_MRT
-        ws["D18"] = inp.dialog_turns
-        ws["D20"] = inp.max_context_window_TSmax
+        ws["D17"] = inp.dialog_turns
+        ws["D19"] = inp.max_context_window_TSmax
 
         # ── Раздел 3.1: Модель ──
-        ws["D24"] = inp.params_billions
-        ws["D25"] = inp.bytes_per_param
-        ws["D26"] = inp.overhead_factor
-        ws["D27"] = inp.emp_model
+        ws["D23"] = inp.params_billions
+        ws["D24"] = inp.bytes_per_param
+        ws["D25"] = inp.safe_margin
+        ws["D26"] = inp.emp_model
 
         # ── Раздел 3.2: KV-кэш ──
-        ws["D32"] = inp.layers_L
-        ws["D33"] = inp.hidden_size_H
-        ws["D34"] = inp.bytes_per_kv_state
-        ws["D35"] = inp.emp_kv
+        ws["D31"] = inp.layers_L
+        ws["D32"] = inp.hidden_size_H
+        ws["D33"] = inp.bytes_per_kv_state
+        ws["D34"] = inp.emp_kv
 
         # ── Раздел 4: GPU и Tensor Parallelism ──
-        ws["D39"] = inp.gpu_mem_gb
-        ws["D40"] = inp.kavail
-        ws["D42"] = inp.gpus_per_server
-        ws["D44"] = inp.tp_multiplier_Z
-        ws["D50"] = inp.saturation_coeff_C
+        ws["D38"] = inp.gpu_mem_gb
+        ws["D39"] = inp.kavail
+        ws["D41"] = inp.gpus_per_server
+        ws["D42"] = inp.tp_multiplier_Z
+        ws["D48"] = inp.saturation_coeff_C
 
         # ── Раздел 6: Compute ──
-        ws["D60"] = self._resolve_gpu_tflops(inp)
-        ws["D62"] = inp.eta_prefill
-        ws["D63"] = inp.eta_decode
-        ws["D66"] = inp.th_prefill_empir if inp.th_prefill_empir else 0
-        ws["D67"] = inp.th_decode_empir if inp.th_decode_empir else 0
-        ws["D70"] = inp.rps_per_session_R
-        ws["D71"] = inp.sla_reserve_KSLA
+        ws["D58"] = self._resolve_gpu_tflops(inp)
+        ws["D60"] = inp.eta_prefill
+        ws["D61"] = inp.eta_decode
+        ws["D64"] = inp.th_prefill_empir if inp.th_prefill_empir else 0
+        ws["D65"] = inp.th_decode_empir if inp.th_decode_empir else 0
+        ws["D68"] = inp.rps_per_session_R
+        ws["D69"] = inp.sla_reserve_KSLA
+
+        # ── Раздел 7: SLA targets ──
+        ws["D76"] = inp.ttft_sla if inp.ttft_sla else 0
+        ws["D77"] = inp.e2e_latency_sla if inp.e2e_latency_sla else 0
 
         return wb
 
