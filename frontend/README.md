@@ -21,16 +21,19 @@ This is a React application that provides a user interface for calculating AI se
 ## Installation
 
 1. Navigate to the frontend directory:
+
 ```bash
 cd frontend
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Start the development server:
+
 ```bash
 npm start
 ```
@@ -42,6 +45,7 @@ The application will be available at http://localhost:3000
 This frontend connects to the backend API at http://localhost:8000. Make sure the backend server is running before using the calculator.
 
 The API endpoints used:
+
 - POST /v1/size - Calculate server requirements
 - GET /v1/healthz - Health check
 
@@ -92,6 +96,7 @@ npm run build
 ## Input Controls
 
 The calculator provides dual input controls for each parameter:
+
 - Sliders for visual adjustment
 - Text fields for precise numeric input
 - Integer validation for specific parameters:

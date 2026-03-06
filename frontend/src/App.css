@@ -31,7 +31,7 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 50%;
   background: #2563eb; /* accent-blue-600 */
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   margin-top: -6px; /* Centers thumb on track */
 }
 
@@ -53,7 +53,7 @@ input[type="range"]::-moz-range-thumb {
   background: #2563eb; /* accent-blue-600 */
   cursor: pointer;
   border: none;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Animation for loading spinner */
@@ -69,13 +69,16 @@ input[type="range"]::-moz-range-thumb {
 
 /* Header icon — subtle breathing glow */
 @keyframes icon-glow {
-  0%, 100% {
-    box-shadow: 0 0 14px 3px rgba(147, 51, 234, 0.3),
-                0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  0%,
+  100% {
+    box-shadow:
+      0 0 14px 3px rgba(147, 51, 234, 0.3),
+      0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
   50% {
-    box-shadow: 0 0 32px 10px rgba(147, 51, 234, 0.55),
-                0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    box-shadow:
+      0 0 32px 10px rgba(147, 51, 234, 0.55),
+      0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -85,13 +88,16 @@ input[type="range"]::-moz-range-thumb {
 
 /* Calculate button — subtle breathing glow */
 @keyframes calc-glow {
-  0%, 100% {
-    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2),
-                0 0 12px 2px rgba(37, 99, 235, 0.15);
+  0%,
+  100% {
+    box-shadow:
+      0 4px 6px -1px rgba(37, 99, 235, 0.2),
+      0 0 12px 2px rgba(37, 99, 235, 0.15);
   }
   50% {
-    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3),
-                0 0 28px 8px rgba(37, 99, 235, 0.35);
+    box-shadow:
+      0 4px 6px -1px rgba(37, 99, 235, 0.3),
+      0 0 28px 8px rgba(37, 99, 235, 0.35);
   }
 }
 
@@ -101,13 +107,16 @@ input[type="range"]::-moz-range-thumb {
 
 /* Download button — subtle green breathing glow */
 @keyframes download-glow {
-  0%, 100% {
-    box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2),
-                0 0 12px 2px rgba(22, 163, 74, 0.15);
+  0%,
+  100% {
+    box-shadow:
+      0 4px 6px -1px rgba(22, 163, 74, 0.2),
+      0 0 12px 2px rgba(22, 163, 74, 0.15);
   }
   50% {
-    box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.3),
-                0 0 28px 8px rgba(22, 163, 74, 0.35);
+    box-shadow:
+      0 4px 6px -1px rgba(22, 163, 74, 0.3),
+      0 0 28px 8px rgba(22, 163, 74, 0.35);
   }
 }
 
@@ -118,14 +127,17 @@ input[type="range"]::-moz-range-thumb {
 /* Tour button — wave runs once, then 5s pause */
 @keyframes tour-wave {
   0% {
-    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.45),
-                0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    box-shadow:
+      0 0 0 0 rgba(79, 70, 229, 0.45),
+      0 1px 3px 0 rgba(0, 0, 0, 0.05);
   }
   16.67% {
-    box-shadow: 0 0 0 20px rgba(79, 70, 229, 0),
-                0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    box-shadow:
+      0 0 0 20px rgba(79, 70, 229, 0),
+      0 1px 3px 0 rgba(0, 0, 0, 0.05);
   }
-  16.68%, 100% {
+  16.68%,
+  100% {
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
   }
 }
@@ -135,8 +147,12 @@ input[type="range"]::-moz-range-thumb {
 
 /* Docs drawer — slide in from right */
 @keyframes drawer-slide-in {
-  from { transform: translateX(100%); }
-  to   { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 .docs-drawer {
   animation: drawer-slide-in 0.3s ease-out;
@@ -146,17 +162,21 @@ input[type="range"]::-moz-range-thumb {
 
 /* OFF state: gentle attention-grabbing shimmer (purple), no long fade */
 @keyframes toggle-shimmer {
-  0%, 88% {
-    box-shadow: 0 0 0 0 rgba(147, 51, 234, 0),
-                inset 0 0 0 0 rgba(147, 51, 234, 0);
+  0%,
+  88% {
+    box-shadow:
+      0 0 0 0 rgba(147, 51, 234, 0),
+      inset 0 0 0 0 rgba(147, 51, 234, 0);
   }
   94% {
-    box-shadow: 0 0 10px 3px rgba(147, 51, 234, 0.3),
-                inset 0 0 4px 0 rgba(147, 51, 234, 0.1);
+    box-shadow:
+      0 0 10px 3px rgba(147, 51, 234, 0.3),
+      inset 0 0 4px 0 rgba(147, 51, 234, 0.1);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(147, 51, 234, 0),
-                inset 0 0 0 0 rgba(147, 51, 234, 0);
+    box-shadow:
+      0 0 0 0 rgba(147, 51, 234, 0),
+      inset 0 0 0 0 rgba(147, 51, 234, 0);
   }
 }
 .toggle-shimmer {
@@ -165,17 +185,21 @@ input[type="range"]::-moz-range-thumb {
 
 /* ON state: electric glow, no long fade */
 @keyframes toggle-electric {
-  0%, 88% {
-    box-shadow: 0 0 6px 1px rgba(99, 102, 241, 0.35),
-                0 0 16px 4px rgba(99, 102, 241, 0.15);
+  0%,
+  88% {
+    box-shadow:
+      0 0 6px 1px rgba(99, 102, 241, 0.35),
+      0 0 16px 4px rgba(99, 102, 241, 0.15);
   }
   94% {
-    box-shadow: 0 0 10px 3px rgba(99, 102, 241, 0.55),
-                0 0 28px 8px rgba(99, 102, 241, 0.25);
+    box-shadow:
+      0 0 10px 3px rgba(99, 102, 241, 0.55),
+      0 0 28px 8px rgba(99, 102, 241, 0.25);
   }
   100% {
-    box-shadow: 0 0 6px 1px rgba(99, 102, 241, 0.35),
-                0 0 16px 4px rgba(99, 102, 241, 0.15);
+    box-shadow:
+      0 0 6px 1px rgba(99, 102, 241, 0.35),
+      0 0 16px 4px rgba(99, 102, 241, 0.15);
   }
 }
 .toggle-electric {
@@ -184,12 +208,30 @@ input[type="range"]::-moz-range-thumb {
 
 /* Thumb: bolt zap on activation */
 @keyframes bolt-zap {
-  0%   { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 0 transparent); }
-  20%  { transform: scale(1.5) rotate(-12deg); filter: drop-shadow(0 0 6px rgba(250,204,21,0.9)); }
-  40%  { transform: scale(0.9) rotate(8deg); filter: drop-shadow(0 0 3px rgba(250,204,21,0.5)); }
-  60%  { transform: scale(1.2) rotate(-4deg); filter: drop-shadow(0 0 8px rgba(250,204,21,0.8)); }
-  80%  { transform: scale(1.05) rotate(2deg); filter: drop-shadow(0 0 2px rgba(250,204,21,0.3)); }
-  100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 0 transparent); }
+  0% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  20% {
+    transform: scale(1.5) rotate(-12deg);
+    filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.9));
+  }
+  40% {
+    transform: scale(0.9) rotate(8deg);
+    filter: drop-shadow(0 0 3px rgba(250, 204, 21, 0.5));
+  }
+  60% {
+    transform: scale(1.2) rotate(-4deg);
+    filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.8));
+  }
+  80% {
+    transform: scale(1.05) rotate(2deg);
+    filter: drop-shadow(0 0 2px rgba(250, 204, 21, 0.3));
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 0 transparent);
+  }
 }
 .bolt-zap {
   animation: bolt-zap 0.6s ease-out;
@@ -197,9 +239,16 @@ input[type="range"]::-moz-range-thumb {
 
 /* ON state: subtle continuous bolt glow, no long fade */
 @keyframes bolt-glow {
-  0%, 88% { filter: drop-shadow(0 0 1px rgba(250,204,21,0)); }
-  94%     { filter: drop-shadow(0 0 4px rgba(250,204,21,0.6)); }
-  100%    { filter: drop-shadow(0 0 1px rgba(250,204,21,0)); }
+  0%,
+  88% {
+    filter: drop-shadow(0 0 1px rgba(250, 204, 21, 0));
+  }
+  94% {
+    filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.6));
+  }
+  100% {
+    filter: drop-shadow(0 0 1px rgba(250, 204, 21, 0));
+  }
 }
 .bolt-glow {
   animation: bolt-glow 5s ease-in-out infinite;
@@ -207,8 +256,14 @@ input[type="range"]::-moz-range-thumb {
 
 /* Spark particles on toggle activation */
 @keyframes spark-fly {
-  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
-  100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) scale(0);
+  }
 }
 .spark {
   position: absolute;
@@ -222,8 +277,12 @@ input[type="range"]::-moz-range-thumb {
 
 /* Optimize drawer — slide in from left */
 @keyframes optimize-drawer-in {
-  from { transform: translateX(-100%); }
-  to   { transform: translateX(0); }
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 .optimize-drawer {
   animation: optimize-drawer-in 0.3s ease-out;
