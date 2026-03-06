@@ -7,15 +7,14 @@
 - Результат: 23 сервера (по памяти = 23, по compute = 5)
 """
 
-import math
 import sys
 import os
 import pytest
 
-# Добавляем app/ в путь для импорта
+# Добавляем backend/ в путь для импорта
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from main import (
+from core.sizing_math import (
     calc_Ssim,
     calc_T,
     calc_model_mem_gb,
@@ -37,12 +36,9 @@ from main import (
     calc_Cmodel,
     calc_th_server_comp,
     calc_servers_by_compute,
-    calc_ttft,
-    calc_generation_time,
-    calc_e2e_latency,
-    run_sizing,
 )
 from models.sizing import SizingInput
+from services.sizing_service import run_sizing
 
 
 # ═══════════════════════════════════════════════════════════

@@ -18,10 +18,10 @@ import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
 
-# Keep direct module imports consistent with the existing backend test style.
+# Сохраняем текущий стиль прямых импортов модулей для backend-тестов
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from main import run_sizing  # noqa: E402
+from services.sizing_service import run_sizing  # noqa: E402
 from models.sizing import SizingInput  # noqa: E402
 
 
