@@ -147,16 +147,18 @@ This plan is dependency-ordered and atomic (one milestone per commit).
    - Done criteria: compose configs validate and do not rely on `pip install -r requirements.txt`.
    - Risk/notes: Low.
 
-10. **M10 — Requirements.txt Migration Bridge**
-   - Objective: Complete atomic migration off manual requirements while preserving compatibility export.
-   - Exact files/areas impacted (paths): `./backend/requirements.txt`, `./backend/scripts/export_requirements.sh`, `./backend/README.md`.
+10. **M10 — Enforce `uv-only` Packaging Policy**
+   - Objective: Remove `requirements.txt` compatibility artifacts and make `pyproject.toml` + `uv.lock` the only packaging source of truth.
+   - Exact files/areas impacted (paths): `./backend/requirements.txt` (remove), `./backend/scripts/export_requirements.sh` (remove), `./README.md`, `./backend/README.md`, `./docs/**/*.md`.
    - Exact commands to run/verify locally:
      ```bash
+     test ! -f ./backend/requirements.txt
+     test ! -f ./backend/scripts/export_requirements.sh
+     ! rg -n "requirements\.txt|pip install -r" ./backend ./docker-compose*.yml ./redeploy.sh ./README.md ./backend/README.md
      cd backend
-     uv export --frozen --format requirements-txt -o requirements.txt
-     head -n 20 requirements.txt
+     uv sync --frozen --all-groups
      ```
-   - Done criteria: requirements file is generated from lock (or removed and fully deprecated), and docs state single source of truth is uv lock.
+   - Done criteria: repository contains no runtime or onboarding dependency on `requirements.txt`; all install and CI flows rely on `uv sync --frozen`.
    - Risk/notes: Low.
 
 11. **M11 — Add Pre-commit Framework (Backend Hooks)**

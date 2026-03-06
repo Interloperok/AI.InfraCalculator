@@ -7,7 +7,7 @@
 
 ## 2) Python 3.14 + uv Workflow
 - `./docs/python-uv-workflow.md`
-- Contents: install Python 3.14, `uv sync --frozen`, lockfile update policy, running API/tests/lint/type checks, generating compatibility `requirements.txt` (if retained).
+- Contents: install Python 3.14, `uv sync --frozen`, lockfile update policy, running API/tests/lint/type checks, and explicit `uv-only` packaging policy (no `requirements.txt` in repo).
 
 ## 3) Theory And Assumptions For GPU Sizing
 - `./docs/theory/gpu-sizing-assumptions.md`
@@ -35,5 +35,6 @@
 - `./CODE_OF_CONDUCT.md`
 - `./SECURITY.md`
 - `./docs/releases.md`
+- `./docs/maintainer-policies.md`
 - `./CITATION.cff`
-- Contents: branching/commit conventions, PR checklist, security reporting, release process, citation guidance.
+- Contents: branching/commit conventions, PR checklist, security reporting, support/deprecation policy, release process, citation guidance.

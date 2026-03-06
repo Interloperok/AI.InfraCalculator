@@ -51,7 +51,8 @@ AI.ServerCalculationApp/
 │   │   ├── gpu.py           # Модели для GPU каталога
 │   │   └── README.md        # Документация моделей
 │   ├── gpu_scraper.py         # Скрапер GPU данных
-│   ├── requirements.txt       # Python зависимости
+│   ├── pyproject.toml         # Python metadata + tool config
+│   ├── uv.lock                # Lockfile для reproducible installs
 │   ├── Dockerfile             # Docker конфигурация
 │   └── tests/                 # Тесты
 ├── frontend/                    # React Frontend
