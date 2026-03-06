@@ -21,3 +21,18 @@ repos:
         entry: bash -lc 'cd backend && uv run mypy .'
         language: system
         pass_filenames: false
+      - id: frontend-lint
+        name: frontend lint
+        entry: bash -lc 'cd frontend && npm run lint'
+        language: system
+        pass_filenames: false
+      - id: frontend-format-check
+        name: frontend format check
+        entry: bash -lc 'cd frontend && npm run format:check'
+        language: system
+        pass_filenames: false
+      - id: frontend-typecheck
+        name: frontend typecheck
+        entry: bash -lc 'cd frontend && npm run typecheck'
+        language: system
+        pass_filenames: false

@@ -15,7 +15,7 @@
 | M11 | Pre-commit backend | repo/backend | low | M06 | `uvx pre-commit run --all-files` | `./.pre-commit-config.yaml` | `Add backend pre-commit quality hooks` | DONE |
 | M12 | Frontend lint/format | frontend | med | M11 | `cd frontend && npm run lint && npm run format:check` | `./frontend/package.json`, `./frontend/.eslintrc.cjs`, `./frontend/.prettierrc.json` | `Add explicit frontend lint and formatting toolchain` | DONE |
 | M13 | TypeScript strict checks | frontend | med | M12 | `cd frontend && npm run typecheck` | `./frontend/tsconfig.json`, `./frontend/src/services/api.ts` | `Enable strict TypeScript noEmit checks` | DONE |
-| M14 | Frontend hooks in pre-commit | repo/frontend | low | M13 | `uvx pre-commit run --all-files` | `./.pre-commit-config.yaml` | `Integrate frontend checks into pre-commit` | TODO |
+| M14 | Frontend hooks in pre-commit | repo/frontend | low | M13 | `uvx pre-commit run --all-files` | `./.pre-commit-config.yaml` | `Integrate frontend checks into pre-commit` | DONE |
 | M15 | Core math scope extraction | backend | med | M14 | `cd backend && uv run pytest -q tests/test_sizing.py` | `./backend/core/sizing_math.py`, `./docs/testing/core-math-scope.md`, `./backend/main.py` | `Extract pure sizing math and define scope` | TODO |
 | M16 | Golden fixtures | backend/tests | low | M15 | `cd backend && uv run pytest -q tests/test_golden_sizing.py` | `./backend/tests/fixtures/golden/`, `./backend/tests/test_golden_sizing.py` | `Add golden fixture regression tests for sizing` | TODO |
 | M17 | Property tests | backend/tests | med | M15 | `cd backend && uv run pytest -q tests/test_sizing_properties.py` | `./backend/tests/test_sizing_properties.py` | `Add Hypothesis invariants for core math` | TODO |
