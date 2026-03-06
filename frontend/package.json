@@ -50,7 +50,7 @@
   "jest": {
     "collectCoverageFrom": [
       "src/services/api.ts",
-      "src/components/OptimizeResultsTable.js"
+      "src/features/optimization/OptimizeResultsTable.js"
     ],
     "coverageThreshold": {
       "global": {

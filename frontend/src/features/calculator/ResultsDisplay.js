@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
-import { downloadReport } from "../services/api";
+import { downloadReport } from "../../services/api";
 
 const ResultsDisplay = ({ results, loading, error, inputData }) => {
   const [detailTab, setDetailTab] = useState("memory"); // 'memory' | 'compute'

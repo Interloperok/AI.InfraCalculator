@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import Joyride, { STATUS } from "react-joyride";
-import Calculator from "./components/Calculator";
+import Calculator from "./features/calculator/Calculator";
 import "./App.css";
 
 const APP_VERSION = "0.1.0";
@@ -10,7 +10,6 @@ const DOCS_STEP_INDEX = 1;
 const PRESETS_STEP_INDEX = 2;
 const CALCULATE_STEP_INDEX = 7;
 const AUTO_OPTIMIZE_STEP_INDEX = 14;
-const LAST_AUTO_STEP_INDEX = 16;
 
 const TOUR_STEPS = [
   {

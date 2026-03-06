@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import ReactDOM from "react-dom";
-import { getGPUs } from "../services/api";
+import { getGPUs } from "../../services/api";
+
+const ALLOWED_DISCRETE = [1, 2, 4, 6, 8];
 
 // ── Spark burst helper for toggle activation ──
 const useSparkBurst = () => {
@@ -654,7 +656,6 @@ const CalculatorForm = ({
   }, [appliedConfig]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Normalize GPUs per Server and TP (Z) to allowed values: 1, 2, 4, 6, 8
-  const ALLOWED_DISCRETE = [1, 2, 4, 6, 8];
   useEffect(() => {
     setFormData((prev) => {
       const clampToAllowed = (v) => {

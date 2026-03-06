@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import ReactDOM from "react-dom";
-import { getGPUs, exportGpuCatalog } from "../services/api";
+import { getGPUs, exportGpuCatalog } from "../../services/api";
 
 /**
  * GpuFilterModal — GPU selection for auto-optimization + catalog management.

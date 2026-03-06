@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import CalculatorForm from "./CalculatorForm";
 import ResultsDisplay from "./ResultsDisplay";
-import OptimizeResultsTable from "./OptimizeResultsTable";
-import GpuFilterModal from "./GpuFilterModal";
-import { calculateServerRequirements, autoOptimize } from "../services/api";
+import OptimizeResultsTable from "../optimization/OptimizeResultsTable";
+import GpuFilterModal from "../gpu/GpuFilterModal";
+import { calculateServerRequirements, autoOptimize } from "../../services/api";
 
 const Calculator = () => {
   // ── Standard calculator state ──
