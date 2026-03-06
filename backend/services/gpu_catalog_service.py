@@ -48,7 +48,7 @@ def lookup_gpu_tflops(gpu_id: Optional[str], gpu_mem_gb: float) -> float:
     """Поиск TFLOPS GPU из каталога по id или объёму памяти."""
     try:
         gpu_data = load_gpu_catalog()
-    except (FileNotFoundError, json.JSONDecodeError):
+    except FileNotFoundError, json.JSONDecodeError:
         return 0.0
 
     target_gpu: Optional[dict[str, Any]] = None
@@ -76,7 +76,7 @@ def price_from_gpu_entry(gpu: dict[str, Any]) -> Optional[float]:
 
     try:
         return float(price)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
 
@@ -117,7 +117,7 @@ def lookup_gpu_price_usd(
 
     try:
         gpu_data = load_gpu_catalog()
-    except (FileNotFoundError, json.JSONDecodeError):
+    except FileNotFoundError, json.JSONDecodeError:
         return None
 
     return lookup_gpu_price_in_catalog(gpu_data, gpu_id, gpu_mem_gb)
@@ -140,7 +140,7 @@ def load_gpu_catalog_for_optimize(
     else:
         try:
             gpu_data = load_gpu_catalog()
-        except (FileNotFoundError, json.JSONDecodeError):
+        except FileNotFoundError, json.JSONDecodeError:
             return []
 
     gpu_id_set = set(gpu_ids) if gpu_ids else None
@@ -173,7 +173,7 @@ def load_gpu_catalog_for_optimize(
                     year = int(str(launch_date)[:4])
                     if year <= 2013:
                         continue
-                except (ValueError, IndexError):
+                except ValueError, IndexError:
                     continue
             else:
                 continue
@@ -275,7 +275,7 @@ def list_gpus(
                 try:
                     if int(cores_value) < min_cores:
                         continue
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     pass
 
         launch_date = gpu_info.get("launch_date")
@@ -288,7 +288,7 @@ def list_gpus(
                     continue
                 if max_year and year > max_year:
                     continue
-            except (ValueError, IndexError):
+            except ValueError, IndexError:
                 continue
         else:
             continue
@@ -310,7 +310,7 @@ def list_gpus(
         if price_usd is not None:
             try:
                 price_usd = float(price_usd)
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 price_usd = None
 
         filtered_gpus.append(
@@ -364,7 +364,7 @@ def get_gpu_details(gpu_id: str) -> GPUInfo:
     if price_usd is not None:
         try:
             price_usd = float(price_usd)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             price_usd = None
 
     return GPUInfo(
@@ -420,7 +420,7 @@ def get_gpu_stats() -> GPUStats:
                 year = int(str(launch_date)[:4])
                 year_range = f"{year // 10 * 10}s"
                 year_ranges[year_range] = year_ranges.get(year_range, 0) + 1
-            except (ValueError, IndexError):
+            except ValueError, IndexError:
                 continue
 
     return GPUStats(

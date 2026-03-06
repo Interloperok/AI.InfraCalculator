@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 
+from errors import AppError, ServiceAppError, ValidationAppError, to_http_exception
 from models import (
     AutoOptimizeInput,
     AutoOptimizeResponse,
@@ -28,8 +28,9 @@ def size_endpoint_handler(
     """Выполнить sizing-расчёт с единообразной обработкой ошибок."""
     try:
         return run_sizing_fn(inp)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except (AppError, ValueError) as exc:
+        error = exc if isinstance(exc, AppError) else ValidationAppError(str(exc))
+        raise to_http_exception(error) from exc
 
 
 def report_endpoint_handler(inp: SizingInput) -> StreamingResponse:
@@ -37,9 +38,9 @@ def report_endpoint_handler(inp: SizingInput) -> StreamingResponse:
     try:
         buf = report_generator.generate(inp)
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise to_http_exception(ServiceAppError(str(exc))) from exc
     except RuntimeError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise to_http_exception(ServiceAppError(str(exc))) from exc
 
     return StreamingResponse(
         buf,
@@ -56,20 +57,25 @@ def whatif_endpoint_handler(
 ) -> list[WhatIfResponseItem]:
     """Выполнить пакетный расчёт по сценариям `what-if`."""
     items: list[WhatIfResponseItem] = []
+    try:
+        for scenario in req.scenarios:
+            data = req.base.model_dump()
+            for key, value in scenario.overrides.items():
+                if key not in data:
+                    raise ValidationAppError(f"Unknown field in overrides: {key}")
+                data[key] = value
 
-    for scenario in req.scenarios:
-        data = req.base.model_dump()
-        for key, value in scenario.overrides.items():
-            if key not in data:
-                raise Exception(f"Unknown field in overrides: {key}")
-            data[key] = value
-
-        output = run_sizing_fn(SizingInput(**data))
-        items.append(WhatIfResponseItem(name=scenario.name, output=output))
+            output = run_sizing_fn(SizingInput(**data))
+            items.append(WhatIfResponseItem(name=scenario.name, output=output))
+    except AppError as exc:
+        raise to_http_exception(exc) from exc
 
     return items
 
 
 def auto_optimize_endpoint_handler(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
     """Вернуть top-N оптимальных конфигураций по выбранному режиму."""
-    return auto_optimize(inp)
+    try:
+        return auto_optimize(inp)
+    except AppError as exc:
+        raise to_http_exception(exc) from exc

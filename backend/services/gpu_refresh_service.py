@@ -6,8 +6,9 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.schedulers.background import BackgroundScheduler  # type: ignore[import-untyped]
+from apscheduler.triggers.interval import IntervalTrigger  # type: ignore[import-untyped]
+from settings import get_settings
 
 logger = logging.getLogger("sizing")
 
@@ -51,13 +52,19 @@ def scheduled_refresh(refresh_fn: Callable[[], bool] = refresh_gpu_data_internal
     refresh_fn()
 
 
-def start_scheduler(refresh_fn: Callable[[], bool] = refresh_gpu_data_internal) -> BackgroundScheduler:
+def start_scheduler(
+    refresh_fn: Callable[[], bool] = refresh_gpu_data_internal,
+    interval_hours: int | None = None,
+) -> BackgroundScheduler:
     """Запустить планировщик почасового обновления GPU-каталога."""
+    if interval_hours is None:
+        interval_hours = get_settings().gpu_refresh_interval_hours
+
     scheduler = BackgroundScheduler()
 
     scheduler.add_job(
         func=lambda: scheduled_refresh(refresh_fn),
-        trigger=IntervalTrigger(hours=1),
+        trigger=IntervalTrigger(hours=interval_hours),
         id="gpu_refresh_hourly",
         name="GPU Data Refresh Every Hour",
         replace_existing=True,

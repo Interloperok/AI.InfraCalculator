@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional
-
-from fastapi import HTTPException
+from typing import Any, Optional
 
 from core.sizing_math import calc_gpus_per_instance, calc_model_mem_gb
+from errors import ValidationAppError
 from models import (
     AutoOptimizeInput,
     AutoOptimizeResponse,
@@ -12,6 +11,7 @@ from models import (
     OptimizationMode,
     SizingInput,
 )
+from pydantic import ValidationError
 from services.gpu_catalog_service import load_gpu_catalog_for_optimize
 from services.sizing_service import run_sizing
 
@@ -84,16 +84,13 @@ def auto_optimize(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
     )
 
     if not gpu_catalog:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Нет подходящих GPU в каталоге. Попробуйте снизить min_gpu_memory_gb "
-                "или убрать фильтр по вендору."
-            ),
+        raise ValidationAppError(
+            "Нет подходящих GPU в каталоге. Попробуйте снизить min_gpu_memory_gb "
+            "или убрать фильтр по вендору."
         )
 
     # ── Перебор комбинаций ──
-    raw_results: list[dict] = []
+    raw_results: list[dict[str, Any]] = []
     total_evaluated = 0
 
     for gpu in gpu_catalog:
@@ -152,6 +149,8 @@ def auto_optimize(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
                             gpu_flops_Fcount=gpu["tflops"],
                             eta_prefill=inp.eta_prefill,
                             eta_decode=inp.eta_decode,
+                            th_prefill_empir=None,
+                            th_decode_empir=None,
                             # SLA
                             rps_per_session_R=inp.rps_per_session_R,
                             sla_reserve_KSLA=inp.sla_reserve_KSLA,
@@ -160,7 +159,7 @@ def auto_optimize(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
                         )
 
                         result = run_sizing(sizing_inp)
-                    except Exception:
+                    except ValidationAppError, ValidationError, ValueError:
                         continue
 
                     servers = result.servers_final
@@ -171,9 +170,7 @@ def auto_optimize(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
 
                     gpu_price = gpu.get("price_usd")
                     total_cost = (
-                        round(servers * gps * gpu_price, 2)
-                        if gpu_price is not None
-                        else None
+                        round(servers * gps * gpu_price, 2) if gpu_price is not None else None
                     )
 
                     raw_results.append(
@@ -194,12 +191,9 @@ def auto_optimize(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
                     )
 
     if not raw_results:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Ни одна комбинация не дала валидный результат. "
-                "Попробуйте увеличить min_gpu_memory_gb или ослабить ограничения."
-            ),
+        raise ValidationAppError(
+            "Ни одна комбинация не дала валидный результат. "
+            "Попробуйте увеличить min_gpu_memory_gb или ослабить ограничения."
         )
 
     # ── Скоринг ──
@@ -226,7 +220,7 @@ def auto_optimize(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
 
     # Дедупликация: по (servers, total_gpus, sessions_per_server, th_server округлённый)
     seen_keys: set[tuple[int, int, int, float]] = set()
-    deduped: list[dict] = []
+    deduped: list[dict[str, Any]] = []
     for item in raw_results:
         key = (
             item["servers"],

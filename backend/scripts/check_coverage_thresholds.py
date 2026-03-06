@@ -69,7 +69,9 @@ def main() -> int:
     coverage_data = _read_coverage(Path(args.coverage_json))
     totals = coverage_data.get("totals", {})
 
-    overall_line = _percent(int(totals.get("covered_lines", 0)), int(totals.get("num_statements", 0)))
+    overall_line = _percent(
+        int(totals.get("covered_lines", 0)), int(totals.get("num_statements", 0))
+    )
     overall_branch = _percent(
         int(totals.get("covered_branches", 0)),
         int(totals.get("num_branches", 0)),

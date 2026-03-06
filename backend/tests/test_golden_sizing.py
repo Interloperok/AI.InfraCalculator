@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from fastapi import HTTPException
+from errors import ValidationAppError
 from pydantic import ValidationError
 
 # Сохраняем текущий стиль прямых импортов модулей для backend-тестов
@@ -58,11 +58,11 @@ def test_golden_valid_outputs(fixture):
 
 @pytest.mark.parametrize("fixture", HTTP_ERROR_FIXTURES)
 def test_golden_runtime_http_errors(fixture):
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(ValidationAppError) as exc_info:
         run_sizing(SizingInput(**fixture["input"]))
 
     assert exc_info.value.status_code == fixture["expected_status_code"]
-    assert fixture["expected_error_contains"] in str(exc_info.value.detail)
+    assert fixture["expected_error_contains"] in str(exc_info.value)
 
 
 @pytest.mark.parametrize("fixture", VALIDATION_ERROR_FIXTURES)

@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import math
 
-from fastapi import HTTPException
-
 from core.sizing_math import (
     calc_Cmodel,
     calc_FPS,
@@ -30,6 +28,7 @@ from core.sizing_math import (
     calc_th_server_comp,
     calc_ttft,
 )
+from errors import ValidationAppError
 from models import SizingInput, SizingOutput
 from services.gpu_catalog_service import lookup_gpu_price_usd, lookup_gpu_tflops
 
@@ -129,12 +128,9 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     # ── Section 5.2: Серверы по памяти ──
     servers_mem = calc_servers_by_memory(Ssim, Sserver)
     if servers_mem is math.inf:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Невозможно разместить сессии по памяти. "
-                "Увеличьте память GPU, уменьшите контекст или уменьшите KV/сессию."
-            ),
+        raise ValidationAppError(
+            "Невозможно разместить сессии по памяти. "
+            "Увеличьте память GPU, уменьшите контекст или уменьшите KV/сессию."
         )
 
     # ── Section 6.1: Throughput per instance ──
@@ -190,12 +186,9 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         th_server,
     )
     if servers_comp is math.inf:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Пропускная способность сервера = 0. "
-                "Проверьте TFLOPS GPU, throughput или кол-во экземпляров на сервер."
-            ),
+        raise ValidationAppError(
+            "Пропускная способность сервера = 0. "
+            "Проверьте TFLOPS GPU, throughput или кол-во экземпляров на сервер."
         )
 
     # ── Section 7: Проверка конфигурации по TTFT и e2eLatency ──
@@ -307,8 +300,12 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         servers_by_compute=servers_comp,
         # Section 7: SLA validation
         ttft_analyt=round(ttft_analyt, 4) if ttft_analyt != float("inf") else None,
-        generation_time_analyt=round(gen_time_analyt, 4) if gen_time_analyt != float("inf") else None,
-        e2e_latency_analyt=round(e2e_latency_analyt, 4) if e2e_latency_analyt != float("inf") else None,
+        generation_time_analyt=round(gen_time_analyt, 4)
+        if gen_time_analyt != float("inf")
+        else None,
+        e2e_latency_analyt=round(e2e_latency_analyt, 4)
+        if e2e_latency_analyt != float("inf")
+        else None,
         ttft_sla_target=inp.ttft_sla,
         e2e_latency_sla_target=inp.e2e_latency_sla,
         ttft_sla_pass=ttft_sla_pass,

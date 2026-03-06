@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import logging
-import os
 from typing import Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from logging_config import configure_logger
 
 from api.gpu_handlers import (
     export_gpu_catalog_handler,
@@ -33,6 +32,7 @@ from models import (
     WhatIfRequest,
     WhatIfResponseItem,
 )
+from settings import get_settings
 from services.gpu_refresh_service import refresh_gpu_data_internal, start_scheduler
 from services.sizing_service import run_sizing
 
@@ -46,13 +46,7 @@ from services.sizing_service import run_sizing
 # 2. По вычислительной пропускной способности (tokens/sec, requests/sec) — раздел 6
 # Итоговое количество серверов = max(серверы_по_памяти, серверы_по_compute)
 
-logger = logging.getLogger("sizing")
-if not logger.handlers:
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+logger = configure_logger("sizing")
 
 
 # Точка композиции приложения:
@@ -84,20 +78,20 @@ scheduler: Optional[BackgroundScheduler] = None
 async def startup_event() -> None:
     """Событие запуска приложения."""
     global scheduler
+    settings = get_settings()
 
     logger.info("🚀 Запуск AI Server Calculator API...")
 
     # При старте: скрапим только если gpu_data.json не существует.
     # Если файл уже есть — используем его как есть.
     # Обновление по расписанию или вручную через /v1/gpus/refresh.
-    gpu_data_path = os.path.join(os.path.dirname(__file__), "gpu_data.json")
-    if not os.path.exists(gpu_data_path):
+    if not settings.gpu_data_path.exists():
         logger.info("🔄 Файл gpu_data.json не найден, запускаем первичный скрапинг...")
         refresh_gpu_data_internal()
     else:
         logger.info("📂 Используем существующий gpu_data.json")
 
-    if os.getenv("AI_SC_DISABLE_SCHEDULER") == "1":
+    if settings.disable_scheduler:
         logger.info("⏸️ Планировщик отключен через AI_SC_DISABLE_SCHEDULER=1")
         scheduler = None
     else:

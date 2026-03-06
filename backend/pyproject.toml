@@ -66,10 +66,10 @@ all = "ignore"
 [tool.mypy]
 python_version = "3.14"
 warn_unused_configs = true
-exclude = "(^main\\.py$|^gpu_scraper\\.py$|^gpu_normalizer\\.py$|^report_generator\\.py$|^models/sizing\\.py$|^tests/)"
+exclude = "(^|.*/)(main\\.py|gpu_scraper\\.py|gpu_normalizer\\.py|report_generator\\.py|models/sizing\\.py|tests/.*)$"
 
 [[tool.mypy.overrides]]
-module = ["models.sizing"]
+module = ["models.sizing", "gpu_scraper", "gpu_normalizer", "report_generator"]
 ignore_errors = true
 
 [tool.pytest.ini_options]
