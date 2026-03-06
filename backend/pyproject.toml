@@ -80,7 +80,15 @@ pythonpath = ["."]
 [tool.coverage.run]
 branch = true
 source = ["."]
-omit = ["tests/*"]
+# Temporary M19 scope: strict gates for deterministic sizing domain.
+# Legacy API/scraper/report modules will be re-included after M23/M24 refactor.
+omit = [
+  "tests/*",
+  "main.py",
+  "gpu_scraper.py",
+  "gpu_normalizer.py",
+  "report_generator.py",
+]
 
 [tool.coverage.report]
 show_missing = true
