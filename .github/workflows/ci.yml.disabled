@@ -1,0 +1,109 @@
+# Disabled intentionally while repository remains private.
+# Enable by renaming this file to `ci.yml`.
+
+name: CI
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-quality:
+    name: Backend lint/type/test/coverage
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup uv and Python 3.14
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --frozen --all-groups
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Ty check
+        run: uv run ty check .
+
+      - name: Mypy check
+        run: uv run mypy .
+
+      - name: Backend tests with coverage gates
+        env:
+          AI_SC_DISABLE_SCHEDULER: "1"
+        run: |
+          uv run pytest --cov=. --cov-branch --cov-report=xml:coverage.xml --cov-report=html:htmlcov
+          uv run coverage json -o coverage.json
+          uv run python scripts/check_coverage_thresholds.py --overall-line 85 --overall-branch 80 --core-line 95 --core-branch 90
+
+      - name: Upload backend coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: |
+            backend/coverage.xml
+            backend/coverage.json
+            backend/htmlcov/
+          if-no-files-found: warn
+
+  frontend-quality:
+    name: Frontend lint/type/test/build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Prettier check
+        run: npm run format:check
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Unit tests with coverage threshold
+        run: npm run test:ci -- --coverage
+
+      - name: Production build
+        run: npm run build
+
+      - name: Upload frontend coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: |
+            frontend/coverage/
+          if-no-files-found: warn
