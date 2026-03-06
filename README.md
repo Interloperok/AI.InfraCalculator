@@ -43,32 +43,32 @@ docker-compose up --build
 
 ```
 AI.ServerCalculationApp/
-├── backend/                     # FastAPI Backend
-│   ├── main.py                # Основной API сервер
-│   ├── models/                # Pydantic модели (новая структура)
+├── backend/                 # FastAPI Backend
+│   ├── main.py              # Основной API сервер
+│   ├── models/              # Pydantic модели (новая структура)
 │   │   ├── __init__.py      # Импорты всех моделей
 │   │   ├── sizing.py        # Модели для расчета серверов
 │   │   ├── gpu.py           # Модели для GPU каталога
 │   │   └── README.md        # Документация моделей
-│   ├── gpu_scraper.py         # Скрапер GPU данных
-│   ├── pyproject.toml         # Python metadata + tool config
-│   ├── uv.lock                # Lockfile для reproducible installs
-│   ├── Dockerfile             # Docker конфигурация
-│   └── tests/                 # Тесты
-├── frontend/                    # React Frontend
+│   ├── gpu_scraper.py       # Скрапер GPU данных
+│   ├── pyproject.toml       # Python metadata + tool config
+│   ├── uv.lock              # Lockfile для reproducible installs
+│   ├── Dockerfile           # Docker конфигурация
+│   └── tests/               # Тесты
+├── frontend/                # React Frontend
 │   ├── src/
 │   │   ├── components/      # React компоненты
 │   │   ├── services/        # API клиент
 │   │   └── App.js           # Главный компонент
-│   ├── package.json           # Node.js зависимости
-│   └── Dockerfile             # Docker конфигурация
-├── nginx/                       # Nginx конфигурация
-│   ├── nginx-site.conf        # Конфигурация сайта
-│   └── certbot-setup.sh       # Скрипт SSL
-├── docker-compose.yml           # Локальная разработка
-├── docker-compose.prod.yml      # Production
-├── redeploy.sh                  # Скрипт деплоя
-└── README.md                    # Этот файл
+│   ├── package.json         # Node.js зависимости
+│   └── Dockerfile           # Docker конфигурация
+├── nginx/                   # Nginx конфигурация
+│   ├── nginx-site.conf      # Конфигурация сайта
+│   └── certbot-setup.sh     # Скрипт SSL
+├── docker-compose.yml       # Локальная разработка
+├── docker-compose.prod.yml  # Production
+├── redeploy.sh              # Скрипт деплоя
+└── README.md                # Этот файл
 ```
 
 ## 🛠️ Технологии
