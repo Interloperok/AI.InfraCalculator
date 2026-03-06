@@ -18,6 +18,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:ci": "react-scripts test --watchAll=false",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
     "lint": "eslint \"src/**/*.{js,jsx}\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"*.{json,md}\"",
@@ -37,6 +39,7 @@
     ]
   },
   "devDependencies": {
+    "@playwright/test": "1.56.1",
     "eslint": "8.57.1",
     "eslint-config-prettier": "10.1.8",
     "eslint-config-react-app": "7.0.1",
