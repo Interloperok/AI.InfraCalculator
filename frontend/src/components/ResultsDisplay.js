@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { downloadReport } from '../services/api';
 
@@ -6,6 +6,18 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
   const [detailTab, setDetailTab] = useState('memory'); // 'memory' | 'compute'
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState(null);
+  const [slaNotificationsOpen, setSlaNotificationsOpen] = useState(false);
+  const slaNotificationsRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (slaNotificationsRef.current && !slaNotificationsRef.current.contains(e.target)) {
+        setSlaNotificationsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleDownloadReport = async () => {
     if (!inputData) return;
@@ -237,7 +249,55 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
         <div className="bg-white border rounded-lg p-6" data-tour="sla-validation">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-800">SLA Validation</h3>
-            {results.sla_passed != null && (
+            <div className="flex items-center gap-2">
+              {results.sla_passed !== true && (
+              <div className="relative" ref={slaNotificationsRef}>
+              <button
+                type="button"
+                onClick={() => setSlaNotificationsOpen(prev => !prev)}
+                className="relative p-1 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1"
+                title="SLA notifications"
+              >
+                <svg className="w-5 h-5 text-gray-500 bell-shake" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {results.sla_passed === false && results.sla_recommendations?.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    {results.sla_recommendations.length}
+                  </span>
+                )}
+              </button>
+              {slaNotificationsOpen && (
+                <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden">
+                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                    <h4 className="text-sm font-semibold text-gray-800">SLA Notifications</h4>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {results.sla_recommendations?.length > 0 ? (
+                      <ul className="p-4 space-y-2">
+                        {results.sla_recommendations.map((rec, i) => (
+                          <li key={i} className="text-sm text-amber-900 flex items-start gap-2">
+                            <span className="text-amber-500 mt-0.5 flex-shrink-0">&#x2022;</span>
+                            <span>{rec}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : results.sla_passed === true ? (
+                      <div className="p-4 text-sm text-green-700 flex items-center gap-2">
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        SLA passed. No recommendations.
+                      </div>
+                    ) : (
+                      <div className="p-4 text-sm text-gray-600">No notifications.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+              </div>
+              )}
+              {results.sla_passed != null && (
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${
                 results.sla_passed
                   ? 'bg-green-100 text-green-800'
@@ -252,9 +312,10 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 )}
-                {results.sla_passed ? 'SLA Passed' : 'SLA Failed'}
+                {results.sla_passed ? 'Passed' : 'Failed'}
               </span>
-            )}
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -314,26 +375,6 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
               </div>
             </div>
           </div>
-
-          {/* Recommendations when SLA fails */}
-          {results.sla_recommendations && results.sla_recommendations.length > 0 && (
-            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-1.5">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.072 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-                Recommendations
-              </h4>
-              <ul className="space-y-1.5">
-                {results.sla_recommendations.map((rec, i) => (
-                  <li key={i} className="text-sm text-amber-900 flex items-start gap-2">
-                    <span className="text-amber-500 mt-0.5 flex-shrink-0">&#x2022;</span>
-                    <span>{rec}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
       )}
 
