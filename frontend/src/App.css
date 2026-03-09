@@ -247,9 +247,21 @@ input[type="range"]::-moz-range-thumb {
   animation: optimize-drawer-in 0.3s ease-out;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .grid {
-    grid-template-columns: 1fr !important;
+/* Responsive adjustments — handled by Tailwind responsive classes now */
+
+/* Result tiles — unified height on mobile (Cost Estimate as reference) */
+@media (max-width: 639px) {
+  .result-tile {
+    min-height: 120px;
   }
+}
+
+/* Swipe container — hide scrollbar, smooth touch scroll */
+.swipe-panels {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.swipe-panels::-webkit-scrollbar {
+  display: none;
 }

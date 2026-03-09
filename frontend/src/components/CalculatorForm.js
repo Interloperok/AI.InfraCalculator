@@ -1270,9 +1270,9 @@ const CalculatorForm = ({
   return (
     <form onSubmit={handleSubmit} className="gap-6 flex flex-col flex-1">
       {/* Header with toggle switch */}
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-2xl font-semibold text-gray-800">Configuration Parameters</h2>
-        <div data-tour="auto-optimize">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <h2 className="text-lg sm:text-2xl font-semibold text-gray-800 min-w-0 truncate">Configuration Parameters</h2>
+        <div data-tour="auto-optimize" className="shrink-0">
           <ToggleSwitch
             autoMode={autoMode}
             setAutoMode={setAutoMode}
@@ -1335,7 +1335,7 @@ const CalculatorForm = ({
       ) : (
         <div className="mb-2" data-tour="presets">
           <label className="block text-sm font-medium text-gray-600 mb-2">Quick Presets</label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {PRESETS.map((preset) => {
               const isActive = selectedPreset === preset.id;
               const colors = CARD_COLOR_MAP[preset.color] || CARD_COLOR_MAP.indigo;
