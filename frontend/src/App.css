@@ -220,6 +220,24 @@ input[type="range"]::-moz-range-thumb {
   animation: spark-fly 0.5s ease-out forwards;
 }
 
+/* SLA bell — subtle shake + red wave every 5 seconds */
+@keyframes bell-shake {
+  0%, 100%   { transform: rotate(0deg); filter: drop-shadow(0 0 0 rgba(220, 38, 38, 0)); }
+  1.8%       { transform: rotate(-8deg); filter: drop-shadow(0 0 8px rgba(220, 38, 38, 0.8)); }
+  3.6%       { transform: rotate(8deg); filter: drop-shadow(0 0 12px rgba(220, 38, 38, 0.9)); }
+  5.4%       { transform: rotate(-6deg); filter: drop-shadow(0 0 10px rgba(220, 38, 38, 0.85)); }
+  7.2%       { transform: rotate(6deg); filter: drop-shadow(0 0 12px rgba(220, 38, 38, 0.9)); }
+  9%         { transform: rotate(-4deg); filter: drop-shadow(0 0 8px rgba(220, 38, 38, 0.7)); }
+  10.8%      { transform: rotate(4deg); filter: drop-shadow(0 0 10px rgba(220, 38, 38, 0.8)); }
+  12.6%      { transform: rotate(-2deg); filter: drop-shadow(0 0 6px rgba(220, 38, 38, 0.5)); }
+  14.4%      { transform: rotate(2deg); filter: drop-shadow(0 0 6px rgba(220, 38, 38, 0.5)); }
+  16.2%      { transform: rotate(-1deg); filter: drop-shadow(0 0 4px rgba(220, 38, 38, 0.3)); }
+  18%, 100%  { transform: rotate(0deg); filter: drop-shadow(0 0 0 rgba(220, 38, 38, 0)); }
+}
+.bell-shake {
+  animation: bell-shake 5.6s ease-in-out infinite;
+}
+
 /* Optimize drawer — slide in from left */
 @keyframes optimize-drawer-in {
   from { transform: translateX(-100%); }
