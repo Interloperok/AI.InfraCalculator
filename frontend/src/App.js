@@ -91,6 +91,42 @@ const TOUR_STEPS = [
   },
 ];
 
+const TOUR_STEPS_MOBILE = [
+  {
+    target: '[data-tour="github-btn"]',
+    content: 'Visit us on GitHub — star the repo to stay updated.',
+    disableBeacon: true,
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="docs-btn"]',
+    content: 'Tap to open the methodology documentation in a new tab.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="presets"]',
+    content: 'Pick a preset to quickly fill in model, GPU, and load parameters.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="model-search"]',
+    content: 'Search Hugging Face for your AI model — parameters are filled automatically.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="gpu-search"]',
+    content: 'Choose a GPU from the catalog. Memory and TFLOPS are filled in for you.',
+    placement: 'top',
+  },
+  {
+    target: '[data-tour="calculate-btn"]',
+    content: 'Tap Calculate to run the sizing engine and see your results.',
+    placement: 'top',
+  },
+];
+
+const M_PRESETS_STEP = 2;
+
 const TOUR_STYLES = {
   options: {
     primaryColor: '#6366f1',
@@ -130,6 +166,46 @@ const TOUR_STYLES = {
   },
 };
 
+const TOUR_STYLES_MOBILE = {
+  options: {
+    primaryColor: '#6366f1',
+    zIndex: 10000,
+    arrowColor: '#fff',
+    backgroundColor: '#fff',
+    textColor: '#374151',
+    overlayColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  buttonNext: {
+    backgroundColor: '#6366f1',
+    borderRadius: '8px',
+    fontSize: '14px',
+    padding: '10px 20px',
+  },
+  buttonBack: {
+    color: '#6366f1',
+    fontSize: '14px',
+    marginRight: 8,
+  },
+  buttonSkip: {
+    color: '#9ca3af',
+    fontSize: '14px',
+  },
+  tooltip: {
+    borderRadius: '12px',
+    padding: '14px',
+    maxWidth: '290px',
+  },
+  tooltipTitle: {
+    fontSize: '14px',
+    fontWeight: 600,
+  },
+  tooltipContent: {
+    fontSize: '13px',
+    lineHeight: '1.45',
+    padding: '6px 0',
+  },
+};
+
 function App() {
   const [runTour, setRunTour] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
@@ -139,9 +215,16 @@ function App() {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
   const dragging = useRef(false);
   const tourAutoOn = useRef(false);
+  const [isMobileTour, setIsMobileTour] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
+  const isMobileTourRef = useRef(typeof window !== 'undefined' && window.innerWidth < 1024);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640);
+    const check = () => {
+      setIsMobile(window.innerWidth < 640);
+      const narrow = window.innerWidth < 1024;
+      setIsMobileTour(narrow);
+      isMobileTourRef.current = narrow;
+    };
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
@@ -163,46 +246,70 @@ function App() {
 
   const handleTourCallback = useCallback((data) => {
     const { status, type, action, index } = data;
+    const mobile = isMobileTourRef.current;
+
+    const restoreSwipe = () => {
+      const el = document.querySelector('.swipe-panels');
+      if (el) {
+        el.style.overflow = '';
+        el.style.overflowX = '';
+        el.style.overflowY = '';
+        el.style.position = '';
+      }
+    };
 
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
       setRunTour(false);
-      setDocsOpen(false);
+      if (!mobile) setDocsOpen(false);
       cleanupTourAuto();
+      restoreSwipe();
       return;
     }
 
     if (type === 'step:after') {
       if (action === 'close') {
         setRunTour(false);
-        setDocsOpen(false);
+        if (!mobile) setDocsOpen(false);
         cleanupTourAuto();
+        restoreSwipe();
         return;
       }
 
       const nextIndex = action === 'prev' ? index - 1 : index + 1;
 
-      if (index === DOCS_STEP_INDEX) setDocsOpen(false);
-      if (nextIndex === DOCS_STEP_INDEX) setDocsOpen(true);
+      if (mobile) {
+        // ── Mobile tour logic (6 steps, config panel only) ──
 
-      if (nextIndex === PRESETS_STEP_INDEX) {
-        setTimeout(() => {
-          const container = document.querySelector('[data-tour="presets"]');
-          container?.querySelector('button')?.click();
-        }, 400);
-      }
+        if (nextIndex === M_PRESETS_STEP) {
+          setTimeout(() => {
+            document.querySelector('[data-tour="presets"]')?.querySelector('button')?.click();
+          }, 400);
+        }
+      } else {
+        // ── Desktop tour logic ──
 
-      if (nextIndex === CALCULATE_STEP_INDEX) {
-        setTimeout(() => {
-          document.querySelector('[data-tour="calculate-btn"]')?.click();
-        }, 400);
-      }
+        if (index === DOCS_STEP_INDEX) setDocsOpen(false);
+        if (nextIndex === DOCS_STEP_INDEX) setDocsOpen(true);
 
-      if (nextIndex === AUTO_OPTIMIZE_STEP_INDEX && !tourAutoOn.current) {
-        toggleAutoOptimize(400);
-        tourAutoOn.current = true;
-      }
-      if (index === AUTO_OPTIMIZE_STEP_INDEX && action === 'prev') {
-        cleanupTourAuto();
+        if (nextIndex === PRESETS_STEP_INDEX) {
+          setTimeout(() => {
+            document.querySelector('[data-tour="presets"]')?.querySelector('button')?.click();
+          }, 400);
+        }
+
+        if (nextIndex === CALCULATE_STEP_INDEX) {
+          setTimeout(() => {
+            document.querySelector('[data-tour="calculate-btn"]')?.click();
+          }, 400);
+        }
+
+        if (nextIndex === AUTO_OPTIMIZE_STEP_INDEX && !tourAutoOn.current) {
+          toggleAutoOptimize(400);
+          tourAutoOn.current = true;
+        }
+        if (index === AUTO_OPTIMIZE_STEP_INDEX && action === 'prev') {
+          cleanupTourAuto();
+        }
       }
 
       setTourStepIndex(nextIndex);
@@ -252,7 +359,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
       <Joyride
-        steps={TOUR_STEPS}
+        steps={isMobileTour ? TOUR_STEPS_MOBILE : TOUR_STEPS}
         run={runTour}
         stepIndex={tourStepIndex}
         continuous
@@ -260,8 +367,9 @@ function App() {
         showProgress
         scrollToFirstStep
         disableOverlayClose
+        disableScrollParentFix
         callback={handleTourCallback}
-        styles={TOUR_STYLES}
+        styles={isMobileTour ? TOUR_STYLES_MOBILE : TOUR_STYLES}
         locale={{
           back: 'Back',
           close: 'Close',
@@ -285,7 +393,13 @@ function App() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 sm:gap-3 max-w-xs sm:max-w-none mx-auto">
             {/* 1 — Take a Tour */}
             <button
-              onClick={() => { setTourStepIndex(0); setRunTour(true); }}
+              onClick={() => {
+                setTourStepIndex(0);
+                setRunTour(true);
+                if (isMobileTour) {
+                  document.querySelector('.swipe-panels')?.scrollTo({ left: 0, behavior: 'smooth' });
+                }
+              }}
               className="tour-btn-pulse inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium rounded-lg border border-indigo-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-200 whitespace-nowrap"
             >
               <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
