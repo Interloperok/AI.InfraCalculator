@@ -2,6 +2,19 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { getGPUs } from '../services/api';
 
+// ── Model subtitle from Hugging Face API fields (when description is missing) ──
+const getModelSubtitle = (model) => {
+  if (model.description) return model.description;
+  const parts = [];
+  if (model.pipeline_tag) parts.push(model.pipeline_tag);
+  if (model.library_name) parts.push(model.library_name);
+  if (model.downloads != null) {
+    const d = model.downloads >= 1e6 ? (model.downloads / 1e6).toFixed(1) + 'M' : model.downloads >= 1e3 ? (model.downloads / 1e3).toFixed(1) + 'K' : model.downloads;
+    parts.push(`${d} downloads`);
+  }
+  return parts.length ? parts.join(' · ') : null;
+};
+
 // ── Spark burst helper for toggle activation ──
 const useSparkBurst = () => {
   const containerRef = useRef(null);
@@ -940,7 +953,7 @@ const CalculatorForm = ({
                   className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                 >
                   <div className="font-medium">{model.modelId || model.id}</div>
-                  <div className="text-xs text-gray-500 truncate">{model.description || 'No description'}</div>
+                  <div className="text-xs text-gray-500 truncate">{getModelSubtitle(model) || '—'}</div>
                 </div>
               ))}
             </div>
@@ -1257,9 +1270,9 @@ const CalculatorForm = ({
   return (
     <form onSubmit={handleSubmit} className="gap-6 flex flex-col flex-1">
       {/* Header with toggle switch */}
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-2xl font-semibold text-gray-800">Configuration Parameters</h2>
-        <div data-tour="auto-optimize">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <h2 className="text-lg sm:text-2xl font-semibold text-gray-800 min-w-0 truncate">Configuration Parameters</h2>
+        <div data-tour="auto-optimize" className="shrink-0">
           <ToggleSwitch
             autoMode={autoMode}
             setAutoMode={setAutoMode}
@@ -1322,7 +1335,7 @@ const CalculatorForm = ({
       ) : (
         <div className="mb-2" data-tour="presets">
           <label className="block text-sm font-medium text-gray-600 mb-2">Quick Presets</label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {PRESETS.map((preset) => {
               const isActive = selectedPreset === preset.id;
               const colors = CARD_COLOR_MAP[preset.color] || CARD_COLOR_MAP.indigo;

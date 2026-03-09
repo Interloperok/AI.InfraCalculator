@@ -5,6 +5,7 @@ import './App.css';
 
 const APP_VERSION = '0.1.0';
 const GITHUB_URL = 'https://github.com/your-org/ai-server-calculator';
+const GOOGLE_DOCS_URL = 'https://docs.google.com/document/d/1_H4QWAda19SFJbaHD4oHycYAh5TdECCr/edit?usp=sharing&ouid=114772934094426194553&rtpof=true&sd=true';
 
 const DOCS_STEP_INDEX = 1;
 const PRESETS_STEP_INDEX = 2;
@@ -90,6 +91,42 @@ const TOUR_STEPS = [
   },
 ];
 
+const TOUR_STEPS_MOBILE = [
+  {
+    target: '[data-tour="github-btn"]',
+    content: 'Visit us on GitHub — star the repo to stay updated.',
+    disableBeacon: true,
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="docs-btn"]',
+    content: 'Tap to open the methodology documentation in a new tab.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="presets"]',
+    content: 'Pick a preset to quickly fill in model, GPU, and load parameters.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="model-search"]',
+    content: 'Search Hugging Face for your AI model — parameters are filled automatically.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="gpu-search"]',
+    content: 'Choose a GPU from the catalog. Memory and TFLOPS are filled in for you.',
+    placement: 'top',
+  },
+  {
+    target: '[data-tour="calculate-btn"]',
+    content: 'Tap Calculate to run the sizing engine and see your results.',
+    placement: 'top',
+  },
+];
+
+const M_PRESETS_STEP = 2;
+
 const TOUR_STYLES = {
   options: {
     primaryColor: '#6366f1',
@@ -129,14 +166,69 @@ const TOUR_STYLES = {
   },
 };
 
+const TOUR_STYLES_MOBILE = {
+  options: {
+    primaryColor: '#6366f1',
+    zIndex: 10000,
+    arrowColor: '#fff',
+    backgroundColor: '#fff',
+    textColor: '#374151',
+    overlayColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  buttonNext: {
+    backgroundColor: '#6366f1',
+    borderRadius: '8px',
+    fontSize: '14px',
+    padding: '10px 20px',
+  },
+  buttonBack: {
+    color: '#6366f1',
+    fontSize: '14px',
+    marginRight: 8,
+  },
+  buttonSkip: {
+    color: '#9ca3af',
+    fontSize: '14px',
+  },
+  tooltip: {
+    borderRadius: '12px',
+    padding: '14px',
+    maxWidth: '290px',
+  },
+  tooltipTitle: {
+    fontSize: '14px',
+    fontWeight: 600,
+  },
+  tooltipContent: {
+    fontSize: '13px',
+    lineHeight: '1.45',
+    padding: '6px 0',
+  },
+};
+
 function App() {
   const [runTour, setRunTour] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
   const [docsOpen, setDocsOpen] = useState(false);
   const [drawerWidth, setDrawerWidth] = useState(820);
   const [isResizing, setIsResizing] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
   const dragging = useRef(false);
   const tourAutoOn = useRef(false);
+  const [isMobileTour, setIsMobileTour] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
+  const isMobileTourRef = useRef(typeof window !== 'undefined' && window.innerWidth < 1024);
+
+  useEffect(() => {
+    const check = () => {
+      setIsMobile(window.innerWidth < 640);
+      const narrow = window.innerWidth < 1024;
+      setIsMobileTour(narrow);
+      isMobileTourRef.current = narrow;
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const toggleAutoOptimize = useCallback((delay = 400) => {
     setTimeout(() => {
@@ -154,46 +246,70 @@ function App() {
 
   const handleTourCallback = useCallback((data) => {
     const { status, type, action, index } = data;
+    const mobile = isMobileTourRef.current;
+
+    const restoreSwipe = () => {
+      const el = document.querySelector('.swipe-panels');
+      if (el) {
+        el.style.overflow = '';
+        el.style.overflowX = '';
+        el.style.overflowY = '';
+        el.style.position = '';
+      }
+    };
 
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
       setRunTour(false);
-      setDocsOpen(false);
+      if (!mobile) setDocsOpen(false);
       cleanupTourAuto();
+      restoreSwipe();
       return;
     }
 
     if (type === 'step:after') {
       if (action === 'close') {
         setRunTour(false);
-        setDocsOpen(false);
+        if (!mobile) setDocsOpen(false);
         cleanupTourAuto();
+        restoreSwipe();
         return;
       }
 
       const nextIndex = action === 'prev' ? index - 1 : index + 1;
 
-      if (index === DOCS_STEP_INDEX) setDocsOpen(false);
-      if (nextIndex === DOCS_STEP_INDEX) setDocsOpen(true);
+      if (mobile) {
+        // ── Mobile tour logic (6 steps, config panel only) ──
 
-      if (nextIndex === PRESETS_STEP_INDEX) {
-        setTimeout(() => {
-          const container = document.querySelector('[data-tour="presets"]');
-          container?.querySelector('button')?.click();
-        }, 400);
-      }
+        if (nextIndex === M_PRESETS_STEP) {
+          setTimeout(() => {
+            document.querySelector('[data-tour="presets"]')?.querySelector('button')?.click();
+          }, 400);
+        }
+      } else {
+        // ── Desktop tour logic ──
 
-      if (nextIndex === CALCULATE_STEP_INDEX) {
-        setTimeout(() => {
-          document.querySelector('[data-tour="calculate-btn"]')?.click();
-        }, 400);
-      }
+        if (index === DOCS_STEP_INDEX) setDocsOpen(false);
+        if (nextIndex === DOCS_STEP_INDEX) setDocsOpen(true);
 
-      if (nextIndex === AUTO_OPTIMIZE_STEP_INDEX && !tourAutoOn.current) {
-        toggleAutoOptimize(400);
-        tourAutoOn.current = true;
-      }
-      if (index === AUTO_OPTIMIZE_STEP_INDEX && action === 'prev') {
-        cleanupTourAuto();
+        if (nextIndex === PRESETS_STEP_INDEX) {
+          setTimeout(() => {
+            document.querySelector('[data-tour="presets"]')?.querySelector('button')?.click();
+          }, 400);
+        }
+
+        if (nextIndex === CALCULATE_STEP_INDEX) {
+          setTimeout(() => {
+            document.querySelector('[data-tour="calculate-btn"]')?.click();
+          }, 400);
+        }
+
+        if (nextIndex === AUTO_OPTIMIZE_STEP_INDEX && !tourAutoOn.current) {
+          toggleAutoOptimize(400);
+          tourAutoOn.current = true;
+        }
+        if (index === AUTO_OPTIMIZE_STEP_INDEX && action === 'prev') {
+          cleanupTourAuto();
+        }
       }
 
       setTourStepIndex(nextIndex);
@@ -243,7 +359,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
       <Joyride
-        steps={TOUR_STEPS}
+        steps={isMobileTour ? TOUR_STEPS_MOBILE : TOUR_STEPS}
         run={runTour}
         stepIndex={tourStepIndex}
         continuous
@@ -251,8 +367,9 @@ function App() {
         showProgress
         scrollToFirstStep
         disableOverlayClose
+        disableScrollParentFix
         callback={handleTourCallback}
-        styles={TOUR_STYLES}
+        styles={isMobileTour ? TOUR_STYLES_MOBILE : TOUR_STYLES}
         locale={{
           back: 'Back',
           close: 'Close',
@@ -273,13 +390,19 @@ function App() {
           </div>
           <h1 className="text-4xl font-bold text-gray-800 mb-2">AI Infrastructure Calculator</h1>
           <p className="text-lg text-gray-500 mb-4">Find out how many servers and GPUs you need for your AI models</p>
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 sm:gap-3 max-w-xs sm:max-w-none mx-auto">
             {/* 1 — Take a Tour */}
             <button
-              onClick={() => { setTourStepIndex(0); setRunTour(true); }}
-              className="tour-btn-pulse inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium rounded-lg border border-indigo-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-200"
+              onClick={() => {
+                setTourStepIndex(0);
+                setRunTour(true);
+                if (isMobileTour) {
+                  document.querySelector('.swipe-panels')?.scrollTo({ left: 0, behavior: 'smooth' });
+                }
+              }}
+              className="tour-btn-pulse inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium rounded-lg border border-indigo-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-200 whitespace-nowrap"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
@@ -291,29 +414,45 @@ function App() {
               target="_blank"
               rel="noopener noreferrer"
               data-tour="github-btn"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 group"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 group whitespace-nowrap"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                 <path fillRule="evenodd" clipRule="evenodd"
                   d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
               </svg>
-              <svg className="w-4 h-4 text-amber-400 group-hover:scale-125 transition-transform duration-200" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-amber-400 group-hover:scale-125 transition-transform duration-200 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
               <span>Star on GitHub</span>
             </a>
-            {/* 3 — Documentation */}
-            <button
-              onClick={() => setDocsOpen(true)}
-              data-tour="docs-btn"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-emerald-50 text-emerald-600 text-sm font-medium rounded-lg border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              <span>Documentation</span>
-            </button>
+            {/* 3 — Documentation: on mobile → external link, on desktop → drawer */}
+            {isMobile ? (
+              <a
+                href={GOOGLE_DOCS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-tour="docs-btn"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-600 text-sm font-medium rounded-lg border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200 whitespace-nowrap"
+              >
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <span>Documentation</span>
+              </a>
+            ) : (
+              <button
+                onClick={() => setDocsOpen(true)}
+                data-tour="docs-btn"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-600 text-sm font-medium rounded-lg border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200 whitespace-nowrap"
+              >
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <span>Documentation</span>
+              </button>
+            )}
           </div>
         </header>
 
@@ -350,8 +489,7 @@ function App() {
               <div className="flex items-center gap-2">
                 {/* Open in Google Docs */}
                 <a
-                  //href="https://docs.google.com/document/d/e/2PACX-1vRKlgJr0CsZhTEObcFnpBxWlAmHA1hscr0w6GDSnbcJRW-eCqhwkQOuP9pecS735w/pub"
-                  href="https://docs.google.com/document/d/1_H4QWAda19SFJbaHD4oHycYAh5TdECCr/edit?usp=sharing&ouid=114772934094426194553&rtpof=true&sd=true"
+                  href={GOOGLE_DOCS_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"

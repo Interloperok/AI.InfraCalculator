@@ -46,6 +46,10 @@ const Calculator = () => {
   const [isResizing, setIsResizing] = useState(false);
   const dragging = useRef(false);
 
+  // ── Swipe panel index (0 = config, 1 = results) for mobile indicator ──
+  const [swipeIndex, setSwipeIndex] = useState(0);
+  const swipeRef = useRef(null);
+
   // ── Applied config for syncing table selection back to form ──
   const [appliedConfig, setAppliedConfig] = useState(null);
 
@@ -97,6 +101,43 @@ const Calculator = () => {
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, [drawerOpen]);
+
+  // Track swipe panel index for mobile indicator
+  useEffect(() => {
+    const el = swipeRef.current;
+    if (!el) return;
+    const updateIndex = () => {
+      const w = el.clientWidth;
+      const scroll = el.scrollLeft;
+      setSwipeIndex(Math.round(scroll / w));
+    };
+    updateIndex();
+    el.addEventListener('scroll', updateIndex);
+    window.addEventListener('resize', updateIndex);
+    return () => {
+      el.removeEventListener('scroll', updateIndex);
+      window.removeEventListener('resize', updateIndex);
+    };
+  }, []);
+
+  // Peek hint on mobile: nudge right then back to signal swipeability
+  useEffect(() => {
+    const el = swipeRef.current;
+    if (!el) return;
+    const t1 = setTimeout(() => {
+      if (el.scrollWidth <= el.clientWidth) return;
+      el.style.scrollSnapType = 'none';
+      el.scrollTo({ left: 60, behavior: 'smooth' });
+    }, 1000);
+    const t2 = setTimeout(() => {
+      if (el.scrollWidth <= el.clientWidth) return;
+      el.scrollTo({ left: 0, behavior: 'smooth' });
+    }, 1700);
+    const t3 = setTimeout(() => {
+      el.style.scrollSnapType = '';
+    }, 2200);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
 
   // ── Drawer resize drag ──
   const handleDragStart = useCallback((e) => {
@@ -164,6 +205,12 @@ const Calculator = () => {
         });
         setInputData(payload);
         setError(null);
+        // On mobile, scroll to results panel after successful calculation
+        if (window.innerWidth < 1024 && swipeRef.current) {
+          setTimeout(() => {
+            swipeRef.current?.scrollTo({ left: swipeRef.current.scrollWidth - swipeRef.current.clientWidth, behavior: 'smooth' });
+          }, 100);
+        }
       }
     } catch (err) {
       setError(err.message || 'Unexpected error');
@@ -283,6 +330,11 @@ const Calculator = () => {
         });
         setInputData(fullInput);
         setError(null);
+        if (window.innerWidth < 1024 && swipeRef.current) {
+          setTimeout(() => {
+            swipeRef.current?.scrollTo({ left: swipeRef.current.scrollWidth - swipeRef.current.clientWidth, behavior: 'smooth' });
+          }, 100);
+        }
       }
     } catch (err) {
       setError(err.message || 'Unexpected error');
@@ -303,11 +355,36 @@ const Calculator = () => {
 
   return (
     <>
-      {/* ── Main 2-column grid (always the same) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Form */}
-        <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col">
-          <CalculatorForm
+      {/* Mobile swipe indicator — dots (above panels) */}
+      <div className="flex justify-center gap-2 mb-3 lg:hidden">
+        <button
+          type="button"
+          onClick={() => swipeRef.current?.scrollTo({ left: 0, behavior: 'smooth' })}
+          className={`w-2.5 h-2.5 rounded-full transition-colors ${swipeIndex === 0 ? 'bg-indigo-500' : 'bg-gray-300 hover:bg-gray-400'}`}
+          aria-label="Configuration"
+          title="Configuration"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            const el = swipeRef.current;
+            if (el) el.scrollTo({ left: el.scrollWidth - el.clientWidth, behavior: 'smooth' });
+          }}
+          className={`w-2.5 h-2.5 rounded-full transition-colors ${swipeIndex === 1 ? 'bg-indigo-500' : 'bg-gray-300 hover:bg-gray-400'}`}
+          aria-label="Results"
+          title="Results"
+        />
+      </div>
+
+      {/* ── Main 2-column: swipe on mobile, grid on desktop ── */}
+      <div
+        ref={swipeRef}
+        className="grid grid-flow-col auto-cols-[100%] overflow-x-auto snap-x snap-mandatory lg:grid-flow-row lg:grid-cols-2 lg:auto-cols-auto lg:overflow-visible lg:gap-8 swipe-panels"
+      >
+        {/* Panel 1 — Configuration */}
+        <div className="snap-start overflow-hidden">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col overflow-hidden">
+            <CalculatorForm
             onSubmit={handleCalculate}
             loading={autoMode ? optimizeLoading : loading}
             autoMode={autoMode}
@@ -326,13 +403,17 @@ const Calculator = () => {
             appliedConfig={appliedConfig}
             onAppliedConfigConsumed={handleAppliedConfigConsumed}
           />
+          </div>
         </div>
 
-        {/* Results */}
-        <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col">
-          <ResultsDisplay results={results} loading={loading} error={error} inputData={inputData} />
+        {/* Panel 2 — Results */}
+        <div className="snap-start overflow-hidden">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col overflow-hidden">
+            <ResultsDisplay results={results} loading={loading} error={error} inputData={inputData} />
+          </div>
         </div>
       </div>
+
 
       {/* ── Optimization Results Side Panel (fixed left edge) ── */}
       {autoMode && (
