@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Joyride, { STATUS } from 'react-joyride';
 import Calculator from './components/Calculator';
+import { GITHUB_URL } from './config';
 import './App.css';
 
 const APP_VERSION = '0.1.0';
-const GITHUB_URL = 'https://github.com/your-org/ai-server-calculator';
 const GOOGLE_DOCS_URL = 'https://docs.google.com/document/d/1_H4QWAda19SFJbaHD4oHycYAh5TdECCr/edit?usp=sharing&ouid=114772934094426194553&rtpof=true&sd=true';
 
 const DOCS_STEP_INDEX = 1;
