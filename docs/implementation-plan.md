@@ -481,10 +481,26 @@ This implementation plan is dependency-ordered and atomic (`1 milestone = 1 comm
     - Done criteria: no internal-only tracked artifacts remain.
     - Risk/notes: Low.
 
+39. **M39 — Re-include legacy modules in strict quality gates**
+    - Objective: perform a behavior-preserving refactor of scraper/normalizer/report modules, add regression coverage for their current behavior, and remove temporary quality excludes.
+    - Exact files/areas impacted (paths): `./backend/pyproject.toml`, `./backend/gpu_scraper.py`, `./backend/gpu_normalizer.py`, `./backend/report_generator.py`, `./backend/services/`, `./backend/tests/`, `./backend/tests/regression/`.
+    - Exact commands to run/verify locally:
+      ```bash
+      cd backend
+      uv run ruff check .
+      uv run mypy .
+      AI_SC_DISABLE_SCHEDULER=1 uv run pytest -q
+      AI_SC_DISABLE_SCHEDULER=1 uv run pytest -q tests/test_api_integration.py tests/test_golden_sizing.py tests/test_sizing_properties.py
+      AI_SC_DISABLE_SCHEDULER=1 uv run pytest --cov=. --cov-branch --cov-report=xml:coverage.xml --cov-report=html:htmlcov
+      rg -n "gpu_scraper|gpu_normalizer|report_generator" pyproject.toml
+      ```
+    - Done criteria: no temporary lint/type/coverage excludes remain for these modules; regression tests for refactored modules are added and passing; existing API/golden/property tests remain green without loosening assertions.
+    - Risk/notes: High. Refactor must preserve externally visible behavior and output contracts.
+
 ## Release Go Criteria (Revised)
 
 - Private-repo GO:
-  - M01-M35 and M38 are `DONE`.
+  - M01-M35 and M38-M39 are `DONE`.
   - M36 and M37 are allowed as `SUSPENDED`.
   - Local quality gates are green (`backend` + `frontend` + citation validation).
   - Workflow templates remain `.yml.disabled` by policy.
