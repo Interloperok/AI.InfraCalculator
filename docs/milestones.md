@@ -1,5 +1,12 @@
 # Milestones Execution Index
 
+This file is the execution/status index for `docs/implementation-plan.md`.
+
+Execution rules:
+- `1 milestone = 1 commit`
+- status source of truth is this table (`TODO` / `DONE`)
+- dependencies must be satisfied before implementing a milestone
+
 | Milestone ID | Short title | Scope | Estimated risk | Dependencies | Verification command(s) | Files/paths touched (high level) | Commit message template | Status |
 |---|---|---|---|---|---|---|---|---|
 | M01 | Baseline ADR | repo/docs | low | - | `python3 --version && uv --version && node --version` | `./docs/adr/`, `./docs/baseline-inventory.md` | `Document baseline and target toolchain` | DONE |

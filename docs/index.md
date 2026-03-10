@@ -13,7 +13,7 @@ This directory contains the current project documentation set.
 
 ## Planning and migration docs
 
-- `docs/review-plan.md` — atomic OSS refactoring plan.
+- `docs/implementation-plan.md` — atomic implementation plan (scope/spec for milestones).
 - `docs/milestones.md` — execution index of milestones (status + dependencies + verification).
 - `docs/tooling-matrix.md` — tool inventory and where each tool runs.
 - `docs/doc-structure.md` — target documentation structure proposal.

@@ -1,6 +1,18 @@
-# Repository Review + Refactor Plan
+# Implementation Plan
 
-This plan is dependency-ordered and atomic (one milestone per commit).
+This implementation plan is dependency-ordered and atomic (`1 milestone = 1 commit`).
+
+## How To Use This Plan
+
+1. Use this document (`docs/implementation-plan.md`) as the scope/specification source for each milestone.
+2. Use `docs/milestones.md` as the execution index and status source (`TODO` / `DONE`).
+3. Implement milestones strictly in order unless dependencies explicitly allow parallel work.
+4. Keep each milestone atomic in git history (one commit per milestone).
+
+## Reuse For Future Releases
+
+- Keep this file as a living implementation template.
+- For next release tracks, append new milestones (for example `M32+`) or create a new section with a release-specific prefix while preserving this execution model.
 
 ## Detected Current State (from repository scan)
 

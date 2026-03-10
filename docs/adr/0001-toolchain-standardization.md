@@ -3,7 +3,7 @@
 - Date: 2026-02-16
 - Status: Accepted
 - Owner: Maintainers
-- Related plan: `./docs/review-plan.md` (M01)
+- Related plan: `./docs/implementation-plan.md` (M01)
 
 ## Context
 
