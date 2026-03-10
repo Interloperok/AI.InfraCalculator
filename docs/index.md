@@ -6,6 +6,7 @@ This directory contains the current project documentation set.
 
 - `docs/getting-started.md` — local/dev/prod setup, Python 3.14 + uv workflow, and verification commands.
 - `docs/architecture.md` — backend/frontend architecture and request flow.
+- `docs/releases.md` — release process, semantic versioning, and citation workflow.
 - `docs/testing/core-math-scope.md` — definition of critical core math coverage scope.
 
 ## Planning and migration docs
@@ -21,4 +22,5 @@ This directory contains the current project documentation set.
 
 - getting started: see `docs/getting-started.md`
 - architecture: see `docs/architecture.md`
+- release/citation: see `docs/releases.md` and `CITATION.cff`
 - coverage targets and scope: see `docs/testing/core-math-scope.md`

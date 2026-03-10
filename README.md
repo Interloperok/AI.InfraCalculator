@@ -123,6 +123,12 @@ Coverage thresholds:
 - Onboarding and dev/prod setup: `docs/getting-started.md`
 - System architecture: `docs/architecture.md`
 - Core math scope definition: `docs/testing/core-math-scope.md`
+- Release/versioning policy: `docs/releases.md`
+
+## Citation
+
+- Citation metadata: `CITATION.cff`
+- Validate: `uvx cffconvert --validate -i CITATION.cff`
 
 ## Governance
 
@@ -134,5 +140,6 @@ Coverage thresholds:
 Repository keeps CI workflow templates as disabled files while project is private:
 - `.github/workflows/ci.yml.disabled`
 - `.github/workflows/e2e.yml.disabled`
+- `.github/workflows/release.yml.disabled`
 
 When moving to public repository, rename them to `.yml` to enable GitHub Actions.

@@ -376,10 +376,10 @@ This plan is dependency-ordered and atomic (one milestone per commit).
 
 30. **M30 — Add Citation + Versioning/Release Strategy**
     - Objective: Make project citable and define deterministic release workflow.
-    - Exact files/areas impacted (paths): `./CITATION.cff`, `./docs/releases.md`, `./.github/workflows/release.yml`, `./README.md`.
+    - Exact files/areas impacted (paths): `./CITATION.cff`, `./docs/releases.md`, `./.github/workflows/release.yml.disabled`, `./README.md`.
     - Exact commands to run/verify locally:
       ```bash
-      uvx cffconvert --validate -f CITATION.cff
+      uvx cffconvert --validate -i CITATION.cff
       rg -n "semantic versioning|release|changelog|citation" docs/releases.md README.md
       ```
     - Done criteria: citation metadata validates and release process is documented and automated.

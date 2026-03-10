@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+title: AI Server Calculator
+message: "If you use this software, please cite it using the metadata below."
+type: software
+authors:
+  - name: AI Server Calculator Maintainers
+version: 0.1.0
+date-released: 2026-03-10
+license: MIT
+repository-code: https://github.com/your-org/ai-server-calculator
+keywords:
+  - llm
+  - inference
+  - gpu
+  - capacity-planning
+  - fastapi
+  - react
+abstract: >-
+  Open-source tool for sizing AI/LLM inference infrastructure with a FastAPI backend,
+  React frontend, reproducible methodology, and coverage-gated quality checks.
