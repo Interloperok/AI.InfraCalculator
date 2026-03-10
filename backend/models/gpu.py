@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, Field, validator
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class GPUInfo(BaseModel):
@@ -32,8 +33,8 @@ class GPUInfo(BaseModel):
     )
     price_usd: Optional[float] = Field(None, description="Цена в USD (MSRP)")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "NVIDIA_RTX_4090",
                 "vendor": "NVIDIA",
@@ -49,6 +50,7 @@ class GPUInfo(BaseModel):
                 "tdp_watts": "450 W",
             }
         }
+    )
 
 
 class GPUFilter(BaseModel):
@@ -66,19 +68,17 @@ class GPUFilter(BaseModel):
     )
     memory_type: Optional[str] = Field(None, description="Тип памяти")
 
-    @validator("max_memory_gb")
-    def max_memory_greater_than_min(cls, v, values):
-        if v is not None and "min_memory_gb" in values and values["min_memory_gb"] is not None:
-            if v < values["min_memory_gb"]:
+    @model_validator(mode="after")
+    def validate_ranges(self) -> GPUFilter:
+        if self.max_memory_gb is not None and self.min_memory_gb is not None:
+            if self.max_memory_gb < self.min_memory_gb:
                 raise ValueError("max_memory_gb must be greater than min_memory_gb")
-        return v
 
-    @validator("max_year")
-    def max_year_greater_than_min(cls, v, values):
-        if v is not None and "min_year" in values and values["min_year"] is not None:
-            if v < values["min_year"]:
+        if self.max_year is not None and self.min_year is not None:
+            if self.max_year < self.min_year:
                 raise ValueError("max_year must be greater than min_year")
-        return v
+
+        return self
 
 
 class GPUListResponse(BaseModel):
@@ -91,8 +91,8 @@ class GPUListResponse(BaseModel):
     has_next: bool = Field(..., description="Есть ли следующая страница")
     has_prev: bool = Field(..., description="Есть ли предыдущая страница")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "gpus": [
                     {
@@ -114,6 +114,7 @@ class GPUListResponse(BaseModel):
                 "has_prev": False,
             }
         }
+    )
 
 
 class GPUStats(BaseModel):
@@ -124,8 +125,8 @@ class GPUStats(BaseModel):
     memory_ranges: dict = Field(..., description="Распределение по объему памяти")
     year_ranges: dict = Field(..., description="Распределение по годам выпуска")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "total_gpus": 150,
                 "vendors": {"NVIDIA": 80, "AMD": 50, "Intel": 20},
@@ -133,6 +134,7 @@ class GPUStats(BaseModel):
                 "year_ranges": {"2020s": 100, "2010s": 50},
             }
         }
+    )
 
 
 class GPURefreshResponse(BaseModel):
@@ -143,8 +145,8 @@ class GPURefreshResponse(BaseModel):
     gpus_updated: int = Field(..., description="Количество обновленных GPU")
     last_updated: datetime = Field(..., description="Время последнего обновления")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "success": True,
                 "message": "Successfully updated 150 GPUs from Wikipedia",
@@ -152,3 +154,4 @@ class GPURefreshResponse(BaseModel):
                 "last_updated": "2024-01-15T10:30:00Z",
             }
         }
+    )

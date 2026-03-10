@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Optional
+from contextlib import asynccontextmanager
+from typing import AsyncIterator, Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, Query
@@ -53,30 +54,13 @@ logger = configure_logger("sizing")
 # - бизнес-логика вынесена в services/*
 # - HTTP-обработчики вынесены в api/*
 
-
-app = FastAPI(
-    title="GenAI Server Sizing API",
-    version="2.0.0",
-    description="API для расчета требований к серверной инфраструктуре для AI/LLM моделей с поддержкой GPU каталога",
-    docs_url="/docs",
-    redoc_url="/redoc",
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Глобальная переменная для планировщика
 scheduler: Optional[BackgroundScheduler] = None
 
 
-@app.on_event("startup")
-async def startup_event() -> None:
-    """Событие запуска приложения."""
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Lifespan-хук приложения вместо устаревших startup/shutdown событий."""
     global scheduler
     settings = get_settings()
 
@@ -99,19 +83,34 @@ async def startup_event() -> None:
 
     logger.info("✅ Приложение успешно запущено с автоматическим обновлением GPU данных")
 
+    try:
+        yield
+    finally:
+        logger.info("🛑 Остановка приложения...")
 
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    """Событие остановки приложения."""
-    global scheduler
+        if scheduler:
+            scheduler.shutdown()
+            logger.info("📅 Планировщик остановлен")
 
-    logger.info("🛑 Остановка приложения...")
+        logger.info("✅ Приложение остановлено")
 
-    if scheduler:
-        scheduler.shutdown()
-        logger.info("📅 Планировщик остановлен")
 
-    logger.info("✅ Приложение остановлено")
+app = FastAPI(
+    title="GenAI Server Sizing API",
+    version="2.0.0",
+    description="API для расчета требований к серверной инфраструктуре для AI/LLM моделей с поддержкой GPU каталога",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/healthz", tags=["Health"])

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
-from pydantic import BaseModel, Field, conint, confloat
+
+from pydantic import BaseModel, ConfigDict, Field, confloat, conint
 
 
 class SizingInput(BaseModel):
@@ -71,8 +72,8 @@ class SizingInput(BaseModel):
         description="Пользовательский каталог GPU (массив или объект). Если задан — цена для Cost Estimate берётся из него."
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "internal_users": 1000,
                 "penetration_internal": 0.6,
@@ -106,9 +107,10 @@ class SizingInput(BaseModel):
                 "eta_prefill": 0.20,
                 "eta_decode": 0.15,
                 "rps_per_session_R": 0.02,
-                "sla_reserve_KSLA": 1.25
+                "sla_reserve_KSLA": 1.25,
             }
         }
+    )
 
 
 class SizingOutput(BaseModel):
@@ -172,8 +174,8 @@ class SizingOutput(BaseModel):
     # ── Cost (optional, from GPU catalog price) ──
     cost_estimate_usd: Optional[float] = Field(None, description="Оценка стоимости инфраструктуры (USD): серверы × GPU/сервер × цена GPU")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "Ssim_concurrent_sessions": 120.0,
                 "T_tokens_per_request": 5696.0,
@@ -203,9 +205,10 @@ class SizingOutput(BaseModel):
                 "servers_by_compute": 5,
                 "servers_final": 5,
                 "gpu_mem_gb": 80,
-                "gpus_per_server": 8
+                "gpus_per_server": 8,
             }
         }
+    )
 
 
 class WhatIfScenario(BaseModel):
@@ -214,15 +217,16 @@ class WhatIfScenario(BaseModel):
     name: str = Field(..., description="Название сценария")
     overrides: dict = Field(default_factory=dict, description="Переопределения параметров")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "Double users",
                 "overrides": {
-                    "internal_users": 2000
-                }
+                    "internal_users": 2000,
+                },
             }
         }
+    )
 
 
 class WhatIfRequest(BaseModel):
@@ -231,8 +235,8 @@ class WhatIfRequest(BaseModel):
     base: SizingInput = Field(..., description="Базовые параметры")
     scenarios: List[WhatIfScenario] = Field(..., description="Список сценариев")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "base": {
                     "internal_users": 1000,
@@ -262,20 +266,21 @@ class WhatIfRequest(BaseModel):
                     "eta_prefill": 0.20,
                     "eta_decode": 0.15,
                     "rps_per_session_R": 0.02,
-                    "sla_reserve_KSLA": 1.25
+                    "sla_reserve_KSLA": 1.25,
                 },
                 "scenarios": [
                     {
                         "name": "Double users",
-                        "overrides": {"internal_users": 2000}
+                        "overrides": {"internal_users": 2000},
                     },
                     {
                         "name": "Bigger model 13B",
-                        "overrides": {"params_billions": 13}
-                    }
-                ]
+                        "overrides": {"params_billions": 13},
+                    },
+                ],
             }
         }
+    )
 
 
 class WhatIfResponseItem(BaseModel):
