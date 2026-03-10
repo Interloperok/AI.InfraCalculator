@@ -1,0 +1,68 @@
+name: Feature request
+description: Propose an improvement with clear problem statement and acceptance criteria.
+title: "feat: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please describe the problem and proposed solution as concretely as possible.
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: One-line feature summary.
+      placeholder: Add CSV export for auto-optimize results
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - backend
+        - frontend
+        - docs
+        - ci
+        - infra
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What user pain or limitation does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe expected behavior, UX/API shape, and key constraints.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other options and why they are less suitable.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List verifiable criteria.
+      placeholder: |
+        - [ ] Feature is available in calculator UI
+        - [ ] Backend endpoint has tests
+        - [ ] Docs are updated
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight checks
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: This request aligns with project scope.
+          required: true
