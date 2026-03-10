@@ -4,12 +4,9 @@ type ApiError = { error: string };
 type ApiResult<T = unknown> = T | ApiError;
 type ApiPayload = Record<string, unknown>;
 
-const runtimeEnv =
-  (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
-
 const API_BASE_URL =
-  runtimeEnv.REACT_APP_API_URL ||
-  (runtimeEnv.NODE_ENV === "production" ? "" : "http://localhost:8000");
+  process.env.REACT_APP_API_URL ||
+  (process.env.NODE_ENV === "production" ? "" : "http://localhost:8000");
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
