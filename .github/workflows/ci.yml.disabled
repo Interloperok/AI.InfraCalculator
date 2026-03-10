@@ -1,0 +1,185 @@
+# Disabled intentionally while repository remains private.
+# Enable by renaming this file to `ci.yml`.
+
+name: CI
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend-fast:
+    name: Backend fast checks (branch push)
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup uv and Python 3.14
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --frozen --all-groups
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Ty check
+        run: uv run ty check .
+
+      - name: Mypy check
+        run: uv run mypy .
+
+      - name: Backend tests (fast)
+        env:
+          AI_SC_DISABLE_SCHEDULER: "1"
+        run: uv run pytest -q
+
+  backend-quality:
+    name: Backend full checks (main/pr)
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup uv and Python 3.14
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --frozen --all-groups
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Ty check
+        run: uv run ty check .
+
+      - name: Mypy check
+        run: uv run mypy .
+
+      - name: Backend tests with coverage gates
+        env:
+          AI_SC_DISABLE_SCHEDULER: "1"
+        run: |
+          uv run pytest --cov=. --cov-branch --cov-report=xml:coverage.xml --cov-report=html:htmlcov
+          uv run coverage json -o coverage.json
+          uv run python scripts/check_coverage_thresholds.py --overall-line 85 --overall-branch 80 --core-line 95 --core-branch 90
+
+      - name: Upload backend coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: |
+            backend/coverage.xml
+            backend/coverage.json
+            backend/htmlcov/
+          if-no-files-found: warn
+
+  frontend-fast:
+    name: Frontend fast checks (branch push)
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Prettier check
+        run: npm run format:check
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Unit tests (fast)
+        run: npm run test:ci
+
+  frontend-quality:
+    name: Frontend full checks (main/pr)
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Prettier check
+        run: npm run format:check
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Unit tests with coverage threshold
+        run: npm run test:ci -- --coverage
+
+      - name: Production build
+        run: npm run build
+
+      - name: Upload frontend coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: |
+            frontend/coverage/
+          if-no-files-found: warn

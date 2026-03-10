@@ -1,65 +1,154 @@
 # AI Server Calculator
 
-Калькулятор требований к серверной инфраструктуре для AI/LLM моделей. FastAPI backend + React frontend.
+Open-source tool for AI/LLM infrastructure sizing.
+<img width="997" height="1172" alt="image" src="https://github.com/user-attachments/assets/97951fb9-b664-4494-980c-ba4c5f902303" />
 
-## Быстрый старт
+Project includes:
+- FastAPI backend with sizing math, GPU catalog and auto-optimization API
+- React frontend with calculator UI and scenario analysis
+- Docker setup for local and production-like runs
+
+## getting started
+
+### Option A: Docker compose (fastest)
 
 ```bash
-git clone <repository-url>
-cd AI.ServerCalculationApp_repo
-docker-compose up --build
+docker compose up --build
 ```
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- Swagger: http://localhost:8000/docs
+Services:
+- Frontend: [http://localhost:3000](http://localhost:3000)
+- Backend API: [http://localhost:8000](http://localhost:8000)
+- Backend OpenAPI docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
-## Локальный запуск
+### Option B: Local development
 
-**Backend:**
+Backend (Python 3.14 + uv):
+
 ```bash
-cd app
-python -m venv .venv
-.venv\Scripts\activate   # Windows
-pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 8000
+cd backend
+uv sync --frozen --all-groups
+uv run uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-**Frontend:**
+Frontend (Node.js + npm):
+
 ```bash
 cd frontend
 npm install
 npm start
 ```
 
-Для frontend создайте `.env` с `REACT_APP_API_URL=http://localhost:8000` (см. `.env.example`).
+Notes:
+- Final runtime can be Docker-only.
+- Local Node.js/npm are still required for frontend lint/type/tests and pre-commit hooks.
 
-## Структура
+## Repository Structure
 
-- `app/` — FastAPI backend (расчёт серверов, каталог GPU из Wikipedia)
-- `frontend/` — React UI с Tailwind, Recharts
+```text
+AI.ServerCalculationApp/
+├── backend/                  # FastAPI backend (API, services, sizing core)
+│   ├── api/                  # HTTP handlers (transport layer)
+│   ├── core/                 # Pure sizing math (critical core math scope)
+│   ├── services/             # Business services (sizing, GPU, optimization)
+│   ├── models/               # Pydantic request/response models
+│   ├── tests/                # pytest tests, golden fixtures, property tests
+│   ├── pyproject.toml        # Python metadata and tool configuration
+│   └── uv.lock               # Reproducible dependency lockfile
+├── frontend/                 # React frontend
+│   ├── src/features/         # Feature modules (calculator/gpu/optimization)
+│   ├── src/services/         # API client
+│   └── e2e/                  # Playwright smoke tests
+├── docs/                     # Project documentation
+├── docker-compose.yml        # Local compose setup
+├── docker-compose.prod.yml   # Production-like compose setup
+└── redeploy.sh               # Simple redeploy helper
+```
 
-## API
+## API Overview
 
-- `POST /v1/size` — расчёт требований к серверам
-- `POST /v1/whatif` — сравнение сценариев
-- `GET /v1/gpus` — каталог GPU (NVIDIA, AMD, Intel)
-- `GET /healthz` — health check
+Main backend routes:
+- `GET /healthz`
+- `GET /v1/scheduler/status`
+- `POST /v1/size`
+- `POST /v1/report`
+- `POST /v1/whatif`
+- `POST /v1/auto-optimize`
+- `GET /v1/gpus`
+- `GET /v1/gpus/{gpu_id}`
+- `GET /v1/gpus/export`
+- `POST /v1/gpus/refresh`
+- `GET /v1/gpus/stats`
 
-Полная схема: http://localhost:8000/docs
+## Tooling Standard
 
-## Стек
+Backend standard:
+- Python 3.14
+- `uv` only (no `requirements.txt` workflow)
+- single source of project/tool config in `backend/pyproject.toml`
 
-Backend: FastAPI, Pydantic, Uvicorn, Pandas. Frontend: React, Tailwind CSS, Recharts, Axios.
+Quality tools:
+- Backend: `ruff`, `ty`, `mypy`, `pytest`, `coverage.py`, `hypothesis`
+- Frontend: `eslint`, `prettier`, `tsc --noEmit`, `jest`, `playwright`
 
-## Вклад в проект
+## Tests And Coverage
 
-1. Fork репозитория
-2. Создайте ветку (`git checkout -b feature/...`)
-3. Commit (`git commit -m '...'`)
-4. Push (`git push origin feature/...`)
-5. Откройте Pull Request
+Backend:
 
-## Лицензия
+```bash
+cd backend
+uv run pytest --cov=. --cov-branch --cov-report=xml:coverage.xml --cov-report=html:htmlcov
+uv run coverage json -o coverage.json
+uv run python scripts/check_coverage_thresholds.py --overall-line 85 --overall-branch 80 --core-line 95 --core-branch 90
+```
 
-См. [LICENSE](LICENSE).
+Frontend:
+
+```bash
+cd frontend
+npm run lint
+npm run typecheck
+npm run test:ci -- --coverage
+npm run test:e2e
+```
+
+Coverage thresholds:
+- Backend overall: line >= 85%, branch >= 80%
+- Core math (`backend/core/sizing_math.py`): line >= 95%, branch >= 90%
+- Frontend overall: line >= 75%
+
+## Documentation
+
+- Main docs index: `docs/index.md`
+- Onboarding and dev/prod setup: `docs/getting-started.md`
+- System architecture: `docs/architecture.md`
+- Core math scope definition: `docs/testing/core-math-scope.md`
+- Release/versioning policy: `docs/releases.md`
+
+## Citation
+
+- Citation metadata: `CITATION.cff`
+- Validate: `uvx cffconvert --validate -i CITATION.cff`
+
+## Governance
+
+- Contributing guide: `CONTRIBUTING.md`
+- Security policy: `SECURITY.md`
+
+## CI Workflows
+
+Repository keeps CI workflow templates as disabled files while project is private:
+- `.github/workflows/ci.yml.disabled`
+- `.github/workflows/e2e.yml.disabled`
+- `.github/workflows/release.yml.disabled`
+- `.github/workflows/security.yml.disabled`
+
+When moving to public repository, rename them to `.yml` to enable GitHub Actions.
+
+Trigger summary after enabling:
+- `ci.yml`: push to all branches (fast checks for non-`main`, full checks for `main`/PR/manual).
+- `security.yml`: secret scan on all pushes; dependency and CodeQL scans on `main`/PR/manual.
+- `e2e.yml`: PR to `main` and manual runs.
+- `release.yml`: tags `v*` and manual runs.
+
+Detailed trigger matrix and job behavior: `docs/ci.md`.

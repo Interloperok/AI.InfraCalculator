@@ -1,0 +1,48 @@
+# Disabled intentionally while repository remains private.
+# Enable by renaming this file to `release.yml`.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-release:
+    name: Validate and publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup uv and Python 3.14
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Validate citation metadata
+        run: uvx cffconvert --validate -i CITATION.cff
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          {
+            echo "notes<<'EOF'"
+            echo "## AI Server Calculator release"
+            echo
+            echo "See commit history and merged PRs for this tag."
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: ${{ steps.notes.outputs.notes }}

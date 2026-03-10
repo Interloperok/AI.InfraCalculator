@@ -1,0 +1,93 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ai-server-calculator-backend"
+version = "0.1.0"
+description = "Backend API for AI/LLM server sizing calculations."
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+license = { text = "MIT" }
+authors = [{ name = "AI Server Calculator Maintainers" }]
+dependencies = [
+  "apscheduler==3.10.4",
+  "fastapi==0.116.2",
+  "lxml>=5.3.0",
+  "openpyxl>=3.1.0",
+  "pandas>=2.2.0",
+  "pydantic>=2.12,<3",
+  "requests==2.31.0",
+  "uvicorn==0.35.0",
+]
+
+[dependency-groups]
+dev = [
+  "coverage==7.11.2",
+  "httpx==0.28.1",
+  "hypothesis==6.147.0",
+  "mypy==1.18.2",
+  "pytest==9.0.2",
+  "pytest-cov==7.0.0",
+  "ruff==0.15.4",
+  "ty==0.0.20",
+  "types-requests==2.32.4.20250913",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+extend-exclude = ["__pycache__"]
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = ["E501"]
+
+[tool.ty.rules]
+deprecated = "ignore"
+
+[[tool.ty.overrides]]
+include = ["main.py", "models/sizing.py", "tests/**"]
+
+[tool.ty.overrides.rules]
+all = "ignore"
+
+[tool.mypy]
+python_version = "3.14"
+warn_unused_configs = true
+exclude = "(^|.*/)(models/sizing\\.py|tests/.*)$"
+
+[[tool.mypy.overrides]]
+module = ["models.sizing"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["apscheduler.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["pandas", "pandas.*", "openpyxl", "openpyxl.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["."]
+
+[tool.coverage.run]
+branch = true
+source = ["."]
+# Temporary strict scope: coverage gates currently exclude legacy non-M39 domains
+# to enforce strictness on redesigned pipeline and sizing-critical modules first.
+omit = [
+  "tests/*",
+  "services/auto_optimize_service.py",
+  "services/gpu_catalog_service.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true

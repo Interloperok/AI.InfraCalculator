@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+coverage.json
+htmlcov/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Frontend / JS
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+
+# OS artifacts
+.DS_Store

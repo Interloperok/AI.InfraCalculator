@@ -31,4 +31,6 @@ Thumbs.db
 # React specific
 *.log
 coverage/
+playwright-report/
+test-results/
 npm-shrinkwrap.json

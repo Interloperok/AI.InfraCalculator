@@ -17,13 +17,14 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:ci": "react-scripts test --watchAll=false",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "lint": "eslint \"src/**/*.{js,jsx}\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"*.{json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"*.{json,md}\"",
     "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
   },
   "browserslist": {
     "production": [
@@ -38,6 +39,28 @@
     ]
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.0"
+    "@playwright/test": "1.56.1",
+    "eslint": "8.57.1",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-config-react-app": "7.0.1",
+    "prettier": "3.6.2",
+    "tailwindcss": "^3.4.0",
+    "typescript": "4.9.5"
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx,ts,tsx}",
+      "!src/**/*.test.{js,jsx,ts,tsx}",
+      "!src/index.js",
+      "!src/setupTests.js",
+      "!src/features/calculator/Calculator.js",
+      "!src/features/calculator/CalculatorForm.js",
+      "!src/features/gpu/GpuFilterModal.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "lines": 75
+      }
+    }
   }
 }

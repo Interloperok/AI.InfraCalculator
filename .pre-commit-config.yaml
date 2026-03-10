@@ -1,0 +1,48 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+  - repo: local
+    hooks:
+      - id: gitleaks-staged
+        name: gitleaks staged scan
+        entry: bash -lc 'gitleaks git --staged --config gitleaks.toml --redact --no-banner'
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: backend-ruff-check
+        name: backend ruff check
+        entry: bash -lc 'cd backend && uv run ruff check .'
+        language: system
+        pass_filenames: false
+      - id: backend-ruff-format-check
+        name: backend ruff format check
+        entry: bash -lc 'cd backend && uv run ruff format --check .'
+        language: system
+        pass_filenames: false
+      - id: backend-ty-check
+        name: backend ty check
+        entry: bash -lc 'cd backend && uv run ty check .'
+        language: system
+        pass_filenames: false
+      - id: backend-mypy-check
+        name: backend mypy check
+        entry: bash -lc 'cd backend && uv run mypy .'
+        language: system
+        pass_filenames: false
+      - id: frontend-lint
+        name: frontend lint
+        entry: bash -lc 'cd frontend && npm run lint'
+        language: system
+        pass_filenames: false
+      - id: frontend-format-check
+        name: frontend format check
+        entry: bash -lc 'cd frontend && npm run format:check'
+        language: system
+        pass_filenames: false
+      - id: frontend-typecheck
+        name: frontend typecheck
+        entry: bash -lc 'cd frontend && npm run typecheck'
+        language: system
+        pass_filenames: false
