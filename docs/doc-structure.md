@@ -32,7 +32,6 @@
 
 ## 7) Contribution + Governance
 - `./CONTRIBUTING.md`
-- `./CODE_OF_CONDUCT.md`
 - `./SECURITY.md`
 - `./docs/releases.md`
 - `./docs/maintainer-policies.md`

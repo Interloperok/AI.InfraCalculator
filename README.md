@@ -124,6 +124,11 @@ Coverage thresholds:
 - System architecture: `docs/architecture.md`
 - Core math scope definition: `docs/testing/core-math-scope.md`
 
+## Governance
+
+- Contributing guide: `CONTRIBUTING.md`
+- Security policy: `SECURITY.md`
+
 ## CI Workflows
 
 Repository keeps CI workflow templates as disabled files while project is private:

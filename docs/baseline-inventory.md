@@ -71,7 +71,7 @@ Frontend highlights:
 | ESLint project config | No | no `./frontend/.eslintrc*` |
 | Prettier config | No | no `./frontend/.prettierrc*` |
 | CITATION file | No | no `./CITATION.cff` |
-| OSS governance docs (`CONTRIBUTING`, `CODE_OF_CONDUCT`, `SECURITY`) | No | files absent |
+| OSS governance docs (`CONTRIBUTING`, `SECURITY`) | No | files absent |
 | Issue/PR templates | No | `.github` templates absent |
 | License | Yes | `./LICENSE` (MIT) |
 

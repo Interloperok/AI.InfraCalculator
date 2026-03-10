@@ -28,7 +28,7 @@ This plan is dependency-ordered and atomic (one milestone per commit).
   - No dedicated `docs/` architecture/theory/validation structure before this plan.
 - OSS readiness state:
   - `LICENSE` exists (MIT).
-  - Missing OSS community/release files (`CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, issue/PR templates, `CITATION.cff`).
+  - Missing OSS community/release files (`CONTRIBUTING.md`, `SECURITY.md`, issue/PR templates, `CITATION.cff`).
 - Code structure risks identified:
   - `./backend/main.py` is monolithic and mixes math, API, scheduler, and data operations.
   - Python cache artifacts are tracked (`__pycache__`, `.pyc`) and should be removed from version control.
@@ -356,10 +356,10 @@ This plan is dependency-ordered and atomic (one milestone per commit).
 
 28. **M28 — Add OSS Governance Files**
     - Objective: Establish contributor behavior/process/security expectations.
-    - Exact files/areas impacted (paths): `./CODE_OF_CONDUCT.md`, `./CONTRIBUTING.md`, `./SECURITY.md`, `./CODEOWNERS`.
+    - Exact files/areas impacted (paths): `./CONTRIBUTING.md`, `./SECURITY.md`.
     - Exact commands to run/verify locally:
       ```bash
-      test -f CODE_OF_CONDUCT.md && test -f CONTRIBUTING.md && test -f SECURITY.md && test -f CODEOWNERS
+      test -f CONTRIBUTING.md && test -f SECURITY.md
       ```
     - Done criteria: governance docs are complete and linked from README.
     - Risk/notes: Low.
