@@ -8,6 +8,7 @@ This directory contains the current project documentation set.
 - `docs/architecture.md` — backend/frontend architecture and request flow.
 - `docs/ci.md` — CI/CD trigger matrix, job behavior, and enablement steps.
 - `docs/releases.md` — release process, semantic versioning, and citation workflow.
+- `docs/release-checklist.md` — final OSS release readiness checklist and dry-run log.
 - `docs/testing/core-math-scope.md` — definition of critical core math coverage scope.
 
 ## Planning and migration docs
@@ -25,4 +26,5 @@ This directory contains the current project documentation set.
 - architecture: see `docs/architecture.md`
 - ci/cd: see `docs/ci.md`
 - release/citation: see `docs/releases.md` and `CITATION.cff`
+- release readiness: see `docs/release-checklist.md`
 - coverage targets and scope: see `docs/testing/core-math-scope.md`
