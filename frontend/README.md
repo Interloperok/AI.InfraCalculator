@@ -20,9 +20,7 @@ npm start
 
 App URL: [http://localhost:3000](http://localhost:3000)
 
-Backend API defaults:
-- development: `http://localhost:8000`
-- production: same-origin (`""`, e.g. `/v1/...` via reverse proxy)
+Backend API defaults to `http://localhost:8000` in development.
 
 ## Environment
 
@@ -30,14 +28,6 @@ Optional `.env`:
 
 ```dotenv
 REACT_APP_API_URL=http://localhost:8000
-```
-
-For Create React App this variable is injected at build time.
-
-For Docker builds, pass it as a build arg (not runtime container env):
-
-```bash
-REACT_APP_API_URL=https://your-api.example.com docker compose build frontend
 ```
 
 ## Structure
