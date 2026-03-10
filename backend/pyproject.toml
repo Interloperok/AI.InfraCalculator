@@ -44,10 +44,7 @@ extend-exclude = [
   "__pycache__",
   "gpu_normalizer.py",
   "gpu_scraper.py",
-  "main.py",
-  "models/sizing.py",
   "report_generator.py",
-  "tests",
 ]
 
 [tool.ruff.lint]
@@ -66,11 +63,15 @@ all = "ignore"
 [tool.mypy]
 python_version = "3.14"
 warn_unused_configs = true
-exclude = "(^|.*/)(main\\.py|gpu_scraper\\.py|gpu_normalizer\\.py|report_generator\\.py|models/sizing\\.py|tests/.*)$"
+exclude = "(^|.*/)(gpu_scraper\\.py|gpu_normalizer\\.py|report_generator\\.py|models/sizing\\.py|tests/.*)$"
 
 [[tool.mypy.overrides]]
 module = ["models.sizing", "gpu_scraper", "gpu_normalizer", "report_generator"]
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["apscheduler.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -80,11 +81,10 @@ pythonpath = ["."]
 [tool.coverage.run]
 branch = true
 source = ["."]
-# Temporary M19 scope: strict gates for deterministic sizing domain.
-# Legacy API/scraper/report modules will be re-included after M23/M24 refactor.
+# Temporary strict scope: legacy scraper/normalizer/report modules remain omitted
+# until they are split and cleaned.
 omit = [
   "tests/*",
-  "main.py",
   "gpu_scraper.py",
   "gpu_normalizer.py",
   "report_generator.py",
