@@ -1,0 +1,12 @@
+title = "AI Server Calculator gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow generated local artifacts that are not part of source-of-truth code."
+paths = [
+  '''^backend/.mypy_cache/''',
+  '''^backend/.hypothesis/''',
+  '''^frontend/coverage/''',
+]

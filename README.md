@@ -141,5 +141,12 @@ Repository keeps CI workflow templates as disabled files while project is privat
 - `.github/workflows/ci.yml.disabled`
 - `.github/workflows/e2e.yml.disabled`
 - `.github/workflows/release.yml.disabled`
+- `.github/workflows/security.yml.disabled`
 
 When moving to public repository, rename them to `.yml` to enable GitHub Actions.
+
+Expected behavior after enabling:
+- `ci.yml`: runs on push to all branches (fast checks for non-`main`, full checks for `main`/PR).
+- `security.yml`: secret scan on all pushes; dependency and CodeQL scans on `main`/PR/manual.
+- `e2e.yml`: PR to `main` and manual runs.
+- `release.yml`: tag `v*` and manual runs.

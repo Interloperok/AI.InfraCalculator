@@ -287,11 +287,11 @@ This plan is dependency-ordered and atomic (one milestone per commit).
     - Risk/notes: Medium.
 
 22. **M22 — Build Unified GitHub Actions CI**
-    - Objective: Enforce lint/type/test/build and publish coverage artifacts on every PR.
+    - Objective: Enforce lint/type/test/build on PRs and branch pushes, and publish coverage artifacts on full runs.
     - Exact files/areas impacted (paths): `./.github/workflows/ci.yml`, `./.github/workflows/e2e.yml`.
     - Exact commands to run/verify locally:
       ```bash
-      rg -n "ruff|mypy|ty|pytest|coverage|eslint|prettier|typecheck|test:e2e|upload-artifact" .github/workflows/*.yml
+      rg -n "branches: \\[\"\\*\\*\"\\]|ruff|mypy|ty|pytest|coverage|eslint|prettier|typecheck|test:e2e|upload-artifact" .github/workflows/*.yml
       ```
     - Done criteria: CI blocks merges on quality gates and uploads backend `coverage.xml/htmlcov` + frontend coverage artifacts.
     - Risk/notes: Medium.
@@ -387,7 +387,7 @@ This plan is dependency-ordered and atomic (one milestone per commit).
 
 31. **M31 — Security/Dependency Scanning + Final Release Readiness**
     - Objective: Add automated security scanning and final public-release checklist.
-    - Exact files/areas impacted (paths): `./.github/dependabot.yml`, `./.github/workflows/security.yml`, `./gitleaks.toml`, `./docs/release-checklist.md`.
+    - Exact files/areas impacted (paths): `./.github/dependabot.yml`, `./.github/workflows/security.yml.disabled`, `./gitleaks.toml`, `./docs/release-checklist.md`.
     - Exact commands to run/verify locally:
       ```bash
       (cd backend && uv export --frozen --format requirements-txt -o /tmp/backend-requirements.txt && uvx pip-audit -r /tmp/backend-requirements.txt)

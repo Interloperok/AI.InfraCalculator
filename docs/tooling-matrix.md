@@ -16,10 +16,10 @@
 | `tsc --noEmit` | Strict TypeScript compile-time checks | frontend | `cd frontend && npm run typecheck` | `./frontend/tsconfig.json` | Yes | Yes |
 | `Jest + Testing Library` | Frontend unit/component tests | frontend | `cd frontend && npm run test:ci -- --coverage` | `./frontend/package.json`, `./frontend/jest.config.js` | No | Yes |
 | `Playwright` | Frontend key E2E flows | frontend | `cd frontend && npm run test:e2e` | `./frontend/playwright.config.ts` | No | Yes |
-| `pip-audit` | Python dependency vulnerability scanning | py | `cd backend && uv sync --frozen --all-groups && uv run pip-audit` | `./backend/pyproject.toml`, `./.github/workflows/security.yml` | No | Yes |
-| `npm audit` | JS dependency vulnerability scanning | frontend | `cd frontend && npm audit --audit-level=high` | `./.github/workflows/security.yml` | No | Yes |
+| `pip-audit` | Python dependency vulnerability scanning | py | `cd backend && uv export --frozen --format requirements-txt -o /tmp/backend-requirements.txt && uvx pip-audit -r /tmp/backend-requirements.txt` | `./backend/pyproject.toml`, `./.github/workflows/security.yml.disabled` | No | Yes |
+| `npm audit` | JS dependency vulnerability scanning | frontend | `cd frontend && npm audit --audit-level=high` | `./.github/workflows/security.yml.disabled` | No | Yes |
 | `gitleaks` | Secret scanning | repo | `gitleaks detect --source .` | `./gitleaks.toml` | Optional | Yes |
-| `CodeQL` | Static security analysis | both | GitHub Action run | `./.github/workflows/security.yml` | No | Yes |
-| `SBOM generator` | Produce software bill of materials for release artifacts | both | CI workflow step (e.g., CycloneDX/Syft) | `./.github/workflows/security.yml` | No | Yes |
+| `CodeQL` | Static security analysis | both | GitHub Action run | `./.github/workflows/security.yml.disabled` | No | Yes |
+| `SBOM generator` | Produce software bill of materials for release artifacts | both | CI workflow step (e.g., CycloneDX/Syft) | `./.github/workflows/security.yml.disabled` | No | Yes |
 | `Action SHA pinning check` | Enforce immutable GitHub Action references | repo | `rg -n "uses: .+@[a-f0-9]{40}" .github/workflows/*.yml` | `./.github/workflows/*.yml` | No | Yes |
 | `Dependabot` | Automated dependency update PRs | both | GitHub-native schedule | `./.github/dependabot.yml` | No | Yes |

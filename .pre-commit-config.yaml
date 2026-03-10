@@ -5,6 +5,12 @@ repos:
       - id: end-of-file-fixer
   - repo: local
     hooks:
+      - id: gitleaks-staged
+        name: gitleaks staged scan
+        entry: bash -lc 'gitleaks git --staged --config gitleaks.toml --redact --no-banner'
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: backend-ruff-check
         name: backend ruff check
         entry: bash -lc 'cd backend && uv run ruff check .'
