@@ -1,0 +1,39 @@
+{
+  "gpu_1": {
+    "Vendor": "NVIDIA",
+    "Model name": "GeForce RTX 4090",
+    "Code name": "AD102",
+    "Launch": "October 12, 2022",
+    "Fab (nm)": "TSMC 4N",
+    "Memory Size (MiB)": "24576",
+    "Memory Bus type": "GDDR6X",
+    "Memory Bus width (bit)": "384",
+    "Clock speeds Base core clock (MHz)": "2235",
+    "Clock speeds Boost core clock (MHz)": "2520",
+    "TDP (Watts)": "450",
+    "Processing power (TFLOPS) Half precision": "82.6",
+    "Processing power (TFLOPS) Single precision": "82.6",
+    "Release price (USD)": "$35-45",
+    "Supported API version Vulkan": "1.3"
+  },
+  "gpu_2": {
+    "Vendor": "NVIDIA",
+    "Model name": "GeForce RTX 4090",
+    "Code name": "AD102 OEM",
+    "Launch": "2022",
+    "Memory Size (GB)": "24 GB",
+    "Memory Bus type": "GDDR6X",
+    "Processing power (TFLOPS) Single precision": "80.0",
+    "Release price (USD)": "$1599"
+  },
+  "gpu_3": {
+    "Vendor": "AMD",
+    "Model": "Radeon RX 7900 XTX",
+    "Launch": "December 13, 2022",
+    "Memory Size (GB)": "24 GB",
+    "Memory Bus type": "GDDR6",
+    "TDP (W)": "355",
+    "Processing power (TFLOPS) Single precision": "61.4",
+    "Release Date & Price": "$999"
+  }
+}

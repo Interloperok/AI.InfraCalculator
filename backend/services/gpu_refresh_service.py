@@ -6,9 +6,11 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
-from apscheduler.schedulers.background import BackgroundScheduler  # type: ignore[import-untyped]
-from apscheduler.triggers.interval import IntervalTrigger  # type: ignore[import-untyped]
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 from settings import get_settings
+from services.gpu_catalog_pipeline.normalizer import normalize as normalize_gpu_data
+from services.gpu_catalog_pipeline.scraper import scrape_gpu_catalog_raw
 
 logger = logging.getLogger("sizing")
 
@@ -27,15 +29,11 @@ def refresh_gpu_data_internal() -> bool:
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
         try:
-            from gpu_scraper import main as scrape_gpus
-
-            scrape_gpus()
+            scrape_gpu_catalog_raw(raw_path)
         finally:
             sys.stdout = old_stdout
 
         logger.info("Скрапинг завершён, запускаем нормализацию...")
-
-        from gpu_normalizer import normalize as normalize_gpu_data
 
         normalize_gpu_data(str(raw_path), str(out_path))
 

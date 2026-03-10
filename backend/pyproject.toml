@@ -40,12 +40,7 @@ package = false
 [tool.ruff]
 target-version = "py314"
 line-length = 100
-extend-exclude = [
-  "__pycache__",
-  "gpu_normalizer.py",
-  "gpu_scraper.py",
-  "report_generator.py",
-]
+extend-exclude = ["__pycache__"]
 
 [tool.ruff.lint]
 select = ["E", "F"]
@@ -55,7 +50,7 @@ ignore = ["E501"]
 deprecated = "ignore"
 
 [[tool.ty.overrides]]
-include = ["gpu_scraper.py", "main.py", "models/sizing.py", "tests/**"]
+include = ["main.py", "models/sizing.py", "tests/**"]
 
 [tool.ty.overrides.rules]
 all = "ignore"
@@ -63,14 +58,18 @@ all = "ignore"
 [tool.mypy]
 python_version = "3.14"
 warn_unused_configs = true
-exclude = "(^|.*/)(gpu_scraper\\.py|gpu_normalizer\\.py|report_generator\\.py|models/sizing\\.py|tests/.*)$"
+exclude = "(^|.*/)(models/sizing\\.py|tests/.*)$"
 
 [[tool.mypy.overrides]]
-module = ["models.sizing", "gpu_scraper", "gpu_normalizer", "report_generator"]
+module = ["models.sizing"]
 ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = ["apscheduler.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["pandas", "pandas.*", "openpyxl", "openpyxl.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
@@ -81,13 +80,12 @@ pythonpath = ["."]
 [tool.coverage.run]
 branch = true
 source = ["."]
-# Temporary strict scope: legacy scraper/normalizer/report modules remain omitted
-# until they are split and cleaned.
+# Temporary strict scope: coverage gates currently exclude legacy non-M39 domains
+# to enforce strictness on redesigned pipeline and sizing-critical modules first.
 omit = [
   "tests/*",
-  "gpu_scraper.py",
-  "gpu_normalizer.py",
-  "report_generator.py",
+  "services/auto_optimize_service.py",
+  "services/gpu_catalog_service.py",
 ]
 
 [tool.coverage.report]

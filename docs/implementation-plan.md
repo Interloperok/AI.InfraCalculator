@@ -411,7 +411,7 @@ This implementation plan is dependency-ordered and atomic (`1 milestone = 1 comm
     - Exact files/areas impacted (paths): `./docs/implementation-plan.md`, `./docs/milestones.md`.
     - Exact commands to run/verify locally:
       ```bash
-      rg -n "^\s*[0-9]+\. \*\*M|\| M[0-9]+ \|" /Users/pavel/projects/AI.ServerCalculationApp/docs/implementation-plan.md /Users/pavel/projects/AI.ServerCalculationApp/docs/milestones.md
+      rg -n "^\s*[0-9]+\. \*\*M|\| M[0-9]+ \|" ./docs/implementation-plan.md ./docs/milestones.md
       ```
     - Done criteria: IDs, order, titles, dependencies, and statuses are aligned.
     - Risk/notes: Medium.
@@ -421,7 +421,7 @@ This implementation plan is dependency-ordered and atomic (`1 milestone = 1 comm
     - Exact files/areas impacted (paths): `./frontend/package.json`, `./frontend/src/**/*.test.*`, optional Jest config.
     - Exact commands to run/verify locally:
       ```bash
-      cd /Users/pavel/projects/AI.ServerCalculationApp/frontend
+      cd frontend
       npm run test:ci -- --coverage
       ```
     - Done criteria: coverage threshold reflects real frontend scope.
@@ -432,7 +432,7 @@ This implementation plan is dependency-ordered and atomic (`1 milestone = 1 comm
     - Exact files/areas impacted (paths): `./backend/pyproject.toml`.
     - Exact commands to run/verify locally:
       ```bash
-      cd /Users/pavel/projects/AI.ServerCalculationApp/backend
+      cd backend
       uv run ruff check .
       uv run mypy .
       AI_SC_DISABLE_SCHEDULER=1 uv run pytest -q
@@ -445,7 +445,7 @@ This implementation plan is dependency-ordered and atomic (`1 milestone = 1 comm
     - Exact files/areas impacted (paths): `./backend/main.py`, `./backend/models/*.py`.
     - Exact commands to run/verify locally:
       ```bash
-      cd /Users/pavel/projects/AI.ServerCalculationApp/backend
+      cd backend
       AI_SC_DISABLE_SCHEDULER=1 uv run pytest -q -W error::DeprecationWarning
       ```
     - Done criteria: no deprecation warnings from project code.
@@ -456,7 +456,7 @@ This implementation plan is dependency-ordered and atomic (`1 milestone = 1 comm
     - Exact files/areas impacted (paths): `./.github/workflows/*`, repository settings.
     - Exact commands to run/verify locally (when unsuspended):
       ```bash
-      find /Users/pavel/projects/AI.ServerCalculationApp/.github/workflows -name "*.yml"
+      find ./.github/workflows -name "*.yml"
       ```
     - Done criteria: all required checks run in GitHub on PR/push.
     - Risk/notes: Medium. Deferred until migration to public repo.
@@ -466,7 +466,7 @@ This implementation plan is dependency-ordered and atomic (`1 milestone = 1 comm
     - Exact files/areas impacted (paths): `./CITATION.cff`, `./README.md`, docs references (if any).
     - Exact commands to run/verify locally (when unsuspended):
       ```bash
-      rg -n "your-org|ai-server-calculator" /Users/pavel/projects/AI.ServerCalculationApp/CITATION.cff /Users/pavel/projects/AI.ServerCalculationApp/README.md /Users/pavel/projects/AI.ServerCalculationApp/docs
+      rg -n "your-org|ai-server-calculator" ./CITATION.cff ./README.md ./docs
       ```
     - Done criteria: canonical public org/repo URLs are final.
     - Risk/notes: Low. Explicitly not fixed in current private-repo phase.
@@ -476,32 +476,79 @@ This implementation plan is dependency-ordered and atomic (`1 milestone = 1 comm
     - Exact files/areas impacted (paths): repo root tracking set (for example `.cursor/*` if present).
     - Exact commands to run/verify locally:
       ```bash
-      git -C /Users/pavel/projects/AI.ServerCalculationApp ls-files | rg "^\.cursor/|^\.vscode/"
+      git ls-files | rg "^\.cursor/|^\.vscode/"
       ```
     - Done criteria: no internal-only tracked artifacts remain.
     - Risk/notes: Low.
 
-39. **M39 — Re-include legacy modules in strict quality gates**
-    - Objective: perform a behavior-preserving refactor of scraper/normalizer/report modules, add regression coverage for their current behavior, and remove temporary quality excludes.
-    - Exact files/areas impacted (paths): `./backend/pyproject.toml`, `./backend/gpu_scraper.py`, `./backend/gpu_normalizer.py`, `./backend/report_generator.py`, `./backend/services/`, `./backend/tests/`, `./backend/tests/regression/`.
+39. **M39A — Split M39 into phased execution**
+    - Objective: replace monolithic M39 with atomic hard-move redesign milestones M39A-M39E.
+    - Exact files/areas impacted (paths): `./docs/implementation-plan.md`, `./docs/milestones.md`.
+    - Exact commands to run/verify locally:
+      ```bash
+      rg -n "M39A|M39B|M39C|M39D|M39E" ./docs/implementation-plan.md ./docs/milestones.md
+      ```
+    - Done criteria: M39A-M39E are present in both documents with dependency chain `M39A -> M39B -> M39C -> M39D -> M39E`.
+    - Risk/notes: Low.
+
+40. **M39B — Freeze deterministic regression baseline**
+    - Objective: pin current scraper/normalizer/report behavior with offline fixtures before redesign.
+    - Exact files/areas impacted (paths): `./backend/tests/regression/fixtures/scraper_html/`, `./backend/tests/regression/fixtures/normalizer_raw/`, `./backend/tests/regression/fixtures/normalizer_expected/`, `./backend/tests/regression/test_scraper_baseline.py`, `./backend/tests/regression/test_normalizer_baseline.py`, `./backend/tests/regression/test_report_baseline.py`.
+    - Exact commands to run/verify locally:
+      ```bash
+      cd backend
+      AI_SC_DISABLE_SCHEDULER=1 uv run pytest -q tests/regression
+      ```
+    - Done criteria: regression tests run offline and assert schema/slug/report-output invariants.
+    - Risk/notes: Medium.
+
+41. **M39C — Full redesign in service layer**
+    - Objective: move scraper/normalizer/report logic to service-layer modules and migrate call sites without changing API contracts.
+    - Exact files/areas impacted (paths): `./backend/services/gpu_catalog_pipeline/scraper.py`, `./backend/services/gpu_catalog_pipeline/normalizer.py`, `./backend/services/report_service.py`, `./backend/scripts/gpu_catalog_pipeline.py`, `./backend/services/gpu_refresh_service.py`, `./backend/api/sizing_handlers.py`.
     - Exact commands to run/verify locally:
       ```bash
       cd backend
       uv run ruff check .
       uv run mypy .
-      AI_SC_DISABLE_SCHEDULER=1 uv run pytest -q
-      AI_SC_DISABLE_SCHEDULER=1 uv run pytest -q tests/test_api_integration.py tests/test_golden_sizing.py tests/test_sizing_properties.py
-      AI_SC_DISABLE_SCHEDULER=1 uv run pytest --cov=. --cov-branch --cov-report=xml:coverage.xml --cov-report=html:htmlcov
-      rg -n "gpu_scraper|gpu_normalizer|report_generator" pyproject.toml
+      AI_SC_DISABLE_SCHEDULER=1 uv run pytest -q tests/regression tests/test_api_integration.py
       ```
-    - Done criteria: no temporary lint/type/coverage excludes remain for these modules; regression tests for refactored modules are added and passing; existing API/golden/property tests remain green without loosening assertions.
-    - Risk/notes: High. Refactor must preserve externally visible behavior and output contracts.
+    - Done criteria: production code uses new service modules; behavior remains API-compatible.
+    - Risk/notes: High.
+
+42. **M39D — Hard-move cutover**
+    - Objective: remove legacy root modules and references after migration.
+    - Exact files/areas impacted (paths): `./backend/gpu_scraper.py`, `./backend/gpu_normalizer.py`, `./backend/report_generator.py`, `./backend/models/README.md`, `./docs/architecture.md`, `./docs/baseline-inventory.md`.
+    - Exact commands to run/verify locally:
+      ```bash
+      ! rg -n "gpu_scraper|gpu_normalizer|report_generator" ./backend ./docs/architecture.md ./docs/baseline-inventory.md ./README.md
+      cd backend
+      AI_SC_DISABLE_SCHEDULER=1 uv run pytest -q
+      ```
+    - Done criteria: legacy root modules are removed and references are updated to new locations.
+    - Risk/notes: High.
+
+43. **M39E — Re-enable strict quality gates**
+    - Objective: remove temporary quality excludes/omits tied to legacy modules and enforce full gates.
+    - Exact files/areas impacted (paths): `./backend/pyproject.toml`, coverage/type/lint config sections.
+    - Exact commands to run/verify locally:
+      ```bash
+      cd backend
+      uv run ruff check .
+      uv run ty check .
+      uv run mypy .
+      AI_SC_DISABLE_SCHEDULER=1 uv run pytest --cov=. --cov-branch --cov-report=xml:coverage.xml --cov-report=html:htmlcov
+      uv run coverage json -o coverage.json
+      uv run python scripts/check_coverage_thresholds.py --overall-line 85 --overall-branch 80 --core-line 95 --core-branch 90
+      ! rg -n "gpu_scraper|gpu_normalizer|report_generator" pyproject.toml
+      ```
+    - Done criteria: temporary excludes are removed and all gates pass with redesigned modules included.
+    - Risk/notes: High.
 
 ## Release Go Criteria (Revised)
 
 - Private-repo GO:
-  - M01-M35 and M38-M39 are `DONE`.
-  - M36 and M37 are allowed as `SUSPENDED`.
+  - M01-M35 and M39A-M39E are `DONE`.
+  - M36-M38 are allowed as `SUSPENDED`.
   - Local quality gates are green (`backend` + `frontend` + citation validation).
   - Workflow templates remain `.yml.disabled` by policy.
 - Public-repo GO:

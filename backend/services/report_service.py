@@ -8,9 +8,9 @@ Excel при открытии файла.
 from __future__ import annotations
 
 import io
-import os
 import logging
 from datetime import datetime
+from pathlib import Path
 from typing import Callable, Optional
 
 import openpyxl
@@ -19,8 +19,8 @@ from models import SizingInput
 
 logger = logging.getLogger("sizing.report")
 
-# Путь к шаблону Excel (лежит рядом с этим модулем)
-REPORT_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "reportTemplate.xlsx")
+# Путь к шаблону Excel в корне backend.
+REPORT_TEMPLATE_PATH = str(Path(__file__).resolve().parents[1] / "reportTemplate.xlsx")
 
 
 class ReportGenerator:
@@ -42,7 +42,7 @@ class ReportGenerator:
     @property
     def template_exists(self) -> bool:
         """Проверяет наличие файла шаблона."""
-        return os.path.exists(self.template_path)
+        return Path(self.template_path).exists()
 
     def _resolve_gpu_tflops(self, inp: SizingInput) -> float:
         """

@@ -1,7 +1,7 @@
 """
 GPU Catalog Normalizer
 ======================
-Reads raw gpu_data_raw.json (output of gpu_scraper.py) and produces
+Reads raw GPU catalog JSON and produces
 gpu_data.json with a unified, typed schema.
 
 Every GPU entry in the output has exactly the same set of fields.
@@ -9,11 +9,11 @@ Missing values are ``null`` (not "nan", "Unknown", "?", "N/a").
 Numbers are always numbers (int/float), never strings.
 
 Usage:
-    python gpu_normalizer.py                        # default paths
-    python gpu_normalizer.py raw.json out.json      # custom paths
+    python scripts/gpu_catalog_pipeline.py normalize
+    python scripts/gpu_catalog_pipeline.py normalize --raw-input raw.json --output out.json
 
 Can also be imported:
-    from gpu_normalizer import normalize
+    from services.gpu_catalog_pipeline.normalizer import normalize
     normalize("gpu_data_raw.json", "gpu_data.json")
 """
 

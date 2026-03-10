@@ -10,7 +10,8 @@
 
 - `backend/main.py`: FastAPI app composition, routes, startup/shutdown lifecycle.
 - `backend/api/`: thin HTTP handlers, response mapping, and transport-level concerns.
-- `backend/services/`: orchestration and business logic (`sizing_service`, `gpu_catalog_service`, `gpu_refresh_service`, `auto_optimize_service`).
+- `backend/services/`: orchestration and business logic (`sizing_service`, `gpu_catalog_service`, `gpu_refresh_service`, `auto_optimize_service`, `report_service`).
+- `backend/services/gpu_catalog_pipeline/`: GPU catalog ingestion pipeline (`scraper`, `normalizer`).
 - `backend/core/sizing_math.py`: pure deterministic math functions (critical core math scope).
 - `backend/models/`: Pydantic input/output contracts.
 - `backend/settings.py`: typed environment configuration.

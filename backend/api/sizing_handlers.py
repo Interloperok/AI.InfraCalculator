@@ -13,12 +13,12 @@ from models import (
     WhatIfRequest,
     WhatIfResponseItem,
 )
-from report_generator import ReportGenerator
 from services.auto_optimize_service import auto_optimize
 from services.gpu_catalog_service import lookup_gpu_tflops
+from services.report_service import ReportGenerator
 from services.sizing_service import run_sizing
 
-report_generator = ReportGenerator(gpu_tflops_lookup=lookup_gpu_tflops)
+report_builder = ReportGenerator(gpu_tflops_lookup=lookup_gpu_tflops)
 
 
 def size_endpoint_handler(
@@ -36,7 +36,7 @@ def size_endpoint_handler(
 def report_endpoint_handler(inp: SizingInput) -> StreamingResponse:
     """Сгенерировать Excel-отчёт по sizing-входу."""
     try:
-        buf = report_generator.generate(inp)
+        buf = report_builder.generate(inp)
     except FileNotFoundError as exc:
         raise to_http_exception(ServiceAppError(str(exc))) from exc
     except RuntimeError as exc:
@@ -46,7 +46,7 @@ def report_endpoint_handler(inp: SizingInput) -> StreamingResponse:
         buf,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
-            "Content-Disposition": f'attachment; filename="{report_generator.make_filename()}"',
+            "Content-Disposition": f'attachment; filename="{report_builder.make_filename()}"',
         },
     )
 

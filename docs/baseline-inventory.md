@@ -49,7 +49,8 @@ Top-level directories (depth <= 2):
 Backend highlights:
 
 - Main API module: `./backend/main.py` (monolithic).
-- Data/model scripts: `./backend/gpu_scraper.py`, `./backend/gpu_normalizer.py`, `./backend/report_generator.py`.
+- Data/model pipeline: `./backend/services/gpu_catalog_pipeline/scraper.py`, `./backend/services/gpu_catalog_pipeline/normalizer.py`.
+- Report generation service: `./backend/services/report_service.py`.
 - Tests: `./backend/tests/test_sizing.py`.
 - Packaging: `./backend/requirements.txt`.
 

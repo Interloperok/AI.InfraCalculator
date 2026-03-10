@@ -74,5 +74,6 @@ from models.gpu import GPUInfo, GPUListResponse
 ## 📚 Связанные файлы
 
 - `main.py` - основной API сервер
-- `gpu_scraper.py` - скрапер GPU данных
+- `services/gpu_catalog_pipeline/` - скрапер и нормализация GPU данных
+- `services/report_service.py` - генерация Excel-отчётов
 - `contracts/` - старые модели (deprecated)

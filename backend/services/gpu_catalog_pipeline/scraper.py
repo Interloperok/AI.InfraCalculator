@@ -1,9 +1,10 @@
 import json
-import os
 import re
 import time
 from io import StringIO
-from typing import List, Dict, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
 import requests
 
@@ -24,6 +25,7 @@ data: Dict[str, Dict[str, str]] = {
 }
 
 REFERENCES_AT_END = r"(?:\s*\[\d+\])+(?:\d+,)?(?:\d+)?$"
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 # ---------------------------------------------
 #  Utilities
@@ -56,7 +58,12 @@ def clean_html(html: str) -> str:
     html = re.sub(r"(\d)&?#160;?(\d)", r"\1\2", html)
     html = re.sub(r"&thinsp;|&#8201;|&nbsp;|&#160;|\xa0", " ", html)
     html = re.sub(r"<small>.*?</small>", "", html, flags=re.DOTALL)
-    html = html.translate(str.maketrans({"\u2012": "-", "\u2013": "-", "\u2014": ""}))
+    translation_table: Dict[str, str | int | None] = {
+        "\u2012": "-",
+        "\u2013": "-",
+        "\u2014": "",
+    }
+    html = html.translate(str.maketrans(translation_table))
     html = (html.replace("mm<sup>2</sup>", "mm2")
                 .replace("\u00d710<sup>6</sup>", "×10⁶")
                 .replace("\u00d710<sup>9</sup>", "×10⁹"))
@@ -79,7 +86,7 @@ def normalize_columns(cols) -> List[str]:
         if len(parts) % 2 == 0 and parts[: len(parts)//2] == parts[len(parts)//2:]:
             parts = parts[: len(parts)//2]
         # Remove consecutive duplicate words
-        dedup = []
+        dedup: List[str] = []
         for w in parts:
             if not dedup or w != dedup[-1]:
                 dedup.append(w)
@@ -246,7 +253,7 @@ def fetch_vendor_tables(vendor: str, url: str) -> List[pd.DataFrame]:
                     tidy = tidy.rename(columns={"Release date": "Launch"})
                     tidy = standardise_column_names(tidy)
                     dfs.append(tidy)
-                    print(f"  ✅ Found NVIDIA transposed table")
+                    print("  ✅ Found NVIDIA transposed table")
             except Exception as e:
                 print(f"  ⚠️  NVIDIA transposed table failed: {e}")
         
@@ -260,7 +267,7 @@ def fetch_vendor_tables(vendor: str, url: str) -> List[pd.DataFrame]:
         return []
 
 
-def record_key(row: Dict[str, str]) -> str:
+def record_key(row: Dict[str, Any]) -> str:
     vendor = row.get("Vendor", "UNKNOWN").strip()
     code = str(row.get("Code name", "")).strip()
     if code and code.lower() not in {"nan", ""}:
@@ -271,8 +278,9 @@ def record_key(row: Dict[str, str]) -> str:
     return f"{vendor}_{model}"
 
 
-def main():
-    """Main function to scrape GPU data from Wikipedia"""
+def scrape_gpu_catalog_raw(raw_output_path: str | Path | None = None) -> Dict[str, Dict[str, Any]]:
+    """Scrape GPU data from Wikipedia and merge into gpu_data_raw.json."""
+    raw_path = Path(raw_output_path) if raw_output_path is not None else BACKEND_DIR / "gpu_data_raw.json"
     frames: List[pd.DataFrame] = []
     successful_vendors = []
     
@@ -302,7 +310,7 @@ def main():
     if not frames:
         print("❌ No GPU tables parsed from any vendor. Wiki markup may have changed.")
         # Создаем минимальный набор данных для тестирования
-        fallback_data = {
+        fallback_data: Dict[str, Dict[str, Any]] = {
             "NVIDIA_RTX_4090": {
                 "Vendor": "NVIDIA",
                 "Model": "GeForce RTX 4090",
@@ -350,20 +358,19 @@ def main():
         }
         
         # Merge fallback into existing data (don't overwrite)
-        raw_path = os.path.join(os.path.dirname(__file__) or ".", "gpu_data_raw.json")
-        existing_fb: Dict[str, Dict[str, str]] = {}
-        if os.path.exists(raw_path):
+        existing_fb: Dict[str, Dict[str, Any]] = {}
+        if raw_path.exists():
             try:
-                with open(raw_path, "r", encoding="utf-8-sig") as f:
+                with raw_path.open("r", encoding="utf-8-sig") as f:
                     existing_fb = json.load(f)
             except Exception:
                 existing_fb = {}
         for k, v in fallback_data.items():
             if k not in existing_fb:
                 existing_fb[k] = v
-        with open(raw_path, "w", encoding="utf-8") as fp:
+        with raw_path.open("w", encoding="utf-8") as fp:
             json.dump(existing_fb, fp, indent=2, ensure_ascii=False, default=str)
-        print(f"Merged fallback data -> {len(existing_fb)} GPUs in gpu_data_raw.json")
+        print(f"Merged fallback data -> {len(existing_fb)} GPUs in {raw_path.name}")
         return existing_fb
 
     print(f"✅ Successfully processed {len(successful_vendors)} vendors: {', '.join(successful_vendors)}")
@@ -382,7 +389,7 @@ def main():
     else:
         print("⚠️  Launch date column not found, skipping year filter")
 
-    scraped: Dict[str, Dict[str, str]] = {}
+    scraped: Dict[str, Dict[str, Any]] = {}
     for record in df.to_dict(orient="records"):
         compact = {k: v for k, v in record.items() if pd.notna(v)}
         key = record_key(compact)
@@ -395,11 +402,10 @@ def main():
 
     # Merge strategy: load existing data, then overlay scraped entries.
     # Existing entries NOT present in scraped data are preserved (not deleted).
-    existing: Dict[str, Dict[str, str]] = {}
-    raw_path = os.path.join(os.path.dirname(__file__) or ".", "gpu_data_raw.json")
-    if os.path.exists(raw_path):
+    existing: Dict[str, Dict[str, Any]] = {}
+    if raw_path.exists():
         try:
-            with open(raw_path, "r", encoding="utf-8-sig") as f:
+            with raw_path.open("r", encoding="utf-8-sig") as f:
                 existing = json.load(f)
         except Exception:
             existing = {}
@@ -414,12 +420,17 @@ def main():
             updated += 1
         existing[key] = value
 
-    with open(raw_path, "w", encoding="utf-8") as fp:
+    with raw_path.open("w", encoding="utf-8") as fp:
         json.dump(existing, fp, indent=2, ensure_ascii=False, default=str)
 
     print(f"[OK] Merge: {old_count} existing + {added} added + {updated} updated "
-          f"= {len(existing)} total -> gpu_data_raw.json")
+          f"= {len(existing)} total -> {raw_path.name}")
     return existing
+
+
+def main() -> Dict[str, Dict[str, Any]]:
+    """CLI entrypoint compatible with `python -m ...` usage."""
+    return scrape_gpu_catalog_raw()
 
 
 if __name__ == "__main__":
