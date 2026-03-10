@@ -49,8 +49,13 @@
   },
   "jest": {
     "collectCoverageFrom": [
-      "src/services/api.ts",
-      "src/features/optimization/OptimizeResultsTable.js"
+      "src/**/*.{js,jsx,ts,tsx}",
+      "!src/**/*.test.{js,jsx,ts,tsx}",
+      "!src/index.js",
+      "!src/setupTests.js",
+      "!src/features/calculator/Calculator.js",
+      "!src/features/calculator/CalculatorForm.js",
+      "!src/features/gpu/GpuFilterModal.js"
     ],
     "coverageThreshold": {
       "global": {
