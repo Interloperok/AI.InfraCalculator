@@ -8,7 +8,7 @@ Project includes:
 - React frontend with calculator UI and scenario analysis
 - Docker setup for local and production-like runs
 
-## getting started
+## Getting Started
 
 ### Option A: Docker compose (fastest)
 
