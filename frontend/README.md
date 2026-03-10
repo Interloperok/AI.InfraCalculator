@@ -1,114 +1,64 @@
-# AI Server Calculator Frontend
+# Frontend (React)
 
-This is a React application that provides a user interface for calculating AI server requirements based on the backend API.
+Frontend UI for AI/LLM sizing calculator.
 
-## Features
+## Stack
 
-- Interactive sliders for all configuration parameters
-- Real-time calculation of server requirements
-- Visual representation of results with charts
-- Responsive design using Tailwind CSS
-- Collapsible parameter sections with smooth animations
-- Comprehensive error handling
-- Dual input controls (sliders + text fields)
-- Integer validation for specific parameters
+- React 18 (Create React App)
+- Axios API client
+- ESLint + Prettier
+- TypeScript checks via `tsc --noEmit`
+- Jest unit tests + Playwright smoke tests
 
-## Prerequisites
-
-- Node.js (v14 or higher)
-- Backend server running on http://localhost:8000
-
-## Installation
-
-1. Navigate to the frontend directory:
+## Local run
 
 ```bash
 cd frontend
-```
-
-2. Install dependencies:
-
-```bash
 npm install
-```
-
-3. Start the development server:
-
-```bash
 npm start
 ```
 
-The application will be available at http://localhost:3000
+App URL: [http://localhost:3000](http://localhost:3000)
 
-## Backend API
+Backend API defaults to `http://localhost:8000` in development.
 
-This frontend connects to the backend API at http://localhost:8000. Make sure the backend server is running before using the calculator.
+## Environment
 
-The API endpoints used:
+Optional `.env`:
 
-- POST /v1/size - Calculate server requirements
-- GET /v1/healthz - Health check
-
-## Project Structure
-
+```dotenv
+REACT_APP_API_URL=http://localhost:8000
 ```
-src/
-├── components/
-│   ├── Calculator.js      # Main calculator component
-│   ├── CalculatorForm.js  # Form with collapsible sections and dual inputs
-│   └── ResultsDisplay.js  # Results visualization
+
+## Structure
+
+```text
+frontend/src/
+├── features/
+│   ├── calculator/      # Calculator form and result visualization
+│   ├── gpu/             # GPU filter modal and related UI
+│   └── optimization/    # Auto-optimize results table
 ├── services/
-│   └── api.js            # API service functions
-├── App.js               # Main application component
-├── App.css              # Global styles
-└── index.js             # Application entry point
+│   └── api.ts           # Backend API calls + error mapping
+├── App.js               # App shell + guided tour + docs drawer
+└── index.js             # React entrypoint
 ```
 
-## Technologies Used
-
-- React
-- Tailwind CSS
-- Recharts for data visualization
-- Axios for API communication
-
-## Configuration
-
-You can customize the backend API URL by creating a `.env` file in the root directory:
-
-```
-REACT_APP_API_URL=http://your-backend-url:port
-```
-
-## Development
-
-To run the development server:
+## Quality checks
 
 ```bash
-npm start
+cd frontend
+npm run lint
+npm run format:check
+npm run typecheck
 ```
 
-To build for production:
+## Tests and coverage
 
 ```bash
-npm run build
+cd frontend
+npm run test:ci -- --coverage
+npm run test:e2e
 ```
 
-## Input Controls
-
-The calculator provides dual input controls for each parameter:
-
-- Sliders for visual adjustment
-- Text fields for precise numeric input
-- Integer validation for specific parameters:
-  - Internal Users
-  - External Users
-  - Prompt Tokens
-  - Answer Tokens
-  - RPS per Active User
-  - Session Duration (sec)
-  - Params (Billions)
-  - Bytes per Param
-  - Layers
-  - GPU Memory (GB)
-  - GPUs per Server
-  - Tokens/sec per Instance
+Coverage threshold (global lines) is enforced in `package.json`.
