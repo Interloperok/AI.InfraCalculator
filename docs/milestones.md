@@ -4,7 +4,8 @@ This file is the execution/status index for `docs/implementation-plan.md`.
 
 Execution rules:
 - `1 milestone = 1 commit`
-- status source of truth is this table (`TODO` / `DONE`)
+- status source of truth is this table (TODO / DONE / SUSPENDED)
+- `SUSPENDED` = explicitly deferred by release policy; not a blocker for current private-phase GO.
 - dependencies must be satisfied before implementing a milestone
 
 | Milestone ID | Short title | Scope | Estimated risk | Dependencies | Verification command(s) | Files/paths touched (high level) | Commit message template | Status |
@@ -40,3 +41,10 @@ Execution rules:
 | M29 | Citation and release automation | docs/ci/repo | med | M28 | `uvx cffconvert --validate -i CITATION.cff` | `./CITATION.cff`, `./.github/workflows/release.yml.disabled`, `./docs/releases.md`, `./README.md`, `./docs/index.md` | `Add CITATION metadata and release strategy automation` | DONE |
 | M30 | Security and dependency scans | ci/repo | med | M22 | `gitleaks detect --source . --config gitleaks.toml --redact --no-banner` | `./.github/workflows/security.yml.disabled`, `./.github/dependabot.yml`, `./gitleaks.toml`, `./README.md`, `./docs/tooling-matrix.md` | `Add dependency and secret scanning in CI` | DONE |
 | M31 | Release readiness dry run | repo/docs/ci | med | M29,M30 | `rg -n "release checklist" docs/release-checklist.md` | `./docs/release-checklist.md`, `./docs/index.md`, `./.github/workflows/` | `Add final OSS release readiness checklist and dry run` | DONE |
+| M32 | Reconcile plan/index integrity | docs | med | M31 | `rg -n "^\s*[0-9]+\. \*\*M|\| M[0-9]+ \|" ./docs/implementation-plan.md ./docs/milestones.md` | `./docs/implementation-plan.md`, `./docs/milestones.md` | `Align implementation plan with milestones index` | TODO |
+| M33 | Expand frontend coverage scope | frontend/tests | med | M32 | `cd frontend && npm run test:ci -- --coverage` | `./frontend/package.json`, `./frontend/src/**/*.test.*` | `Enforce representative frontend coverage scope` | TODO |
+| M34 | Tighten backend quality scope | backend | high | M32 | `cd backend && uv run ruff check . && uv run mypy . && AI_SC_DISABLE_SCHEDULER=1 uv run pytest -q` | `./backend/pyproject.toml` | `Reduce temporary backend lint/type/coverage exclusions` | TODO |
+| M35 | Remove backend deprecations | backend | med | M34 | `cd backend && AI_SC_DISABLE_SCHEDULER=1 uv run pytest -q -W error::DeprecationWarning` | `./backend/main.py`, `./backend/models/*.py` | `Migrate FastAPI and Pydantic deprecated patterns` | TODO |
+| M36 | Enable public CI workflows | ci | med | M35 | `find ./.github/workflows -name "*.yml"` | `./.github/workflows/`, repo branch protection settings | `Enable GitHub workflows and required checks for public repo` | SUSPENDED |
+| M37 | Finalize public metadata placeholders | docs/repo | low | M35 | `rg -n "your-org|ai-server-calculator" ./CITATION.cff ./README.md ./docs` | `./CITATION.cff`, `./README.md`, `./docs/` | `Replace placeholder repository metadata with canonical public URLs` | SUSPENDED |
+| M38 | Clean internal tracked artifacts | repo | low | M35 | `git ls-files | rg "^\.cursor/|^\.vscode/"` | tracked internal artifact paths | `Remove internal tracked artifacts before OSS publication` | TODO |

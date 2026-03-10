@@ -408,3 +408,96 @@ This implementation plan is dependency-ordered and atomic (`1 milestone = 1 comm
       ```
     - Done criteria: dependency and secret scanning are CI-enforced; release checklist passes with no critical blockers.
     - Risk/notes: Medium.
+
+32. **M32 — Reconcile Plan/Index Integrity**
+    - Objective: Restore strict 1:1 consistency between implementation plan and milestones index.
+    - Exact files/areas impacted (paths): `./docs/implementation-plan.md`, `./docs/milestones.md`.
+    - Exact commands to run/verify locally:
+      ```bash
+      rg -n "^\s*[0-9]+\. \*\*M|\| M[0-9]+ \|" /Users/pavel/projects/AI.ServerCalculationApp/docs/implementation-plan.md /Users/pavel/projects/AI.ServerCalculationApp/docs/milestones.md
+      ```
+    - Done criteria: IDs, order, titles, dependencies, and statuses are aligned.
+    - Risk/notes: Medium.
+
+33. **M33 — Make Frontend Coverage Representative**
+    - Objective: enforce true frontend-global coverage gate, not narrow-file coverage.
+    - Exact files/areas impacted (paths): `./frontend/package.json`, `./frontend/src/**/*.test.*`, optional Jest config.
+    - Exact commands to run/verify locally:
+      ```bash
+      cd /Users/pavel/projects/AI.ServerCalculationApp/frontend
+      npm run test:ci -- --coverage
+      ```
+    - Done criteria: coverage threshold reflects real frontend scope.
+    - Risk/notes: Medium.
+
+34. **M34 — Restore Backend Static-Check Strictness**
+    - Objective: reduce temporary excludes/omits in backend quality config.
+    - Exact files/areas impacted (paths): `./backend/pyproject.toml`.
+    - Exact commands to run/verify locally:
+      ```bash
+      cd /Users/pavel/projects/AI.ServerCalculationApp/backend
+      uv run ruff check .
+      uv run mypy .
+      AI_SC_DISABLE_SCHEDULER=1 uv run pytest -q
+      ```
+    - Done criteria: production modules are covered by lint/type gates.
+    - Risk/notes: High.
+
+35. **M35 — Migrate Backend Deprecations**
+    - Objective: remove FastAPI/Pydantic deprecation patterns.
+    - Exact files/areas impacted (paths): `./backend/main.py`, `./backend/models/*.py`.
+    - Exact commands to run/verify locally:
+      ```bash
+      cd /Users/pavel/projects/AI.ServerCalculationApp/backend
+      AI_SC_DISABLE_SCHEDULER=1 uv run pytest -q -W error::DeprecationWarning
+      ```
+    - Done criteria: no deprecation warnings from project code.
+    - Risk/notes: Medium.
+
+36. **M36 — Enable Public CI Workflows And Branch Protection (SUSPENDED)**
+    - Objective: activate `.github/workflows/*.yml` and required checks for public repo.
+    - Exact files/areas impacted (paths): `./.github/workflows/*`, repository settings.
+    - Exact commands to run/verify locally (when unsuspended):
+      ```bash
+      find /Users/pavel/projects/AI.ServerCalculationApp/.github/workflows -name "*.yml"
+      ```
+    - Done criteria: all required checks run in GitHub on PR/push.
+    - Risk/notes: Medium. Deferred until migration to public repo.
+
+37. **M37 — Finalize Public Metadata Placeholders (SUSPENDED)**
+    - Objective: replace placeholder repo identifiers in public metadata/docs.
+    - Exact files/areas impacted (paths): `./CITATION.cff`, `./README.md`, docs references (if any).
+    - Exact commands to run/verify locally (when unsuspended):
+      ```bash
+      rg -n "your-org|ai-server-calculator" /Users/pavel/projects/AI.ServerCalculationApp/CITATION.cff /Users/pavel/projects/AI.ServerCalculationApp/README.md /Users/pavel/projects/AI.ServerCalculationApp/docs
+      ```
+    - Done criteria: canonical public org/repo URLs are final.
+    - Risk/notes: Low. Explicitly not fixed in current private-repo phase.
+
+38. **M38 — Remove Internal/Non-OSS Tracked Artifacts**
+    - Objective: remove internal planning/editor artifacts from tracked files.
+    - Exact files/areas impacted (paths): repo root tracking set (for example `.cursor/*` if present).
+    - Exact commands to run/verify locally:
+      ```bash
+      git -C /Users/pavel/projects/AI.ServerCalculationApp ls-files | rg "^\.cursor/|^\.vscode/"
+      ```
+    - Done criteria: no internal-only tracked artifacts remain.
+    - Risk/notes: Low.
+
+## Release Go Criteria (Revised)
+
+- Private-repo GO:
+  - M01-M35 and M38 are `DONE`.
+  - M36 and M37 are allowed as `SUSPENDED`.
+  - Local quality gates are green (`backend` + `frontend` + citation validation).
+  - Workflow templates remain `.yml.disabled` by policy.
+- Public-repo GO:
+  - M36 and M37 are unsuspended and completed.
+  - Branch protection required checks are configured.
+  - Public repository metadata URLs are finalized.
+
+## Assumptions (Revised)
+
+- Repository is still private during current phase.
+- Public canonical repo name/URL is not finalized yet.
+- Therefore CI activation and placeholder replacement are intentionally deferred.
