@@ -7,7 +7,9 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState(null);
   const [slaNotificationsOpen, setSlaNotificationsOpen] = useState(false);
+  const [slaDropdownPos, setSlaDropdownPos] = useState(null);
   const slaNotificationsRef = useRef(null);
+  const slaBellRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -127,7 +129,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
       {/* ── Cost Estimate (above) ── */}
       <div
         data-tour="cost-estimate"
-        className="result-tile bg-gradient-to-br from-purple-600 to-violet-800 rounded-xl p-4 sm:p-5 text-white shadow-lg flex items-center justify-between overflow-hidden"
+        className="result-tile bg-gradient-to-br from-purple-600 to-violet-800 rounded-xl p-4 sm:p-5 text-white shadow-lg flex items-center justify-between"
       >
         <div className="min-w-0">
           <h3 className="text-xs font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">
@@ -250,7 +252,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
         </div>
 
         {/* Card 3 — Server Throughput */}
-        <div className="result-tile bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:min-h-[170px] overflow-hidden">
+        <div className="result-tile bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:min-h-[170px]">
           <h3 className="text-xs font-semibold uppercase tracking-wider opacity-70 flex items-center gap-1.5">
             Server Throughput
             <span className="relative group/tip">
@@ -267,9 +269,9 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <span className="invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-gray-900 rounded-lg shadow-lg w-48 text-center leading-relaxed pointer-events-none">
+              <span className="invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full right-0 mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-gray-900 rounded-lg shadow-lg w-48 text-center leading-relaxed pointer-events-none">
                 Requests per second that one server can handle (req/s)
-                <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+                <span className="absolute top-full right-3 border-4 border-transparent border-t-gray-900" />
               </span>
             </span>
           </h3>
@@ -290,7 +292,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
           </h3>
           <p className="text-xl sm:text-2xl font-bold mt-1">{results.gpus_per_server || 0}</p>
         </div>
-        <div className="bg-gradient-to-br from-emerald-400/80 to-teal-500/80 rounded-lg p-3 sm:p-4 text-white shadow overflow-hidden">
+        <div className="bg-gradient-to-br from-emerald-400/80 to-teal-500/80 rounded-lg p-3 sm:p-4 text-white shadow">
           <h3 className="text-[10px] font-semibold uppercase tracking-wider opacity-70 flex items-center gap-1">
             GPUs per Instance
             <span className="relative group/tip">
@@ -318,7 +320,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
             {results.gpus_per_instance_tp || results.gpus_per_instance || 0}
           </p>
         </div>
-        <div className="bg-gradient-to-br from-violet-400/80 to-purple-500/80 rounded-lg p-3 sm:p-4 text-white shadow overflow-hidden">
+        <div className="bg-gradient-to-br from-violet-400/80 to-purple-500/80 rounded-lg p-3 sm:p-4 text-white shadow">
           <h3 className="text-[10px] font-semibold uppercase tracking-wider opacity-70 flex items-center gap-1">
             Instances per Server
             <span className="relative group/tip">
@@ -335,9 +337,9 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <span className="invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-gray-900 rounded-lg shadow-lg w-52 text-center leading-relaxed pointer-events-none">
+              <span className="invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full right-0 mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-gray-900 rounded-lg shadow-lg w-52 text-center leading-relaxed pointer-events-none">
                 How many independent model copies fit on one server, considering tensor parallelism.
-                <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+                <span className="absolute top-full right-3 border-4 border-transparent border-t-gray-900" />
               </span>
             </span>
           </h3>
@@ -354,8 +356,20 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
               {results.sla_passed !== true && (
                 <div className="relative" ref={slaNotificationsRef}>
                   <button
+                    ref={slaBellRef}
                     type="button"
-                    onClick={() => setSlaNotificationsOpen((prev) => !prev)}
+                    onClick={() => {
+                      setSlaNotificationsOpen((prev) => {
+                        if (!prev && slaBellRef.current) {
+                          const rect = slaBellRef.current.getBoundingClientRect();
+                          setSlaDropdownPos({
+                            top: rect.bottom + 8,
+                            right: window.innerWidth - rect.right,
+                          });
+                        }
+                        return !prev;
+                      });
+                    }}
                     className="relative p-1 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1"
                     title="SLA notifications"
                   >
@@ -379,7 +393,10 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                     )}
                   </button>
                   {slaNotificationsOpen && (
-                    <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden">
+                    <div
+                      className="fixed z-50 w-80 max-w-[calc(100vw-1rem)] rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden"
+                      style={slaDropdownPos ? { top: slaDropdownPos.top, right: Math.max(slaDropdownPos.right, 8) } : {}}
+                    >
                       <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
                         <h4 className="text-sm font-semibold text-gray-800">SLA Notifications</h4>
                       </div>
