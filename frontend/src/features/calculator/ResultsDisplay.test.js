@@ -113,7 +113,10 @@ describe("ResultsDisplay", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Download Excel Report/i }));
     expect(await screen.findByText("Template is missing")).toBeInTheDocument();
-    expect(screen.getByText("Recommendations")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTitle("SLA notifications"));
+    expect(screen.getByText("SLA Notifications")).toBeInTheDocument();
+    expect(screen.getByText("Increase TP")).toBeInTheDocument();
   });
 
   it("handles report download exceptions", async () => {

@@ -49,6 +49,11 @@ const TOUR_STEPS = [
       "Pick a GPU from the built-in catalog or upload your own. Memory and TFLOPS specs are filled in for you.",
   },
   {
+    target: '[data-tour="sla-targets"]',
+    content:
+      "Set TTFT and end-to-end latency targets (default 1s and 2s). The calculator validates your configuration against these SLA limits.",
+  },
+  {
     target: '[data-tour="calculate-btn"]',
     content:
       "Hit Calculate to run the sizing engine, or Find Best Configs in auto mode to compare multiple options.",
