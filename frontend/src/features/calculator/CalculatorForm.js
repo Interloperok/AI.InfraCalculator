@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import { getGPUs } from '../services/api';
+import { getGPUs } from '../../services/api';
 
 // ── Spark burst helper for toggle activation ──
 const useSparkBurst = () => {
