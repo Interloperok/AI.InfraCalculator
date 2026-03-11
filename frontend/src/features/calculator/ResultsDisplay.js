@@ -102,7 +102,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
 
   return (
     <div className="gap-6 flex flex-col flex-1">
-      <h2 className="text-2xl font-semibold text-gray-800">Calculation Results</h2>
+      <h2 className="text-lg sm:text-2xl font-semibold text-gray-800">Calculation Results</h2>
 
       {downloadError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center justify-between">
@@ -127,9 +127,9 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
       {/* ── Cost Estimate (above) ── */}
       <div
         data-tour="cost-estimate"
-        className="bg-gradient-to-br from-purple-600 to-violet-800 rounded-xl p-5 text-white shadow-lg flex items-center justify-between"
+        className="result-tile bg-gradient-to-br from-purple-600 to-violet-800 rounded-xl p-4 sm:p-5 text-white shadow-lg flex items-center justify-between overflow-hidden"
       >
-        <div>
+        <div className="min-w-0">
           <h3 className="text-xs font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">
             Cost Estimate
             <span className="relative group/tip">
@@ -152,7 +152,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
               </span>
             </span>
           </h3>
-          <p className="text-3xl font-extrabold mt-1">
+          <p className="text-2xl sm:text-3xl font-extrabold mt-1 truncate">
             {results.cost_estimate_usd != null && results.cost_estimate_usd > 0
               ? `$${Number(results.cost_estimate_usd).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
               : "—"}
@@ -161,7 +161,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
             <span className="text-sm font-semibold opacity-80">GPU hardware only</span>
           )}
         </div>
-        <svg className="w-10 h-10 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-10 h-10 opacity-30 shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -173,17 +173,17 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
 
       {/* ── Concurrent Sessions & Session Context ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-tour="session-cards">
-        <div className="bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl p-5 text-white shadow-lg flex items-center justify-between">
-          <div>
+        <div className="bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl p-4 sm:p-5 text-white shadow-lg flex items-center justify-between overflow-hidden">
+          <div className="min-w-0">
             <h3 className="text-xs font-semibold uppercase tracking-wider opacity-60">
               Concurrent Sessions
             </h3>
-            <p className="text-3xl font-extrabold mt-1">
+            <p className="text-2xl sm:text-3xl font-extrabold mt-1 truncate">
               {fmt(results.Ssim_concurrent_sessions, 0)}
             </p>
           </div>
           <svg
-            className="w-10 h-10 opacity-20"
+            className="w-8 h-8 sm:w-10 sm:h-10 opacity-20 shrink-0 ml-2"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -196,18 +196,18 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
             />
           </svg>
         </div>
-        <div className="bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl p-5 text-white shadow-lg flex items-center justify-between">
-          <div>
+        <div className="bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl p-4 sm:p-5 text-white shadow-lg flex items-center justify-between overflow-hidden">
+          <div className="min-w-0">
             <h3 className="text-xs font-semibold uppercase tracking-wider opacity-60">
               Session Context
             </h3>
-            <p className="text-3xl font-extrabold mt-1">
+            <p className="text-2xl sm:text-3xl font-extrabold mt-1 truncate">
               {fmt(results.TS_session_context, 0)}
               <span className="text-sm font-semibold opacity-60 ml-1">tokens</span>
             </p>
           </div>
           <svg
-            className="w-10 h-10 opacity-20"
+            className="w-8 h-8 sm:w-10 sm:h-10 opacity-20 shrink-0 ml-2"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -225,32 +225,32 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
       {/* ── 3 Key Metric Cards ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-tour="result-cards">
         {/* Card 1 — Servers Required */}
-        <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-6 text-white shadow-lg flex flex-col min-h-[170px]">
+        <div className="result-tile bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:min-h-[170px] overflow-hidden">
           <h3 className="text-xs font-semibold uppercase tracking-wider opacity-70">
             Servers Required
           </h3>
-          <p className="text-5xl font-extrabold mt-auto mb-auto">{results.servers_final || 0}</p>
-          <p className="text-sm opacity-75 mt-2">
+          <p className="text-4xl sm:text-5xl font-extrabold mt-auto mb-auto">{results.servers_final || 0}</p>
+          <p className="text-xs sm:text-sm opacity-75 mt-2">
             max(mem:&thinsp;{results.servers_by_memory || 0}, comp:&thinsp;
             {results.servers_by_compute || 0})
           </p>
         </div>
 
         {/* Card 2 — Sessions per Server */}
-        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-6 text-white shadow-lg flex flex-col min-h-[170px]">
+        <div className="result-tile bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:min-h-[170px] overflow-hidden">
           <h3 className="text-xs font-semibold uppercase tracking-wider opacity-70">
             Sessions per Server
           </h3>
-          <p className="text-5xl font-extrabold mt-auto mb-auto">
+          <p className="text-4xl sm:text-5xl font-extrabold mt-auto mb-auto">
             {results.sessions_per_server || 0}
           </p>
-          <p className="text-sm opacity-75 mt-2">
+          <p className="text-xs sm:text-sm opacity-75 mt-2">
             {results.instances_per_server_tp || 0} inst &times; {results.S_TP_z || 0} sess each
           </p>
         </div>
 
         {/* Card 3 — Server Throughput */}
-        <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-6 text-white shadow-lg flex flex-col min-h-[170px]">
+        <div className="result-tile bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:min-h-[170px] overflow-hidden">
           <h3 className="text-xs font-semibold uppercase tracking-wider opacity-70 flex items-center gap-1.5">
             Server Throughput
             <span className="relative group/tip">
@@ -273,24 +273,24 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
               </span>
             </span>
           </h3>
-          <p className="text-5xl font-extrabold mt-auto mb-auto">
+          <p className="text-4xl sm:text-5xl font-extrabold mt-auto mb-auto">
             {fmt(results.th_server_comp, 1)}
           </p>
-          <p className="text-sm opacity-75 mt-2">
+          <p className="text-xs sm:text-sm opacity-75 mt-2">
             prefill {fmt(results.th_prefill, 0)} &middot; decode {fmt(results.th_decode, 0)}
           </p>
         </div>
       </div>
 
       {/* ── Secondary Metric Cards (3 tiles) ── */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-gradient-to-br from-blue-400/80 to-indigo-500/80 rounded-lg p-4 text-white shadow">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="bg-gradient-to-br from-blue-400/80 to-indigo-500/80 rounded-lg p-3 sm:p-4 text-white shadow overflow-hidden">
           <h3 className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
             GPUs per Server
           </h3>
-          <p className="text-2xl font-bold mt-1">{results.gpus_per_server || 0}</p>
+          <p className="text-xl sm:text-2xl font-bold mt-1">{results.gpus_per_server || 0}</p>
         </div>
-        <div className="bg-gradient-to-br from-emerald-400/80 to-teal-500/80 rounded-lg p-4 text-white shadow">
+        <div className="bg-gradient-to-br from-emerald-400/80 to-teal-500/80 rounded-lg p-3 sm:p-4 text-white shadow overflow-hidden">
           <h3 className="text-[10px] font-semibold uppercase tracking-wider opacity-70 flex items-center gap-1">
             GPUs per Instance
             <span className="relative group/tip">
@@ -314,11 +314,11 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
               </span>
             </span>
           </h3>
-          <p className="text-2xl font-bold mt-1">
+          <p className="text-xl sm:text-2xl font-bold mt-1">
             {results.gpus_per_instance_tp || results.gpus_per_instance || 0}
           </p>
         </div>
-        <div className="bg-gradient-to-br from-violet-400/80 to-purple-500/80 rounded-lg p-4 text-white shadow">
+        <div className="bg-gradient-to-br from-violet-400/80 to-purple-500/80 rounded-lg p-3 sm:p-4 text-white shadow overflow-hidden">
           <h3 className="text-[10px] font-semibold uppercase tracking-wider opacity-70 flex items-center gap-1">
             Instances per Server
             <span className="relative group/tip">
@@ -341,13 +341,13 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
               </span>
             </span>
           </h3>
-          <p className="text-2xl font-bold mt-1">{results.instances_per_server_tp || 0}</p>
+          <p className="text-xl sm:text-2xl font-bold mt-1">{results.instances_per_server_tp || 0}</p>
         </div>
       </div>
 
       {/* ── SLA Validation ── */}
       {(results.ttft_analyt != null || results.e2e_latency_analyt != null) && (
-        <div className="bg-white border rounded-lg p-6" data-tour="sla-validation">
+        <div className="bg-white border rounded-lg p-4 sm:p-6" data-tour="sla-validation">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-800">SLA Validation</h3>
             <div className="flex items-center gap-2">
