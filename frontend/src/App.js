@@ -5,6 +5,8 @@ import { GITHUB_URL } from "./config";
 import "./App.css";
 
 const APP_VERSION = "0.1.0";
+const GOOGLE_DOCS_URL =
+  "https://docs.google.com/document/d/1_H4QWAda19SFJbaHD4oHycYAh5TdECCr/edit?usp=sharing&ouid=114772934094426194553&rtpof=true&sd=true";
 
 const DOCS_STEP_INDEX = 1;
 const PRESETS_STEP_INDEX = 2;
@@ -149,8 +151,18 @@ function App() {
   const [docsOpen, setDocsOpen] = useState(false);
   const [drawerWidth, setDrawerWidth] = useState(820);
   const [isResizing, setIsResizing] = useState(false);
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 640,
+  );
   const dragging = useRef(false);
   const tourAutoOn = useRef(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const toggleAutoOptimize = useCallback((delay = 400) => {
     setTimeout(() => {
@@ -304,16 +316,16 @@ function App() {
           <p className="text-lg text-gray-500 mb-4">
             Find out how many servers and GPUs you need for your AI models
           </p>
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 sm:gap-3 max-w-xs sm:max-w-none mx-auto">
             {/* 1 — Take a Tour */}
             <button
               onClick={() => {
                 setTourStepIndex(0);
                 setRunTour(true);
               }}
-              className="tour-btn-pulse inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium rounded-lg border border-indigo-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-200"
+              className="tour-btn-pulse inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium rounded-lg border border-indigo-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-200 whitespace-nowrap"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -329,9 +341,9 @@ function App() {
               target="_blank"
               rel="noopener noreferrer"
               data-tour="github-btn"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 group"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 group whitespace-nowrap"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                 <path
                   fillRule="evenodd"
                   clipRule="evenodd"
@@ -339,7 +351,7 @@ function App() {
                 />
               </svg>
               <svg
-                className="w-4 h-4 text-amber-400 group-hover:scale-125 transition-transform duration-200"
+                className="w-4 h-4 text-amber-400 group-hover:scale-125 transition-transform duration-200 shrink-0"
                 fill="currentColor"
                 viewBox="0 0 24 24"
               >
@@ -347,22 +359,42 @@ function App() {
               </svg>
               <span>Star on GitHub</span>
             </a>
-            {/* 3 — Documentation */}
-            <button
-              onClick={() => setDocsOpen(true)}
-              data-tour="docs-btn"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-emerald-50 text-emerald-600 text-sm font-medium rounded-lg border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                />
-              </svg>
-              <span>Documentation</span>
-            </button>
+            {/* 3 — Documentation: on mobile → external link, on desktop → drawer */}
+            {isMobile ? (
+              <a
+                href={GOOGLE_DOCS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-tour="docs-btn"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-600 text-sm font-medium rounded-lg border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200 whitespace-nowrap"
+              >
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                  />
+                </svg>
+                <span>Documentation</span>
+              </a>
+            ) : (
+              <button
+                onClick={() => setDocsOpen(true)}
+                data-tour="docs-btn"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-600 text-sm font-medium rounded-lg border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200 whitespace-nowrap"
+              >
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                  />
+                </svg>
+                <span>Documentation</span>
+              </button>
+            )}
           </div>
         </header>
 
@@ -408,8 +440,7 @@ function App() {
               <div className="flex items-center gap-2">
                 {/* Open in Google Docs */}
                 <a
-                  //href="https://docs.google.com/document/d/e/2PACX-1vRKlgJr0CsZhTEObcFnpBxWlAmHA1hscr0w6GDSnbcJRW-eCqhwkQOuP9pecS735w/pub"
-                  href="https://docs.google.com/document/d/1_H4QWAda19SFJbaHD4oHycYAh5TdECCr/edit?usp=sharing&ouid=114772934094426194553&rtpof=true&sd=true"
+                  href={GOOGLE_DOCS_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
