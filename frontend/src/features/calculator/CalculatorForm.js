@@ -2,6 +2,23 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { getGPUs } from '../../services/api';
 
+// ── Model subtitle from Hugging Face API fields (when description is missing) ──
+const getModelSubtitle = (model) => {
+  if (model.description) return model.description;
+  const parts = [];
+  if (model.pipeline_tag) parts.push(model.pipeline_tag);
+  if (model.library_name) parts.push(model.library_name);
+  if (model.downloads != null) {
+    const d = model.downloads >= 1e6
+      ? (model.downloads / 1e6).toFixed(1) + 'M'
+      : model.downloads >= 1e3
+        ? (model.downloads / 1e3).toFixed(1) + 'K'
+        : model.downloads;
+    parts.push(`${d} downloads`);
+  }
+  return parts.length ? parts.join(' · ') : null;
+};
+
 // ── Spark burst helper for toggle activation ──
 const useSparkBurst = () => {
   const containerRef = useRef(null);
@@ -941,7 +958,7 @@ const CalculatorForm = ({
                   className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                 >
                   <div className="font-medium">{model.modelId || model.id}</div>
-                  <div className="text-xs text-gray-500 truncate">{model.description || 'No description'}</div>
+                  <div className="text-xs text-gray-500 truncate">{getModelSubtitle(model) || '—'}</div>
                 </div>
               ))}
             </div>

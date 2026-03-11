@@ -130,8 +130,27 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
         className="bg-gradient-to-br from-purple-600 to-violet-800 rounded-xl p-5 text-white shadow-lg flex items-center justify-between"
       >
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider opacity-90">
+          <h3 className="text-xs font-semibold uppercase tracking-wider opacity-90 flex items-center gap-1.5">
             Cost Estimate
+            <span className="relative group/tip">
+              <svg
+                className="w-3.5 h-3.5 opacity-70 cursor-help"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span className="invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-gray-900 rounded-lg shadow-lg w-56 text-center leading-relaxed pointer-events-none">
+                If you see an empty cost value, download the GPU reference guide and add the actual cost values there yourself.
+                <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+              </span>
+            </span>
           </h3>
           <p className="text-3xl font-extrabold mt-1">
             {results.cost_estimate_usd != null && results.cost_estimate_usd > 0
