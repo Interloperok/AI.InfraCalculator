@@ -18,6 +18,38 @@ permissions:
   contents: read
 
 jobs:
+  repo-hygiene:
+    name: Repo hygiene and secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup uv and Python 3.14
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Trim trailing whitespace
+        run: uvx pre-commit run trailing-whitespace --all-files
+
+      - name: Fix end of files
+        run: uvx pre-commit run end-of-file-fixer --all-files
+
+      - name: Check for merge conflicts
+        run: uvx pre-commit run check-merge-conflict --all-files
+
+      - name: Check for large added files
+        run: uvx pre-commit run check-added-large-files --all-files
+
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: detect --source . --config gitleaks.toml --redact --no-banner
+
   backend-fast:
     name: Backend fast checks (branch push)
     if: github.event_name == 'push' && github.ref != 'refs/heads/main'
@@ -38,11 +70,14 @@ jobs:
       - name: Sync dependencies
         run: uv sync --frozen --all-groups
 
-      - name: Ruff lint
-        run: uv run ruff check .
+      - name: Ruff lint (auto-fix aware)
+        run: uv run ruff check --fix --exit-non-zero-on-fix .
 
-      - name: Ruff format check
-        run: uv run ruff format --check .
+      - name: Ruff format
+        run: uv run ruff format .
+
+      - name: Ensure backend tree is formatted
+        run: git diff --exit-code -- backend
 
       - name: Ty check
         run: uv run ty check .
@@ -75,11 +110,14 @@ jobs:
       - name: Sync dependencies
         run: uv sync --frozen --all-groups
 
-      - name: Ruff lint
-        run: uv run ruff check .
+      - name: Ruff lint (auto-fix aware)
+        run: uv run ruff check --fix --exit-non-zero-on-fix .
 
-      - name: Ruff format check
-        run: uv run ruff format --check .
+      - name: Ruff format
+        run: uv run ruff format .
+
+      - name: Ensure backend tree is formatted
+        run: git diff --exit-code -- backend
 
       - name: Ty check
         run: uv run ty check .
@@ -130,8 +168,11 @@ jobs:
       - name: ESLint
         run: npm run lint
 
-      - name: Prettier check
-        run: npm run format:check
+      - name: Prettier format
+        run: npm run format
+
+      - name: Ensure frontend tree is formatted
+        run: git diff --exit-code -- frontend
 
       - name: TypeScript typecheck
         run: npm run typecheck
@@ -163,8 +204,11 @@ jobs:
       - name: ESLint
         run: npm run lint
 
-      - name: Prettier check
-        run: npm run format:check
+      - name: Prettier format
+        run: npm run format
+
+      - name: Ensure frontend tree is formatted
+        run: git diff --exit-code -- frontend
 
       - name: TypeScript typecheck
         run: npm run typecheck
