@@ -149,7 +149,8 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                 />
               </svg>
               <span className="invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-gray-900 rounded-lg shadow-lg w-56 text-center leading-relaxed pointer-events-none">
-                If you see an empty cost value, download the GPU reference guide and add the actual cost values there yourself.
+                If you see an empty cost value, download the GPU reference guide and add the actual
+                cost values there yourself.
                 <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
               </span>
             </span>
@@ -163,7 +164,12 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
             <span className="text-sm font-semibold opacity-80">GPU hardware only</span>
           )}
         </div>
-        <svg className="w-10 h-10 opacity-30 shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          className="w-10 h-10 opacity-30 shrink-0 ml-2"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -231,7 +237,9 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
           <h3 className="text-xs font-semibold uppercase tracking-wider opacity-70">
             Servers Required
           </h3>
-          <p className="text-4xl sm:text-5xl font-extrabold mt-auto mb-auto">{results.servers_final || 0}</p>
+          <p className="text-4xl sm:text-5xl font-extrabold mt-auto mb-auto">
+            {results.servers_final || 0}
+          </p>
           <p className="text-xs sm:text-sm opacity-75 mt-2">
             max(mem:&thinsp;{results.servers_by_memory || 0}, comp:&thinsp;
             {results.servers_by_compute || 0})
@@ -343,7 +351,9 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
               </span>
             </span>
           </h3>
-          <p className="text-xl sm:text-2xl font-bold mt-1">{results.instances_per_server_tp || 0}</p>
+          <p className="text-xl sm:text-2xl font-bold mt-1">
+            {results.instances_per_server_tp || 0}
+          </p>
         </div>
       </div>
 
@@ -395,7 +405,11 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                   {slaNotificationsOpen && (
                     <div
                       className="fixed z-50 w-80 max-w-[calc(100vw-1rem)] rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden"
-                      style={slaDropdownPos ? { top: slaDropdownPos.top, right: Math.max(slaDropdownPos.right, 8) } : {}}
+                      style={
+                        slaDropdownPos
+                          ? { top: slaDropdownPos.top, right: Math.max(slaDropdownPos.right, 8) }
+                          : {}
+                      }
                     >
                       <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
                         <h4 className="text-sm font-semibold text-gray-800">SLA Notifications</h4>
@@ -405,7 +419,9 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                           <ul className="p-4 space-y-2">
                             {results.sla_recommendations.map((rec, i) => (
                               <li key={i} className="text-sm text-amber-900 flex items-start gap-2">
-                                <span className="text-amber-500 mt-0.5 flex-shrink-0">&#x2022;</span>
+                                <span className="text-amber-500 mt-0.5 flex-shrink-0">
+                                  &#x2022;
+                                </span>
                                 <span>{rec}</span>
                               </li>
                             ))}
@@ -549,7 +565,6 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
               </div>
             </div>
           </div>
-
         </div>
       )}
 

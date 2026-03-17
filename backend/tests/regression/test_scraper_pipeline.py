@@ -25,7 +25,9 @@ def test_scrape_gpu_catalog_raw_fallback_writes_file(monkeypatch, tmp_path: Path
 
 def test_scrape_gpu_catalog_raw_merge_keeps_existing_records(monkeypatch, tmp_path: Path) -> None:
     output_path = tmp_path / "gpu_data_raw.json"
-    output_path.write_text(json.dumps({"existing_gpu": {"Vendor": "NVIDIA", "Model": "Legacy"}}), encoding="utf-8")
+    output_path.write_text(
+        json.dumps({"existing_gpu": {"Vendor": "NVIDIA", "Model": "Legacy"}}), encoding="utf-8"
+    )
 
     monkeypatch.setattr(catalog_scraper, "data", {"NVIDIA": {"url": "https://example.test"}})
     monkeypatch.setattr(catalog_scraper.time, "sleep", lambda _: None)
@@ -83,7 +85,9 @@ def test_scrape_gpu_catalog_raw_handles_vendor_exception(monkeypatch, tmp_path: 
     assert len(result) >= 1
 
 
-def test_scrape_gpu_catalog_raw_fallback_handles_broken_existing_json(monkeypatch, tmp_path: Path) -> None:
+def test_scrape_gpu_catalog_raw_fallback_handles_broken_existing_json(
+    monkeypatch, tmp_path: Path
+) -> None:
     output_path = tmp_path / "gpu_data_raw.json"
     output_path.write_text("{bad-json", encoding="utf-8")
 
@@ -113,7 +117,9 @@ def test_scrape_gpu_catalog_raw_fallback_preserves_existing_fallback_keys(
     assert result["NVIDIA_RTX_4090"]["Model"] == "Custom"
 
 
-def test_scrape_gpu_catalog_raw_merge_handles_existing_json_decode_error(monkeypatch, tmp_path: Path) -> None:
+def test_scrape_gpu_catalog_raw_merge_handles_existing_json_decode_error(
+    monkeypatch, tmp_path: Path
+) -> None:
     output_path = tmp_path / "gpu_data_raw.json"
     output_path.write_text("{bad-json", encoding="utf-8")
 
@@ -165,6 +171,8 @@ def test_fetch_vendor_tables_handles_clean_html_failure(monkeypatch) -> None:
         return _Resp()
 
     monkeypatch.setattr(catalog_scraper.requests, "get", _fake_get)
-    monkeypatch.setattr(catalog_scraper, "clean_html", lambda html: (_ for _ in ()).throw(RuntimeError("bad html")))
+    monkeypatch.setattr(
+        catalog_scraper, "clean_html", lambda html: (_ for _ in ()).throw(RuntimeError("bad html"))
+    )
 
     assert catalog_scraper.fetch_vendor_tables("AMD", "https://example.test") == []

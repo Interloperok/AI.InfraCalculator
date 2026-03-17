@@ -114,7 +114,7 @@ def test_report_endpoint_returns_xlsx_stream(client, test_data_dir) -> None:
         response.headers["content-type"]
         == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-    assert "attachment; filename=\"sizing_report_" in response.headers["content-disposition"]
+    assert 'attachment; filename="sizing_report_' in response.headers["content-disposition"]
     assert response.content.startswith(b"PK")
 
 

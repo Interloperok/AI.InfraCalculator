@@ -99,7 +99,10 @@ def test_parse_transistors_die() -> None:
 def test_get_and_make_id() -> None:
     raw = {"a": "", "b": "value"}
     assert _get(raw, "a", "b") == "value"
-    assert _make_id("NVIDIA", "A100 GPU accelerator (PCIe card)") == "nvidia-a100-gpu-accelerator-pcie-card"
+    assert (
+        _make_id("NVIDIA", "A100 GPU accelerator (PCIe card)")
+        == "nvidia-a100-gpu-accelerator-pcie-card"
+    )
 
 
 def test_normalize_entry_smoke() -> None:
@@ -127,7 +130,7 @@ def test_normalize_skips_broken_entries(tmp_path) -> None:
     raw_path = tmp_path / "raw.json"
     out_path = tmp_path / "out.json"
     raw_path.write_text(
-        '{\"ok\":{\"Vendor\":\"NVIDIA\",\"Model\":\"RTX\",\"Launch\":\"2022\",\"Memory Size (GB)\":\"24 GB\"},\"bad\":\"oops\"}',
+        '{"ok":{"Vendor":"NVIDIA","Model":"RTX","Launch":"2022","Memory Size (GB)":"24 GB"},"bad":"oops"}',
         encoding="utf-8",
     )
     normalized = normalize(str(raw_path), str(out_path))

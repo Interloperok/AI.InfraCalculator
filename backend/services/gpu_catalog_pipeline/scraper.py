@@ -31,11 +31,12 @@ BACKEND_DIR = Path(__file__).resolve().parents[2]
 #  Utilities
 # ---------------------------------------------
 
+
 def clean_html(html: str) -> str:
     """Remove tags & anomalies so that pandas.read_html behaves."""
     # Standardise rowspan/colspan attributes & strip garbage characters
     html = re.sub(
-        r'''(colspan|rowspan)=(?:"|')?(\d+)[^>]*?''',
+        r"""(colspan|rowspan)=(?:"|')?(\d+)[^>]*?""",
         lambda m: f'{m.group(1)}="{m.group(2)}"',
         html,
         flags=re.I,
@@ -54,7 +55,7 @@ def clean_html(html: str) -> str:
     html = re.sub(r"<span[^>]*>([^<]+)</span>", r"\1", html)
 
     # Misc entities / whitespace
-    html = html.replace("\\\"", "\"")
+    html = html.replace('\\"', '"')
     html = re.sub(r"(\d)&?#160;?(\d)", r"\1\2", html)
     html = re.sub(r"&thinsp;|&#8201;|&nbsp;|&#160;|\xa0", " ", html)
     html = re.sub(r"<small>.*?</small>", "", html, flags=re.DOTALL)
@@ -64,9 +65,11 @@ def clean_html(html: str) -> str:
         "\u2014": "",
     }
     html = html.translate(str.maketrans(translation_table))
-    html = (html.replace("mm<sup>2</sup>", "mm2")
-                .replace("\u00d710<sup>6</sup>", "×10⁶")
-                .replace("\u00d710<sup>9</sup>", "×10⁹"))
+    html = (
+        html.replace("mm<sup>2</sup>", "mm2")
+        .replace("\u00d710<sup>6</sup>", "×10⁶")
+        .replace("\u00d710<sup>9</sup>", "×10⁹")
+    )
     html = re.sub(r"<sup>\d+</sup>", "", html)
     return html
 
@@ -74,7 +77,12 @@ def clean_html(html: str) -> str:
 def normalize_columns(cols) -> List[str]:
     """Flatten possible MultiIndex and clean duplicates."""
     if isinstance(cols, pd.MultiIndex):
-        flat = [" ".join(str(x).strip() for x in tup if str(x) != "nan" and not str(x).startswith("Unnamed")) for tup in cols.values]
+        flat = [
+            " ".join(
+                str(x).strip() for x in tup if str(x) != "nan" and not str(x).startswith("Unnamed")
+            )
+            for tup in cols.values
+        ]
     else:
         flat = [str(c).strip() for c in cols]
 
@@ -83,8 +91,8 @@ def normalize_columns(cols) -> List[str]:
         col = re.sub(r"\s+", " ", col).strip()
         # Collapse exact duplicate half (e.g., "Launch Launch")
         parts = col.split()
-        if len(parts) % 2 == 0 and parts[: len(parts)//2] == parts[len(parts)//2:]:
-            parts = parts[: len(parts)//2]
+        if len(parts) % 2 == 0 and parts[: len(parts) // 2] == parts[len(parts) // 2 :]:
+            parts = parts[: len(parts) // 2]
         # Remove consecutive duplicate words
         dedup: List[str] = []
         for w in parts:
@@ -112,31 +120,31 @@ def standardise_column_names(df: pd.DataFrame) -> pd.DataFrame:
 
 def extract_memory_gb(text: str) -> Optional[float]:
     """Extract memory in GB from text like '8 GB', '8192 MB', '8GB'"""
-    if pd.isna(text) or text == 'nan':
+    if pd.isna(text) or text == "nan":
         return None
-    
+
     text = str(text).upper()
-    
+
     # Look for GB patterns
-    gb_match = re.search(r'(\d+(?:\.\d+)?)\s*GB', text)
+    gb_match = re.search(r"(\d+(?:\.\d+)?)\s*GB", text)
     if gb_match:
         return float(gb_match.group(1))
-    
+
     # Look for MB patterns and convert to GB
-    mb_match = re.search(r'(\d+(?:\.\d+)?)\s*MB', text)
+    mb_match = re.search(r"(\d+(?:\.\d+)?)\s*MB", text)
     if mb_match:
         return float(mb_match.group(1)) / 1024
-    
+
     return None
 
 
 def extract_cores(text: str) -> Optional[int]:
     """Extract core count from text"""
-    if pd.isna(text) or text == 'nan':
+    if pd.isna(text) or text == "nan":
         return None
-    
+
     text = str(text)
-    match = re.search(r'(\d+)\s*(?:cores?|cuda|stream)', text, re.I)
+    match = re.search(r"(\d+)\s*(?:cores?|cuda|stream)", text, re.I)
     if match:
         return int(match.group(1))
     return None
@@ -144,16 +152,16 @@ def extract_cores(text: str) -> Optional[int]:
 
 def extract_memory_type(text: str) -> Optional[str]:
     """Extract memory type from text"""
-    if pd.isna(text) or text == 'nan':
+    if pd.isna(text) or text == "nan":
         return None
-    
+
     text = str(text).upper()
-    memory_types = ['GDDR6X', 'GDDR6', 'GDDR5X', 'GDDR5', 'HBM2E', 'HBM2', 'HBM', 'DDR4', 'DDR5']
-    
+    memory_types = ["GDDR6X", "GDDR6", "GDDR5X", "GDDR5", "HBM2E", "HBM2", "HBM", "DDR4", "DDR5"]
+
     for mem_type in memory_types:
         if mem_type in text:
             return mem_type
-    
+
     return None
 
 
@@ -173,7 +181,8 @@ def process_dataframe(df: pd.DataFrame, vendor: str) -> pd.DataFrame:
     if launch_cols:
         col = launch_cols[0]
         df[col] = (
-            df[col].astype(str)
+            df[col]
+            .astype(str)
             .str.replace(REFERENCES_AT_END, "", regex=True)
             .str.extract(r"([A-Za-z]+\s*\d{1,2},?\s*\d{4}|\d{4})", expand=False)
         )
@@ -215,21 +224,21 @@ def fetch_vendor_tables(vendor: str, url: str) -> List[pd.DataFrame]:
     print(f"Fetching {vendor} → {url}")
     try:
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         response = requests.get(url, timeout=45, headers=headers)
         response.raise_for_status()
         html = clean_html(response.text)
-        
+
         # Попробуем разные паттерны для поиска таблиц
         patterns = [
             r"Launch|Release Date",
             r"Model.*Launch",
             r"GPU.*Launch",
             r"Release.*Date",
-            r"Launch.*Date"
+            r"Launch.*Date",
         ]
-        
+
         dfs = []
         for pattern in patterns:
             try:
@@ -241,7 +250,7 @@ def fetch_vendor_tables(vendor: str, url: str) -> List[pd.DataFrame]:
             except Exception as e:
                 print(f"  ⚠️  Pattern {pattern} failed: {e}")
                 continue
-        
+
         # Специальная обработка для NVIDIA
         if vendor == "NVIDIA" and not dfs:
             try:
@@ -256,9 +265,9 @@ def fetch_vendor_tables(vendor: str, url: str) -> List[pd.DataFrame]:
                     print("  ✅ Found NVIDIA transposed table")
             except Exception as e:
                 print(f"  ⚠️  NVIDIA transposed table failed: {e}")
-        
+
         return dfs
-        
+
     except requests.RequestException as e:
         print(f"  ❌ Network error for {vendor}: {e}")
         return []
@@ -280,10 +289,12 @@ def record_key(row: Dict[str, Any]) -> str:
 
 def scrape_gpu_catalog_raw(raw_output_path: str | Path | None = None) -> Dict[str, Dict[str, Any]]:
     """Scrape GPU data from Wikipedia and merge into gpu_data_raw.json."""
-    raw_path = Path(raw_output_path) if raw_output_path is not None else BACKEND_DIR / "gpu_data_raw.json"
+    raw_path = (
+        Path(raw_output_path) if raw_output_path is not None else BACKEND_DIR / "gpu_data_raw.json"
+    )
     frames: List[pd.DataFrame] = []
     successful_vendors = []
-    
+
     for vendor, info in data.items():
         try:
             print(f"Processing {vendor}...")
@@ -295,14 +306,14 @@ def scrape_gpu_catalog_raw(raw_output_path: str | Path | None = None) -> Dict[st
                     processed = process_dataframe(raw, vendor)
                     vendor_frames.append(processed)
                     print(f"  ✅ Processed table with {raw.shape[0]} rows")
-            
+
             if vendor_frames:
                 frames.extend(vendor_frames)
                 successful_vendors.append(vendor)
                 print(f"  ✅ {vendor}: {len(vendor_frames)} tables processed")
             else:
                 print(f"  ⚠️  {vendor}: No valid tables found")
-                
+
         except Exception as e:
             print(f"  ❌ Error processing {vendor}: {e}")
             continue
@@ -320,10 +331,10 @@ def scrape_gpu_catalog_raw(raw_output_path: str | Path | None = None) -> Dict[st
                 "Launch": "2022-10-12",
                 "Memory_Type": "GDDR6X",
                 "Memory Size (MiB)": "24576",  # 24GB в MiB
-                "TDP (Watts)": "450"
+                "TDP (Watts)": "450",
             },
             "NVIDIA_RTX_4080": {
-                "Vendor": "NVIDIA", 
+                "Vendor": "NVIDIA",
                 "Model": "GeForce RTX 4080",
                 "Model name": "GeForce RTX 4080",
                 "Memory_GB": 16.0,
@@ -331,7 +342,7 @@ def scrape_gpu_catalog_raw(raw_output_path: str | Path | None = None) -> Dict[st
                 "Launch": "2022-11-16",
                 "Memory_Type": "GDDR6X",
                 "Memory Size (MiB)": "16384",  # 16GB в MiB
-                "TDP (Watts)": "320"
+                "TDP (Watts)": "320",
             },
             "NVIDIA_RTX_4070": {
                 "Vendor": "NVIDIA",
@@ -342,7 +353,7 @@ def scrape_gpu_catalog_raw(raw_output_path: str | Path | None = None) -> Dict[st
                 "Launch": "2023-04-13",
                 "Memory_Type": "GDDR6X",
                 "Memory Size (MiB)": "12288",  # 12GB в MiB
-                "TDP (Watts)": "200"
+                "TDP (Watts)": "200",
             },
             "AMD_RX_7900_XTX": {
                 "Vendor": "AMD",
@@ -353,10 +364,10 @@ def scrape_gpu_catalog_raw(raw_output_path: str | Path | None = None) -> Dict[st
                 "Launch": "2022-12-13",
                 "Memory_Type": "GDDR6",
                 "Memory Size (MiB)": "24576",  # 24GB в MiB
-                "TDP (Watts)": "355"
-            }
+                "TDP (Watts)": "355",
+            },
         }
-        
+
         # Merge fallback into existing data (don't overwrite)
         existing_fb: Dict[str, Dict[str, Any]] = {}
         if raw_path.exists():
@@ -373,18 +384,30 @@ def scrape_gpu_catalog_raw(raw_output_path: str | Path | None = None) -> Dict[st
         print(f"Merged fallback data -> {len(existing_fb)} GPUs in {raw_path.name}")
         return existing_fb
 
-    print(f"✅ Successfully processed {len(successful_vendors)} vendors: {', '.join(successful_vendors)}")
-    
+    print(
+        f"✅ Successfully processed {len(successful_vendors)} vendors: {', '.join(successful_vendors)}"
+    )
+
     df = pd.concat(frames, ignore_index=True, sort=False)
-    df = remove_bracketed_references(df,
-        ["Model", "Model name", "Model (Codename)", "Model (Code name)", "Die size", "Die size (mm2)", "Code name"])
+    df = remove_bracketed_references(
+        df,
+        [
+            "Model",
+            "Model name",
+            "Model (Codename)",
+            "Model (Code name)",
+            "Die size",
+            "Die size (mm2)",
+            "Code name",
+        ],
+    )
 
     # Фильтрация GPU: оставляем только те, у которых Launch дата после 2013 года
-    if 'Launch' in df.columns:
+    if "Launch" in df.columns:
         # Преобразуем даты в формат datetime, если это возможно
-        df['Launch'] = pd.to_datetime(df['Launch'], errors='coerce')
+        df["Launch"] = pd.to_datetime(df["Launch"], errors="coerce")
         # Фильтруем только GPU с датой запуска после 2013 года
-        df = df[df['Launch'].dt.year > 2013] if not df['Launch'].isna().all() else df
+        df = df[df["Launch"].dt.year > 2013] if not df["Launch"].isna().all() else df
         print(f"✅ Filtered GPUs: kept {len(df)} out of original count based on Launch date > 2013")
     else:
         print("⚠️  Launch date column not found, skipping year filter")
@@ -423,8 +446,10 @@ def scrape_gpu_catalog_raw(raw_output_path: str | Path | None = None) -> Dict[st
     with raw_path.open("w", encoding="utf-8") as fp:
         json.dump(existing, fp, indent=2, ensure_ascii=False, default=str)
 
-    print(f"[OK] Merge: {old_count} existing + {added} added + {updated} updated "
-          f"= {len(existing)} total -> {raw_path.name}")
+    print(
+        f"[OK] Merge: {old_count} existing + {added} added + {updated} updated "
+        f"= {len(existing)} total -> {raw_path.name}"
+    )
     return existing
 
 

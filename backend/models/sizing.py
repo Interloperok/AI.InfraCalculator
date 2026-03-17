@@ -13,63 +13,126 @@ class SizingInput(BaseModel):
     """
 
     # ── Section 2.1: Users & behavior ──
-    internal_users: conint(ge=0) = Field(..., description="Количество внутренних пользователей (Nusers)")
-    penetration_internal: confloat(ge=0.0, le=1.0) = Field(..., description="Коэф. проникновения внутр. (Kpen)")
-    concurrency_internal: confloat(ge=0.0, le=1.0) = Field(..., description="Коэф. одновременности внутр. (Ksim)")
+    internal_users: conint(ge=0) = Field(
+        ..., description="Количество внутренних пользователей (Nusers)"
+    )
+    penetration_internal: confloat(ge=0.0, le=1.0) = Field(
+        ..., description="Коэф. проникновения внутр. (Kpen)"
+    )
+    concurrency_internal: confloat(ge=0.0, le=1.0) = Field(
+        ..., description="Коэф. одновременности внутр. (Ksim)"
+    )
     external_users: conint(ge=0) = Field(default=0, description="Количество внешних пользователей")
-    penetration_external: confloat(ge=0.0, le=1.0) = Field(default=0.0, description="Коэф. проникновения внешн.")
-    concurrency_external: confloat(ge=0.0, le=1.0) = Field(default=0.0, description="Коэф. одновременности внешн.")
-    sessions_per_user_J: confloat(gt=0) = Field(default=1, description="Кол-во одновременных сессий на пользователя (J)")
+    penetration_external: confloat(ge=0.0, le=1.0) = Field(
+        default=0.0, description="Коэф. проникновения внешн."
+    )
+    concurrency_external: confloat(ge=0.0, le=1.0) = Field(
+        default=0.0, description="Коэф. одновременности внешн."
+    )
+    sessions_per_user_J: confloat(gt=0) = Field(
+        default=1, description="Кол-во одновременных сессий на пользователя (J)"
+    )
 
     # ── Section 2.2: Tokens ──
-    system_prompt_tokens_SP: confloat(ge=0) = Field(default=1000, description="Токены системного промпта (SP)")
-    user_prompt_tokens_Prp: confloat(ge=0) = Field(default=200, description="Токены запроса пользователя (Prp)")
-    reasoning_tokens_MRT: confloat(ge=0) = Field(default=4096, description="Бюджет токенов на рассуждения (MRT). Если модель не использует — 0")
+    system_prompt_tokens_SP: confloat(ge=0) = Field(
+        default=1000, description="Токены системного промпта (SP)"
+    )
+    user_prompt_tokens_Prp: confloat(ge=0) = Field(
+        default=200, description="Токены запроса пользователя (Prp)"
+    )
+    reasoning_tokens_MRT: confloat(ge=0) = Field(
+        default=4096,
+        description="Бюджет токенов на рассуждения (MRT). Если модель не использует — 0",
+    )
     answer_tokens_A: confloat(ge=0) = Field(default=400, description="Токены ответа модели (A)")
-    dialog_turns: conint(gt=0) = Field(default=5, description="Кол-во сообщений в диалоге для оценки длины сессии")
+    dialog_turns: conint(gt=0) = Field(
+        default=5, description="Кол-во сообщений в диалоге для оценки длины сессии"
+    )
 
     # ── Section 3.1: Model ──
     params_billions: confloat(gt=0) = Field(..., description="Параметры модели в миллиардах (P)")
-    bytes_per_param: confloat(gt=0) = Field(..., description="Байт на параметр (Bquant): FP8→1, FP16→2, FP32→4")
-    safe_margin: confloat(ge=0.0) = Field(default=5.0, description="Безопасный отступ по памяти (SM, GiB). Учитывает буферы фреймворка, фрагментацию, CUDA-графы и пр.")
-    emp_model: confloat(ge=1.0) = Field(default=1.0, description="Коэф. поправки на практич. память модели (EMPmodel, 1.0-1.15)")
+    bytes_per_param: confloat(gt=0) = Field(
+        ..., description="Байт на параметр (Bquant): FP8→1, FP16→2, FP32→4"
+    )
+    safe_margin: confloat(ge=0.0) = Field(
+        default=5.0,
+        description="Безопасный отступ по памяти (SM, GiB). Учитывает буферы фреймворка, фрагментацию, CUDA-графы и пр.",
+    )
+    emp_model: confloat(ge=1.0) = Field(
+        default=1.0, description="Коэф. поправки на практич. память модели (EMPmodel, 1.0-1.15)"
+    )
     layers_L: conint(gt=0) = Field(..., description="Число слоёв модели (L)")
     hidden_size_H: conint(gt=0) = Field(..., description="Размер скрытого состояния (H)")
 
     # ── Section 3.2: KV-cache ──
-    num_kv_heads: conint(gt=0) = Field(default=32, description="Количество голов KV-кэша (Nkv). Для GQA/MQA < num_attention_heads")
-    num_attention_heads: conint(gt=0) = Field(default=32, description="Количество голов внимания трансформера (Nattention)")
-    bytes_per_kv_state: confloat(gt=0) = Field(default=2, description="Байт на значение KV (Bstate): FP8→1, FP16→2, FP32→4")
-    emp_kv: confloat(ge=1.0) = Field(default=1.0, description="Коэф. поправки на практич. KV-кэш (EMPkv, 1.0-1.2)")
-    max_context_window_TSmax: conint(gt=0) = Field(..., description="Макс. контекстное окно модели (TSmax)")
+    num_kv_heads: conint(gt=0) = Field(
+        default=32, description="Количество голов KV-кэша (Nkv). Для GQA/MQA < num_attention_heads"
+    )
+    num_attention_heads: conint(gt=0) = Field(
+        default=32, description="Количество голов внимания трансформера (Nattention)"
+    )
+    bytes_per_kv_state: confloat(gt=0) = Field(
+        default=2, description="Байт на значение KV (Bstate): FP8→1, FP16→2, FP32→4"
+    )
+    emp_kv: confloat(ge=1.0) = Field(
+        default=1.0, description="Коэф. поправки на практич. KV-кэш (EMPkv, 1.0-1.2)"
+    )
+    max_context_window_TSmax: conint(gt=0) = Field(
+        ..., description="Макс. контекстное окно модели (TSmax)"
+    )
 
     # ── Section 4: Hardware & TP ──
     gpu_mem_gb: confloat(gt=0) = Field(..., description="Память GPU в GiB (GPUmemory)")
     gpu_id: Optional[str] = Field(None, description="ID выбранной GPU из каталога")
     gpus_per_server: conint(gt=0) = Field(..., description="GPU на сервере (GPUcount_server)")
-    kavail: confloat(gt=0.0, le=1.0) = Field(default=0.9, description="Коэф. доступной памяти GPU (Kavail, рек. 0.9)")
-    tp_multiplier_Z: conint(ge=1) = Field(default=1, description="Множитель Tensor Parallelism (Z): 1,2,4…")
-    saturation_coeff_C: confloat(gt=0) = Field(default=8.0, description="Коэф. насыщения от батча (C = tfix/tlin, прикидка 4-16)")
+    kavail: confloat(gt=0.0, le=1.0) = Field(
+        default=0.9, description="Коэф. доступной памяти GPU (Kavail, рек. 0.9)"
+    )
+    tp_multiplier_Z: conint(ge=1) = Field(
+        default=1, description="Множитель Tensor Parallelism (Z): 1,2,4…"
+    )
+    saturation_coeff_C: confloat(gt=0) = Field(
+        default=8.0, description="Коэф. насыщения от батча (C = tfix/tlin, прикидка 4-16)"
+    )
 
     # ── Section 6: Compute ──
-    gpu_flops_Fcount: Optional[confloat(gt=0)] = Field(None, description="Пиковые TFLOPS одного GPU (напр. 312 для A100)")
-    eta_prefill: confloat(gt=0.0, le=1.0) = Field(default=0.20, description="Эффективность prefill (η_pf, 0.15-0.30)")
-    eta_decode: confloat(gt=0.0, le=1.0) = Field(default=0.15, description="Эффективность decode (η_dec, 0.10-0.25)")
-    th_prefill_empir: Optional[confloat(gt=0)] = Field(None, description="Эмпирич. throughput prefill (tokens/sec)")
-    th_decode_empir: Optional[confloat(gt=0)] = Field(None, description="Эмпирич. throughput decode (tokens/sec)")
+    gpu_flops_Fcount: Optional[confloat(gt=0)] = Field(
+        None, description="Пиковые TFLOPS одного GPU (напр. 312 для A100)"
+    )
+    eta_prefill: confloat(gt=0.0, le=1.0) = Field(
+        default=0.20, description="Эффективность prefill (η_pf, 0.15-0.30)"
+    )
+    eta_decode: confloat(gt=0.0, le=1.0) = Field(
+        default=0.15, description="Эффективность decode (η_dec, 0.10-0.25)"
+    )
+    th_prefill_empir: Optional[confloat(gt=0)] = Field(
+        None, description="Эмпирич. throughput prefill (tokens/sec)"
+    )
+    th_decode_empir: Optional[confloat(gt=0)] = Field(
+        None, description="Эмпирич. throughput decode (tokens/sec)"
+    )
 
     # ── Section 6.4: SLA ──
-    rps_per_session_R: confloat(gt=0) = Field(default=0.02, description="Запросов/сек на сессию (R, чат ≈ 0.017-0.033)")
-    sla_reserve_KSLA: confloat(gt=0) = Field(default=1.25, description="Коэф. запаса для SLA (KSLA, 1.25-2.0)")
+    rps_per_session_R: confloat(gt=0) = Field(
+        default=0.02, description="Запросов/сек на сессию (R, чат ≈ 0.017-0.033)"
+    )
+    sla_reserve_KSLA: confloat(gt=0) = Field(
+        default=1.25, description="Коэф. запаса для SLA (KSLA, 1.25-2.0)"
+    )
 
     # ── Section 7: SLA validation (TTFT & e2eLatency targets) ──
-    ttft_sla: Optional[confloat(gt=0)] = Field(default=None, description="Целевой TTFT по SLA (сек). Если задан — выполняется проверка")
-    e2e_latency_sla: Optional[confloat(gt=0)] = Field(default=None, description="Целевой e2eLatency по SLA (сек). Если задан — выполняется проверка")
+    ttft_sla: Optional[confloat(gt=0)] = Field(
+        default=None, description="Целевой TTFT по SLA (сек). Если задан — выполняется проверка"
+    )
+    e2e_latency_sla: Optional[confloat(gt=0)] = Field(
+        default=None,
+        description="Целевой e2eLatency по SLA (сек). Если задан — выполняется проверка",
+    )
 
     # ── Optional: пользовательский каталог GPU (для расчёта Cost Estimate по ценам из каталога) ──
     custom_gpu_catalog: Optional[Union[List[Dict[str, Any]], Dict[str, Any]]] = Field(
         default=None,
-        description="Пользовательский каталог GPU (массив или объект). Если задан — цена для Cost Estimate берётся из него."
+        description="Пользовательский каталог GPU (массив или объект). Если задан — цена для Cost Estimate берётся из него.",
     )
 
     model_config = ConfigDict(
@@ -117,33 +180,56 @@ class SizingOutput(BaseModel):
     """Результат расчета серверов (Методика v2)"""
 
     # ── Section 2: Load ──
-    Ssim_concurrent_sessions: float = Field(..., description="Пиковое кол-во одновременных сессий (Ssim)")
+    Ssim_concurrent_sessions: float = Field(
+        ..., description="Пиковое кол-во одновременных сессий (Ssim)"
+    )
     T_tokens_per_request: float = Field(..., description="Токены на запрос: SP + Prp + MRT + A")
 
     # ── Section 3: Memory ──
     model_mem_gb: float = Field(..., description="Память модели (Mmodel, GiB)")
-    TS_session_context: float = Field(..., description="Прикидочная длина контекста сессии в токенах (TS)")
-    SL_sequence_length: float = Field(..., description="Длина последовательности (SL = min(TS, TSmax))")
+    TS_session_context: float = Field(
+        ..., description="Прикидочная длина контекста сессии в токенах (TS)"
+    )
+    SL_sequence_length: float = Field(
+        ..., description="Длина последовательности (SL = min(TS, TSmax))"
+    )
     kv_per_session_gb: float = Field(..., description="KV-кэш на 1 сессию (MKV_s1, GiB)")
 
     # ── Section 4: GPU & TP ──
     gpus_per_instance: int = Field(..., description="GPU на 1 экземпляр модели (GPUcount_model)")
-    instances_per_server: int = Field(..., description="Экземпляров модели на сервер без TP (Ncount_model)")
-    kv_free_per_instance_gb: float = Field(..., description="Свободная память для KV на 1 экземпляр (GiB)")
-    S_TP_base: int = Field(..., description="Макс. парал. сессий при базовом TP (S_TP=GPUcount_model)")
+    instances_per_server: int = Field(
+        ..., description="Экземпляров модели на сервер без TP (Ncount_model)"
+    )
+    kv_free_per_instance_gb: float = Field(
+        ..., description="Свободная память для KV на 1 экземпляр (GiB)"
+    )
+    S_TP_base: int = Field(
+        ..., description="Макс. парал. сессий при базовом TP (S_TP=GPUcount_model)"
+    )
     S_TP_z: int = Field(..., description="Макс. парал. сессий при Z×TP (S_TP=Z*GPUcount_model)")
     Kbatch: float = Field(..., description="Коэф. повышения пропускной способности (Kbatch)")
-    instance_total_mem_gb: float = Field(..., description="Полная GPU-память на инстанс с TP (Z×GPUcount_model×GPUmem, GiB)")
-    kv_free_per_instance_tp_gb: float = Field(..., description="Свободная память для KV на инстанс с TP (GiB)")
+    instance_total_mem_gb: float = Field(
+        ..., description="Полная GPU-память на инстанс с TP (Z×GPUcount_model×GPUmem, GiB)"
+    )
+    kv_free_per_instance_tp_gb: float = Field(
+        ..., description="Свободная память для KV на инстанс с TP (GiB)"
+    )
 
     # ── Section 5: Servers by memory ──
-    instances_per_server_tp: int = Field(..., description="Экземпляров модели на сервер с TP (NcountTP_model)")
+    instances_per_server_tp: int = Field(
+        ..., description="Экземпляров модели на сервер с TP (NcountTP_model)"
+    )
     sessions_per_server: int = Field(..., description="Сессий на сервер (Sserver)")
     servers_by_memory: int = Field(..., description="Серверов по памяти (Servers_mem)")
 
     # ── Section 6: Compute ──
-    gpu_tflops_used: float = Field(..., description="TFLOPS одного GPU (Half Precision / Tensor Core), использованные в расчёте")
-    Fcount_model_tflops: float = Field(..., description="Суммарные TFLOPS на 1 экземпляр модели (gpu_tflops × GPUcount_model)")
+    gpu_tflops_used: float = Field(
+        ...,
+        description="TFLOPS одного GPU (Half Precision / Tensor Core), использованные в расчёте",
+    )
+    Fcount_model_tflops: float = Field(
+        ..., description="Суммарные TFLOPS на 1 экземпляр модели (gpu_tflops × GPUcount_model)"
+    )
     FPS_flops_per_token: float = Field(..., description="FLOP на 1 токен (FPS = 2·P·10⁹)")
     Tdec_tokens: float = Field(..., description="Токены decode фазы (Tdec = A + MRT)")
     th_prefill: float = Field(..., description="Throughput prefill (tokens/sec)")
@@ -154,14 +240,20 @@ class SizingOutput(BaseModel):
 
     # ── Section 7: SLA validation ──
     ttft_analyt: Optional[float] = Field(None, description="Расчётный TTFT (сек)")
-    generation_time_analyt: Optional[float] = Field(None, description="Расчётное время генерации (сек)")
+    generation_time_analyt: Optional[float] = Field(
+        None, description="Расчётное время генерации (сек)"
+    )
     e2e_latency_analyt: Optional[float] = Field(None, description="Расчётный e2eLatency (сек)")
     ttft_sla_target: Optional[float] = Field(None, description="Целевой TTFT по SLA (сек)")
-    e2e_latency_sla_target: Optional[float] = Field(None, description="Целевой e2eLatency по SLA (сек)")
+    e2e_latency_sla_target: Optional[float] = Field(
+        None, description="Целевой e2eLatency по SLA (сек)"
+    )
     ttft_sla_pass: Optional[bool] = Field(None, description="TTFT проходит SLA?")
     e2e_latency_sla_pass: Optional[bool] = Field(None, description="e2eLatency проходит SLA?")
     sla_passed: Optional[bool] = Field(None, description="Все SLA проверки пройдены?")
-    sla_recommendations: Optional[List[str]] = Field(None, description="Рекомендации при невыполнении SLA (Приложение Б)")
+    sla_recommendations: Optional[List[str]] = Field(
+        None, description="Рекомендации при невыполнении SLA (Приложение Б)"
+    )
 
     # ── Section 8: Final ──
     servers_final: int = Field(..., description="Итоговое количество серверов")
@@ -172,7 +264,9 @@ class SizingOutput(BaseModel):
     gpus_per_server: int = Field(..., description="GPU на сервере (GPUcount_server)")
 
     # ── Cost (optional, from GPU catalog price) ──
-    cost_estimate_usd: Optional[float] = Field(None, description="Оценка стоимости инфраструктуры (USD): серверы × GPU/сервер × цена GPU")
+    cost_estimate_usd: Optional[float] = Field(
+        None, description="Оценка стоимости инфраструктуры (USD): серверы × GPU/сервер × цена GPU"
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -294,8 +388,10 @@ class WhatIfResponseItem(BaseModel):
 #  Auto-Optimize: подбор оптимальной конфигурации
 # ═══════════════════════════════════════════════════════════
 
+
 class OptimizationMode(str, Enum):
     """Режим оптимизации"""
+
     min_servers = "min_servers"
     min_cost = "min_cost"
     max_performance = "max_performance"
@@ -315,7 +411,9 @@ class AutoOptimizeInput(BaseModel):
     params_billions: confloat(gt=0) = Field(..., description="Параметры модели в миллиардах (P)")
     layers_L: conint(gt=0) = Field(..., description="Число слоёв модели (L)")
     hidden_size_H: conint(gt=0) = Field(..., description="Размер скрытого состояния (H)")
-    safe_margin: confloat(ge=0.0) = Field(default=5.0, description="Безопасный отступ по памяти (SM, GiB)")
+    safe_margin: confloat(ge=0.0) = Field(
+        default=5.0, description="Безопасный отступ по памяти (SM, GiB)"
+    )
     emp_model: confloat(ge=1.0) = Field(default=1.0, description="Коэф. поправки на память модели")
 
     # ── Users & behavior ──
@@ -323,8 +421,12 @@ class AutoOptimizeInput(BaseModel):
     penetration_internal: confloat(ge=0.0, le=1.0) = Field(..., description="Коэф. проникновения")
     concurrency_internal: confloat(ge=0.0, le=1.0) = Field(..., description="Коэф. одновременности")
     external_users: conint(ge=0) = Field(default=0, description="Внешние пользователи")
-    penetration_external: confloat(ge=0.0, le=1.0) = Field(default=0.0, description="Коэф. проникновения внешн.")
-    concurrency_external: confloat(ge=0.0, le=1.0) = Field(default=0.0, description="Коэф. одновременности внешн.")
+    penetration_external: confloat(ge=0.0, le=1.0) = Field(
+        default=0.0, description="Коэф. проникновения внешн."
+    )
+    concurrency_external: confloat(ge=0.0, le=1.0) = Field(
+        default=0.0, description="Коэф. одновременности внешн."
+    )
     sessions_per_user_J: confloat(gt=0) = Field(default=1, description="Сессий на пользователя")
 
     # ── Tokens ──
@@ -336,7 +438,9 @@ class AutoOptimizeInput(BaseModel):
 
     # ── KV-cache ──
     num_kv_heads: conint(gt=0) = Field(default=32, description="Кол-во голов KV-кэша (Nkv)")
-    num_attention_heads: conint(gt=0) = Field(default=32, description="Кол-во голов внимания (Nattention)")
+    num_attention_heads: conint(gt=0) = Field(
+        default=32, description="Кол-во голов внимания (Nattention)"
+    )
     bytes_per_kv_state: confloat(gt=0) = Field(default=2, description="Байт на KV")
     emp_kv: confloat(ge=1.0) = Field(default=1.0, description="Поправка KV")
     max_context_window_TSmax: conint(gt=0) = Field(default=32768, description="Макс. контекст")
@@ -344,8 +448,12 @@ class AutoOptimizeInput(BaseModel):
     # ── SLA ──
     rps_per_session_R: confloat(gt=0) = Field(default=0.02, description="req/s на сессию")
     sla_reserve_KSLA: confloat(gt=0) = Field(default=1.25, description="Запас SLA")
-    ttft_sla: Optional[confloat(gt=0)] = Field(default=None, description="Целевой TTFT по SLA (сек)")
-    e2e_latency_sla: Optional[confloat(gt=0)] = Field(default=None, description="Целевой e2eLatency по SLA (сек)")
+    ttft_sla: Optional[confloat(gt=0)] = Field(
+        default=None, description="Целевой TTFT по SLA (сек)"
+    )
+    e2e_latency_sla: Optional[confloat(gt=0)] = Field(
+        default=None, description="Целевой e2eLatency по SLA (сек)"
+    )
 
     # ── Optional tuning ──
     kavail: confloat(gt=0.0, le=1.0) = Field(default=0.9, description="Доступная память GPU")
@@ -354,15 +462,23 @@ class AutoOptimizeInput(BaseModel):
     saturation_coeff_C: confloat(gt=0) = Field(default=8.0, description="Коэф. насыщения")
 
     # ── Optimization control ──
-    mode: OptimizationMode = Field(default=OptimizationMode.balanced, description="Режим оптимизации")
-    min_gpu_memory_gb: Optional[confloat(gt=0)] = Field(default=None, description="Мин. память GPU (фильтр)")
+    mode: OptimizationMode = Field(
+        default=OptimizationMode.balanced, description="Режим оптимизации"
+    )
+    min_gpu_memory_gb: Optional[confloat(gt=0)] = Field(
+        default=None, description="Мин. память GPU (фильтр)"
+    )
     max_servers: Optional[conint(gt=0)] = Field(default=None, description="Макс. серверов (фильтр)")
-    gpu_vendors: Optional[List[str]] = Field(default=None, description="Фильтр по вендорам (NVIDIA, AMD, ...)")
-    gpu_ids: Optional[List[str]] = Field(default=None, description="Конкретные ID GPU из каталога для подбора")
+    gpu_vendors: Optional[List[str]] = Field(
+        default=None, description="Фильтр по вендорам (NVIDIA, AMD, ...)"
+    )
+    gpu_ids: Optional[List[str]] = Field(
+        default=None, description="Конкретные ID GPU из каталога для подбора"
+    )
     custom_gpu_catalog: Optional[Union[List[Dict[str, Any]], Dict[str, Any]]] = Field(
         default=None,
         description="Пользовательский каталог GPU (нормализованный JSON-массив). "
-                    "Если задан — используется вместо встроенного каталога."
+        "Если задан — используется вместо встроенного каталога.",
     )
     top_n: conint(gt=0, le=50) = Field(default=10, description="Количество лучших конфигураций")
 
@@ -393,10 +509,14 @@ class AutoOptimizeResult(BaseModel):
 
     # ── Cost ──
     gpu_price_usd: Optional[float] = Field(None, description="Цена одного GPU (USD)")
-    cost_estimate_usd: Optional[float] = Field(None, description="Общая стоимость GPU (серверы × GPU/сервер × цена)")
+    cost_estimate_usd: Optional[float] = Field(
+        None, description="Общая стоимость GPU (серверы × GPU/сервер × цена)"
+    )
 
     # ── Full output for Apply ──
-    sizing_input: Optional[dict] = Field(None, description="Полный SizingInput для подстановки в калькулятор")
+    sizing_input: Optional[dict] = Field(
+        None, description="Полный SizingInput для подстановки в калькулятор"
+    )
 
 
 class AutoOptimizeResponse(BaseModel):

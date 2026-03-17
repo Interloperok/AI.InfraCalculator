@@ -5,6 +5,7 @@
 из SizingInput. Формулы («Рассчитывается») сохраняются и пересчитываются
 Excel при открытии файла.
 """
+
 from __future__ import annotations
 
 import io
@@ -140,9 +141,7 @@ class ReportGenerator:
             RuntimeError: при ошибке генерации.
         """
         if not self.template_exists:
-            raise FileNotFoundError(
-                f"Шаблон отчёта не найден: {self.template_path}"
-            )
+            raise FileNotFoundError(f"Шаблон отчёта не найден: {self.template_path}")
 
         try:
             wb = self._fill_template(inp)

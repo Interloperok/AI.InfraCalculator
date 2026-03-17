@@ -33,7 +33,9 @@ def test_scraper_parses_fixture_table(monkeypatch) -> None:
 
     processed = catalog_scraper.process_dataframe(tables[0], vendor="NVIDIA")
     assert len(processed) == 2
-    assert set(["Vendor", "Launch", "Memory_GB", "Memory_Type", "Cores"]).issubset(processed.columns)
+    assert set(["Vendor", "Launch", "Memory_GB", "Memory_Type", "Cores"]).issubset(
+        processed.columns
+    )
 
     first = processed.iloc[0]
     assert first["Vendor"] == "NVIDIA"
@@ -101,11 +103,15 @@ def test_fetch_vendor_tables_handles_parse_error(monkeypatch) -> None:
 
 
 def test_normalize_columns_multiindex_and_standardise_mapping() -> None:
-    df = pd.DataFrame([[1, 2]], columns=pd.MultiIndex.from_tuples([("Model", "Model"), ("Code", "name")]))
+    df = pd.DataFrame(
+        [[1, 2]], columns=pd.MultiIndex.from_tuples([("Model", "Model"), ("Code", "name")])
+    )
     cols = catalog_scraper.normalize_columns(df.columns)
     assert cols == ["Model", "Code name"]
 
-    mapped = catalog_scraper.standardise_column_names(pd.DataFrame(columns=["GPU die", "Model", "Radeon RX 7900"]))
+    mapped = catalog_scraper.standardise_column_names(
+        pd.DataFrame(columns=["GPU die", "Model", "Radeon RX 7900"])
+    )
     assert "Code name" in mapped.columns
     assert "Model name" in mapped.columns
 

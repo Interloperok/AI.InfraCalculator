@@ -430,12 +430,19 @@ function App() {
                 setTourStepIndex(0);
                 setRunTour(true);
                 if (isMobileTour) {
-                  document.querySelector(".swipe-panels")?.scrollTo({ left: 0, behavior: "smooth" });
+                  document
+                    .querySelector(".swipe-panels")
+                    ?.scrollTo({ left: 0, behavior: "smooth" });
                 }
               }}
               className="tour-btn-pulse inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium rounded-lg border border-indigo-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-200 whitespace-nowrap"
             >
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-4 h-4 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -478,7 +485,12 @@ function App() {
                 data-tour="docs-btn"
                 className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-600 text-sm font-medium rounded-lg border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200 whitespace-nowrap"
               >
-                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-4 h-4 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -494,7 +506,12 @@ function App() {
                 data-tour="docs-btn"
                 className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-600 text-sm font-medium rounded-lg border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200 whitespace-nowrap"
               >
-                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-4 h-4 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"

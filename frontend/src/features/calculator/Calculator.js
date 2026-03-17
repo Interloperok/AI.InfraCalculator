@@ -445,7 +445,12 @@ const Calculator = () => {
 
         <div className="snap-start overflow-hidden">
           <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col overflow-hidden">
-            <ResultsDisplay results={results} loading={loading} error={error} inputData={inputData} />
+            <ResultsDisplay
+              results={results}
+              loading={loading}
+              error={error}
+              inputData={inputData}
+            />
           </div>
         </div>
       </div>

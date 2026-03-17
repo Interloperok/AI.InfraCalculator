@@ -23,12 +23,7 @@ jest.mock("axios", () => {
 
 const mockedAxios = require("axios").default;
 
-const makeAxiosError = ({
-  status,
-  data,
-  statusText = "Error",
-  withRequest = false,
-} = {}) => ({
+const makeAxiosError = ({ status, data, statusText = "Error", withRequest = false } = {}) => ({
   __isAxiosError: true,
   response:
     status !== undefined
@@ -77,7 +72,11 @@ describe("frontend API client", () => {
 
   it("returns calculation error for 400 status", async () => {
     mockedAxios.post.mockRejectedValueOnce(
-      makeAxiosError({ status: 400, data: { detail: "bad sizing input" }, statusText: "Bad Request" }),
+      makeAxiosError({
+        status: 400,
+        data: { detail: "bad sizing input" },
+        statusText: "Bad Request",
+      }),
     );
 
     const result = await calculateServerRequirements({});
@@ -154,7 +153,7 @@ describe("frontend API client", () => {
 
     const result = await getGPUs({ vendor: "NVIDIA" });
 
-    expect(result).toEqual({ error: "{\"message\":\"catalog failure\"}" });
+    expect(result).toEqual({ error: '{"message":"catalog failure"}' });
   });
 
   it("returns GPU list payload on success", async () => {
@@ -176,7 +175,8 @@ describe("frontend API client", () => {
     const result = await getGPUs();
 
     expect(result).toEqual({
-      error: "Internal Server Error: An error occurred on the server. Please check your parameters.",
+      error:
+        "Internal Server Error: An error occurred on the server. Please check your parameters.",
     });
   });
 
@@ -184,7 +184,8 @@ describe("frontend API client", () => {
     mockedAxios.get.mockRejectedValueOnce(makeAxiosError({ withRequest: true }));
     const networkResult = await getGPUs();
     expect(networkResult).toEqual({
-      error: "Network error: Unable to connect to the server. Please make sure the backend is running.",
+      error:
+        "Network error: Unable to connect to the server. Please make sure the backend is running.",
     });
 
     mockedAxios.get.mockRejectedValueOnce(new Error("timeout"));
@@ -218,7 +219,8 @@ describe("frontend API client", () => {
     mockedAxios.get.mockRejectedValueOnce(makeAxiosError({ status: 500, data: "err" }));
     const status500 = await getGPUStats();
     expect(status500).toEqual({
-      error: "Internal Server Error: An error occurred on the server. Please check your parameters.",
+      error:
+        "Internal Server Error: An error occurred on the server. Please check your parameters.",
     });
 
     mockedAxios.get.mockRejectedValueOnce(
@@ -243,10 +245,9 @@ describe("frontend API client", () => {
     const result = await getGpuDetails("NVIDIA/H100");
 
     expect(result).toEqual({ error: "Server error (404)" });
-    expect(mockedAxios.get).toHaveBeenCalledWith(
-      "http://localhost:8000/v1/gpus/NVIDIA%2FH100",
-      { headers: { "Content-Type": "application/json" } },
-    );
+    expect(mockedAxios.get).toHaveBeenCalledWith("http://localhost:8000/v1/gpus/NVIDIA%2FH100", {
+      headers: { "Content-Type": "application/json" },
+    });
   });
 
   it("returns details payload on success", async () => {

@@ -21,6 +21,7 @@ npm start
 App URL: [http://localhost:3000](http://localhost:3000)
 
 Backend API defaults:
+
 - development: `http://localhost:8000`
 - production: same-origin (`""`, e.g. `/v1/...` via reverse proxy)
 

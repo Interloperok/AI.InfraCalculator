@@ -110,5 +110,7 @@ def test_run_sizing_raises_when_compute_throughput_zero(monkeypatch) -> None:
     inp = SizingInput(**_load_payload())
     monkeypatch.setattr(sizing_service, "calc_servers_by_compute", lambda *args: math.inf)
     monkeypatch.setattr(sizing_service, "lookup_gpu_price_usd", lambda *args: None)
-    with pytest.raises(sizing_service.ValidationAppError, match="Пропускная способность сервера = 0"):
+    with pytest.raises(
+        sizing_service.ValidationAppError, match="Пропускная способность сервера = 0"
+    ):
         sizing_service.run_sizing(inp)

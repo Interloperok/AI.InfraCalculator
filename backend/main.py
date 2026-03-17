@@ -208,8 +208,12 @@ def get_gpus(
     min_memory: Optional[float] = Query(None, ge=0, description="Минимальная память в GB"),
     max_memory: Optional[float] = Query(None, ge=0, description="Максимальная память в GB"),
     min_cores: Optional[int] = Query(None, ge=0, description="Минимальное количество ядер"),
-    min_year: Optional[int] = Query(None, ge=1990, le=2030, description="Минимальный год производства"),
-    max_year: Optional[int] = Query(None, ge=1990, le=2030, description="Максимальный год производства"),
+    min_year: Optional[int] = Query(
+        None, ge=1990, le=2030, description="Минимальный год производства"
+    ),
+    max_year: Optional[int] = Query(
+        None, ge=1990, le=2030, description="Максимальный год производства"
+    ),
     memory_type: Optional[str] = Query(None, description="Тип памяти (GDDR6, HBM, etc.)"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     per_page: int = Query(20, ge=1, le=100, description="Количество элементов на странице"),

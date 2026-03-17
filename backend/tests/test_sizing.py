@@ -57,13 +57,13 @@ EXCEL_INPUT = dict(
     # Токены
     system_prompt_tokens_SP=1000,
     user_prompt_tokens_Prp=200,
-    reasoning_tokens_MRT=0,       # MRT = 0 (модель без reasoning)
+    reasoning_tokens_MRT=0,  # MRT = 0 (модель без reasoning)
     answer_tokens_A=400,
-    dialog_turns=5,               # N_prp = 5
+    dialog_turns=5,  # N_prp = 5
     # Модель
     params_billions=32,
     bytes_per_param=2,
-    safe_margin=5.0,              # SM = 5 GiB (safe margin)
+    safe_margin=5.0,  # SM = 5 GiB (safe margin)
     emp_model=1.0,
     layers_L=64,
     hidden_size_H=4096,
@@ -78,9 +78,9 @@ EXCEL_INPUT = dict(
     gpus_per_server=8,
     kavail=0.9,
     tp_multiplier_Z=4,
-    saturation_coeff_C=10.0,      # C = 10 (Excel)
+    saturation_coeff_C=10.0,  # C = 10 (Excel)
     # Compute
-    gpu_flops_Fcount=312,         # 312 TFLOPS (A100 FP16)
+    gpu_flops_Fcount=312,  # 312 TFLOPS (A100 FP16)
     eta_prefill=0.20,
     eta_decode=0.15,
     # SLA
@@ -99,29 +99,29 @@ EXCEL_EXPECTED = dict(
     T=1600.0,
     # Section 3 (Mmodel = (P×10⁹×Bquant/1024³)×EMPmodel + SM)
     Mmodel_gb=64.60464477539062,  # (32e9 × 2 / 1024³) × 1.0 + 5.0
-    TS=4000.0,                    # SP + 5 × (200 + 0 + 400)
-    SL=4000.0,                    # min(4000, 32768)
-    MKV_gb=3.90625,               # 2 × 64 × 4096 × 4000 × 2 × 1 / 1024³
+    TS=4000.0,  # SP + 5 × (200 + 0 + 400)
+    SL=4000.0,  # min(4000, 32768)
+    MKV_gb=3.90625,  # 2 × 64 × 4096 × 4000 × 2 × 1 / 1024³
     # Section 4
     GPUcount_model=1,
     Ncount_model=8,
     kv_free_base_gb=7.395355224609375,  # 1 × 80 × 0.9 − 64.605...
-    S_TP_min=1,                   # floor(7.395 / 3.906)
-    S_TP_Z=57,                    # floor(223.395 / 3.906)
-    Kbatch=9.35820895522388,      # (57/1) × ((1+10)/(57+10))
+    S_TP_min=1,  # floor(7.395 / 3.906)
+    S_TP_Z=57,  # floor(223.395 / 3.906)
+    Kbatch=9.35820895522388,  # (57/1) × ((1+10)/(57+10))
     # Section 5
-    NcountTP=2,                   # floor(8 / (4 × 1))
-    Sserver=114,                  # 2 × 57
-    Servers_mem=22,               # ceil(2500 / 114)
+    NcountTP=2,  # floor(8 / (4 × 1))
+    Sserver=114,  # 2 × 57
+    Servers_mem=22,  # ceil(2500 / 114)
     # Section 6
-    FPS=64_000_000_000.0,         # 2 × 32 × 10⁹
-    Tdec=400.0,                   # A + MRT = 400 + 0
-    Fcount_model_tflops=312.0,    # 1 × 312
-    th_prefill=8563.064721739373, # аналитический расчёт
+    FPS=64_000_000_000.0,  # 2 × 32 × 10⁹
+    Tdec=400.0,  # A + MRT = 400 + 0
+    Fcount_model_tflops=312.0,  # 1 × 312
+    th_prefill=8563.064721739373,  # аналитический расчёт
     th_decode=6402.657929509471,  # аналитический расчёт
-    Cmodel=1.888229890920555,     # 1 / (SL/Th_pf + Tdec/Th_dec)
-    th_server_comp=3.77645978184111,   # NcountTP × Cmodel = 2 × 1.888 (изм.8)
-    Servers_comp=17,              # ceil(2500 × 0.02 × 1.25 / 3.776)
+    Cmodel=1.888229890920555,  # 1 / (SL/Th_pf + Tdec/Th_dec)
+    th_server_comp=3.77645978184111,  # NcountTP × Cmodel = 2 × 1.888 (изм.8)
+    Servers_comp=17,  # ceil(2500 × 0.02 × 1.25 / 3.776)
     # Section 8
     Servers_final=22,
 )
@@ -130,6 +130,7 @@ EXCEL_EXPECTED = dict(
 # ═══════════════════════════════════════════════════════════
 # Тесты отдельных формул
 # ═══════════════════════════════════════════════════════════
+
 
 class TestSection2LoadCalculation:
     """Раздел 2: Определение нагрузки"""
@@ -238,27 +239,20 @@ class TestSection6Compute:
     def test_th_prefill_analyt(self):
         Fcount_flops = 312 * 1e12 * 1  # 312 TFLOPS × 1 GPU
         result = calc_th_prefill_analyt(
-            Fcount_flops, 0.20, EXCEL_EXPECTED["Kbatch"],
-            64e9, 64, 4096, 4000
+            Fcount_flops, 0.20, EXCEL_EXPECTED["Kbatch"], 64e9, 64, 4096, 4000
         )
         assert result == pytest.approx(EXCEL_EXPECTED["th_prefill"], rel=1e-4)
 
     def test_th_decode_analyt(self):
         Fcount_flops = 312 * 1e12 * 1
         result = calc_th_decode_analyt(
-            Fcount_flops, 0.15, EXCEL_EXPECTED["Kbatch"],
-            64e9, 64, 4096, 4000, 400
+            Fcount_flops, 0.15, EXCEL_EXPECTED["Kbatch"], 64e9, 64, 4096, 4000, 400
         )
         assert result == pytest.approx(EXCEL_EXPECTED["th_decode"], rel=1e-4)
 
     def test_Cmodel(self):
         """Cmodel использует SL (не TS!)"""
-        result = calc_Cmodel(
-            4000,
-            EXCEL_EXPECTED["th_prefill"],
-            400,
-            EXCEL_EXPECTED["th_decode"]
-        )
+        result = calc_Cmodel(4000, EXCEL_EXPECTED["th_prefill"], 400, EXCEL_EXPECTED["th_decode"])
         assert result == pytest.approx(EXCEL_EXPECTED["Cmodel"], rel=1e-4)
 
     def test_th_server_comp(self):
@@ -276,6 +270,7 @@ class TestSection6Compute:
 # ═══════════════════════════════════════════════════════════
 # Интеграционный тест: полный pipeline
 # ═══════════════════════════════════════════════════════════
+
 
 class TestFullPipeline:
     """Полный расчёт должен совпадать с Excel"""
@@ -349,7 +344,9 @@ class TestFullPipeline:
         assert excel_result.Cmodel_rps == pytest.approx(EXCEL_EXPECTED["Cmodel"], rel=1e-4)
 
     def test_th_server_comp(self, excel_result):
-        assert excel_result.th_server_comp == pytest.approx(EXCEL_EXPECTED["th_server_comp"], rel=1e-4)
+        assert excel_result.th_server_comp == pytest.approx(
+            EXCEL_EXPECTED["th_server_comp"], rel=1e-4
+        )
 
     def test_servers_by_compute(self, excel_result):
         assert excel_result.servers_by_compute == EXCEL_EXPECTED["Servers_comp"]
@@ -362,6 +359,7 @@ class TestFullPipeline:
 # Дополнительные тесты: граничные случаи
 # ═══════════════════════════════════════════════════════════
 
+
 class TestEdgeCases:
     """Граничные случаи и инварианты"""
 
@@ -369,9 +367,7 @@ class TestEdgeCases:
         """Итог = max(по памяти, по compute)"""
         inp = SizingInput(**EXCEL_INPUT)
         result = run_sizing(inp)
-        assert result.servers_final == max(
-            result.servers_by_memory, result.servers_by_compute
-        )
+        assert result.servers_final == max(result.servers_by_memory, result.servers_by_compute)
 
     def test_with_reasoning_tokens(self):
         """С MRT > 0 значения должны существенно отличаться"""

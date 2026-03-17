@@ -58,7 +58,7 @@ flowchart TB
     subgraph results [ResultsDisplay]
         Cards["Metric cards, chart, details"]
     end
-    
+
     Toggle -->|normal| Layout2
     Toggle -->|auto| Layout3
     Layout2 --> form

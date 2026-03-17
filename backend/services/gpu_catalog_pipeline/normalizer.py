@@ -63,6 +63,7 @@ _EMPTY = {"nan", "n/a", "unknown", "?", "-", "—", "", "oem", "none", "no"}
 #  Low-level parsing helpers
 # ─────────────────────────────────────────────
 
+
 def _is_empty(val: Any) -> bool:
     """Return True if val is meaningless / missing."""
     if val is None:
@@ -81,10 +82,10 @@ def _first_number(text: Any, allow_negative: bool = False) -> Optional[float]:
         return None
     s = str(text).replace(",", "").replace("\u00a0", "").strip()
     # Remove leading currency/comparison symbols
-    s = re.sub(r'^[<>≥≤~$¥€£]+\s*', '', s)
+    s = re.sub(r"^[<>≥≤~$¥€£]+\s*", "", s)
     # Remove "2×" / "2x" prefixes
-    s = re.sub(r'^\d+\s*[×x]\s*', '', s, flags=re.I)
-    pattern = r'-?\d+(?:\.\d+)?' if allow_negative else r'\d+(?:\.\d+)?'
+    s = re.sub(r"^\d+\s*[×x]\s*", "", s, flags=re.I)
+    pattern = r"-?\d+(?:\.\d+)?" if allow_negative else r"\d+(?:\.\d+)?"
     m = re.search(pattern, s)
     if m:
         return float(m.group())
@@ -96,7 +97,7 @@ def _last_number(text: Any) -> Optional[float]:
     if _is_empty(text):
         return None
     s = str(text).replace(",", "").replace("\u00a0", "").strip()
-    matches = re.findall(r'\d+(?:\.\d+)?', s)
+    matches = re.findall(r"\d+(?:\.\d+)?", s)
     return float(matches[-1]) if matches else None
 
 
@@ -110,17 +111,17 @@ def _parse_price(text: Any) -> Optional[float]:
         return None
     s = str(text).strip()
     # Non-USD currencies → None
-    if re.search(r'[¥€£]', s):
+    if re.search(r"[¥€£]", s):
         return None
     # Must contain a dollar sign or a digit to be parseable
-    if '$' not in s and not re.search(r'\d', s):
+    if "$" not in s and not re.search(r"\d", s):
         return None
     # Range: take upper bound
-    range_m = re.search(r'\$?\s*[\d,]+(?:\.\d+)?\s*[-–]\s*\$?\s*([\d,]+(?:\.\d+)?)', s)
+    range_m = re.search(r"\$?\s*[\d,]+(?:\.\d+)?\s*[-–]\s*\$?\s*([\d,]+(?:\.\d+)?)", s)
     if range_m:
         return float(range_m.group(1).replace(",", ""))
     # Single value
-    m = re.search(r'\$?\s*([\d,]+(?:\.\d+)?)', s)
+    m = re.search(r"\$?\s*([\d,]+(?:\.\d+)?)", s)
     if m:
         return float(m.group(1).replace(",", ""))
     return None
@@ -139,18 +140,18 @@ def _parse_nm(text: Any) -> Optional[int]:
         v = int(s)
         if 1 <= v <= 1000:
             return v
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         pass
     # TSMC node names: "N7", "N5", "N4", "N3" etc.
-    m = re.search(r'\bN(\d+)\b', s)
+    m = re.search(r"\bN(\d+)\b", s)
     if m:
         return int(m.group(1))
     # Explicit "nm": "40 nm", "28nm", "(28 nm)", "TSMC 40 nm"
-    m = re.search(r'(\d+)\s*nm\b', s, re.I)
+    m = re.search(r"(\d+)\s*nm\b", s, re.I)
     if m:
         return int(m.group(1))
     # Process suffixes: "14LPP", "7FF", "5LPE", "28HP"
-    m = re.search(r'\b(\d+)\s*(?:LP[PECU]?|FF|HP|HPC|SOI)\b', s, re.I)
+    m = re.search(r"\b(\d+)\s*(?:LP[PECU]?|FF|HP|HPC|SOI)\b", s, re.I)
     if m:
         return int(m.group(1))
     return None
@@ -173,13 +174,14 @@ def _parse_date(text: Any) -> Optional[str]:
         return None
     s = str(text).strip()
     # Already in datetime format: "2014-03-27 00:00:00"
-    m = re.match(r'(\d{4}-\d{2}-\d{2})', s)
+    m = re.match(r"(\d{4}-\d{2}-\d{2})", s)
     if m:
         return m.group(1)
     # "March 27, 2014" or "Mar 27, 2014"
-    m = re.search(r'([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})', s)
+    m = re.search(r"([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})", s)
     if m:
         from datetime import datetime
+
         try:
             dt = datetime.strptime(f"{m.group(1)} {m.group(2)} {m.group(3)}", "%B %d %Y")
             return dt.strftime("%Y-%m-%d")
@@ -190,7 +192,7 @@ def _parse_date(text: Any) -> Optional[str]:
             except ValueError:
                 pass
     # Just a year
-    m = re.search(r'\b(20\d{2})\b', s)
+    m = re.search(r"\b(20\d{2})\b", s)
     if m:
         return m.group(1)
     return None
@@ -207,18 +209,18 @@ def _parse_memory_gb(text: Any) -> Optional[float]:
     s = str(text).replace(",", "").strip()
 
     # "2× 6" → strip multiplier prefix
-    s = re.sub(r'^\d+\s*[×x]\s*', '', s, flags=re.I)
+    s = re.sub(r"^\d+\s*[×x]\s*", "", s, flags=re.I)
 
     # Explicit units: "4 GB", "2048 MB", "4096 MiB"
-    gb_m = re.findall(r'([\d.]+)\s*(?:GiB|GB)', s, re.I)
+    gb_m = re.findall(r"([\d.]+)\s*(?:GiB|GB)", s, re.I)
     if gb_m:
         return max(float(v) for v in gb_m)
-    mb_m = re.findall(r'([\d.]+)\s*(?:MiB|MB)', s, re.I)
+    mb_m = re.findall(r"([\d.]+)\s*(?:MiB|MB)", s, re.I)
     if mb_m:
         return max(float(v) for v in mb_m) / 1024.0
 
     # Plain numbers — could be GiB or MiB
-    nums = re.findall(r'[\d.]+', s)
+    nums = re.findall(r"[\d.]+", s)
     if nums:
         vals = [float(v) for v in nums if float(v) > 0]
         if not vals:
@@ -246,12 +248,12 @@ def _parse_tflops(text: Any, unit: str = "tflops") -> Optional[float]:
         return None
 
     # Remove "x2" suffix (dual-GPU)
-    s = re.sub(r'\s*x\s*2\s*$', '', s, flags=re.I)
+    s = re.sub(r"\s*x\s*2\s*$", "", s, flags=re.I)
     # Remove "2× " prefix
-    s = re.sub(r'^\d+\s*[×x]\s*', '', s, flags=re.I)
+    s = re.sub(r"^\d+\s*[×x]\s*", "", s, flags=re.I)
 
     # Extract all numbers
-    nums = re.findall(r'[\d.]+', s)
+    nums = re.findall(r"[\d.]+", s)
     if not nums:
         return None
 
@@ -275,8 +277,8 @@ def _parse_tdp(text: Any) -> Optional[float]:
     s = str(text).replace(",", "").strip()
     s = s.replace("<", "").replace(">", "").replace("~", "")
     # Remove " W" suffix
-    s = re.sub(r'\s*W\s*$', '', s, flags=re.I)
-    m = re.search(r'(\d+(?:\.\d+)?)', s)
+    s = re.sub(r"\s*W\s*$", "", s, flags=re.I)
+    m = re.search(r"(\d+(?:\.\d+)?)", s)
     if m:
         return float(m.group(1))
     return None
@@ -291,12 +293,12 @@ def _parse_bus_width(text: Any) -> Optional[int]:
         return None
     s = str(text).replace(",", "").strip()
     # Combined type & width: "GDDR5 128-bit"
-    m = re.search(r'(\d+)\s*-?\s*bit', s, re.I)
+    m = re.search(r"(\d+)\s*-?\s*bit", s, re.I)
     if m:
         return int(m.group(1))
     # "2× 384"
-    s = re.sub(r'^\d+\s*[×x]\s*', '', s, flags=re.I)
-    m = re.search(r'\b(\d+)\b', s)
+    s = re.sub(r"^\d+\s*[×x]\s*", "", s, flags=re.I)
+    m = re.search(r"\b(\d+)\b", s)
     if m:
         v = int(m.group(1))
         # Sanity: bus widths are typically 32-8192
@@ -312,10 +314,26 @@ def _parse_memory_type(text: Any) -> Optional[str]:
     s = str(text).upper()
     # Ordered by specificity (longer matches first)
     for mem_type in [
-        "HBM3E", "HBM3", "HBM2E", "HBM2", "HBM",
-        "GDDR7", "GDDR6X", "GDDR6", "GDDR5X", "GDDR5", "GDDR4", "GDDR3",
-        "DDR5", "DDR4", "DDR3", "DDR2",
-        "LPDDR5X", "LPDDR5", "LPDDR4X", "LPDDR4",
+        "HBM3E",
+        "HBM3",
+        "HBM2E",
+        "HBM2",
+        "HBM",
+        "GDDR7",
+        "GDDR6X",
+        "GDDR6",
+        "GDDR5X",
+        "GDDR5",
+        "GDDR4",
+        "GDDR3",
+        "DDR5",
+        "DDR4",
+        "DDR3",
+        "DDR2",
+        "LPDDR5X",
+        "LPDDR5",
+        "LPDDR4X",
+        "LPDDR4",
     ]:
         if mem_type in s:
             return mem_type
@@ -332,9 +350,9 @@ def _parse_clock_mhz(text: Any) -> Optional[float]:
         return None
     s = str(text).replace(",", "").strip()
     # Remove parenthesised effective rate: "1752.5 (7010)" → "1752.5"
-    s = re.sub(r'\s*\(.*?\)', '', s)
+    s = re.sub(r"\s*\(.*?\)", "", s)
     # All numbers
-    nums = re.findall(r'[\d.]+', s)
+    nums = re.findall(r"[\d.]+", s)
     if not nums:
         return None
     vals = [float(v) for v in nums if float(v) > 0]
@@ -352,16 +370,16 @@ def _parse_version(text: Any) -> Optional[str]:
     # "11.2b/12.0" → "12.0" (take the latest)
     # "4.6 ES 3.2" → "4.6"
     # "1.1.101" → "1.1"
-    parts = re.split(r'[/,]', s)
+    parts = re.split(r"[/,]", s)
     versions = []
     for part in parts:
-        m = re.search(r'(\d+(?:\.\d+)?)', part.strip())
+        m = re.search(r"(\d+(?:\.\d+)?)", part.strip())
         if m:
             versions.append(m.group(1))
     if versions:
         # Return the highest version
         try:
-            return max(versions, key=lambda v: tuple(int(x) for x in v.split('.')))
+            return max(versions, key=lambda v: tuple(int(x) for x in v.split(".")))
         except ValueError:
             return versions[-1]
     return None
@@ -381,17 +399,17 @@ def _parse_transistors_die(text: Any) -> Tuple[Optional[float], Optional[float]]
     die_size = None
 
     # Transistors: "690×10⁶" → 0.69 billion
-    m = re.search(r'([\d,.]+)\s*[×x]\s*10⁶', s)
+    m = re.search(r"([\d,.]+)\s*[×x]\s*10⁶", s)
     if m:
         transistors = float(m.group(1).replace(",", "")) / 1000.0
 
     # Transistors: "1.8×10⁹" → 1.8 billion
-    m2 = re.search(r'([\d,.]+)\s*[×x]\s*10⁹', s)
+    m2 = re.search(r"([\d,.]+)\s*[×x]\s*10⁹", s)
     if m2:
         transistors = float(m2.group(1).replace(",", ""))
 
     # Die size: "56mm²" or "56 mm²" or "56 mm2"
-    dm = re.search(r'(\d+(?:\.\d+)?)\s*mm[²2]?', s)
+    dm = re.search(r"(\d+(?:\.\d+)?)\s*mm[²2]?", s)
     if dm:
         die_size = float(dm.group(1))
 
@@ -401,6 +419,7 @@ def _parse_transistors_die(text: Any) -> Tuple[Optional[float], Optional[float]]
 # ─────────────────────────────────────────────
 #  Multi-key lookup helper
 # ─────────────────────────────────────────────
+
 
 def _get(raw: Dict[str, Any], *keys: str) -> Any:
     """Return the first non-empty value for any of *keys*."""
@@ -414,6 +433,7 @@ def _get(raw: Dict[str, Any], *keys: str) -> Any:
 # ─────────────────────────────────────────────
 #  Main normalizer for a single GPU entry
 # ─────────────────────────────────────────────
+
 
 def normalize_entry(gpu_id: str, raw: Dict[str, Any]) -> Dict[str, Any]:
     """Convert a single raw GPU entry to the normalized schema."""
@@ -444,8 +464,9 @@ def normalize_entry(gpu_id: str, raw: Dict[str, Any]) -> Dict[str, Any]:
     entry["launch_date"] = _parse_date(_get(raw, "Launch"))
 
     # ── Process / Fab ──
-    fab_text = _get(raw, "Fab (nm)", "Process",
-                     "Architecture & fab", "Architecture (Fab)", "Architecture & Fab")
+    fab_text = _get(
+        raw, "Fab (nm)", "Process", "Architecture & fab", "Architecture (Fab)", "Architecture & Fab"
+    )
     entry["process_nm"] = _parse_nm(fab_text)
     entry["fab"] = _parse_fab(fab_text)
 
@@ -469,8 +490,9 @@ def normalize_entry(gpu_id: str, raw: Dict[str, Any]) -> Dict[str, Any]:
 
     # Combined field fallback
     if entry["transistors_billion"] is None or entry["die_size_mm2"] is None:
-        combined = _get(raw, "Transistors & die size",
-                         "Transistors & Die Size", "Transistors Die Size")
+        combined = _get(
+            raw, "Transistors & die size", "Transistors & Die Size", "Transistors Die Size"
+        )
         if combined is not None:
             t, d = _parse_transistors_die(combined)
             if entry["transistors_billion"] is None and t is not None:
@@ -484,80 +506,104 @@ def normalize_entry(gpu_id: str, raw: Dict[str, Any]) -> Dict[str, Any]:
         entry["bus_interface"] = str(bus).strip()
 
     # ── Core config ──
-    cc = _get(raw, "Core config", "Core Config", "Core config,",
-              "Core config,,", "Core Config (CU)", "Shaders Core config")
+    cc = _get(
+        raw,
+        "Core config",
+        "Core Config",
+        "Core config,",
+        "Core config,,",
+        "Core Config (CU)",
+        "Shaders Core config",
+    )
     if cc and str(cc).strip().lower() not in _EMPTY:
         entry["core_config"] = str(cc).strip()
 
     # ── Memory ──
-    mem_text = _get(raw,
-                    "Memory Size (GiB)", "Memory configuration Size (GiB)",
-                    "Memory Size (GB)", "Memory Size",
-                    "Memory Size (MiB)", "Memory Size (MB)",
-                    "Memory_GB")
+    mem_text = _get(
+        raw,
+        "Memory Size (GiB)",
+        "Memory configuration Size (GiB)",
+        "Memory Size (GB)",
+        "Memory Size",
+        "Memory Size (MiB)",
+        "Memory Size (MB)",
+        "Memory_GB",
+    )
     entry["memory_gb"] = _parse_memory_gb(mem_text)
 
     # Memory type
-    mem_type_text = _get(raw,
-                         "Memory Bus type", "Memory_Type", "Memory Type",
-                         "Memory configuration DRAM type", "Memory RAM type",
-                         "Memory Bus type & width", "Memory Bus type & width (bit)")
+    mem_type_text = _get(
+        raw,
+        "Memory Bus type",
+        "Memory_Type",
+        "Memory Type",
+        "Memory configuration DRAM type",
+        "Memory RAM type",
+        "Memory Bus type & width",
+        "Memory Bus type & width (bit)",
+    )
     entry["memory_type"] = _parse_memory_type(mem_type_text)
 
     # Memory bus width
-    bus_w_text = _get(raw,
-                      "Memory Bus width (bit)", "Memory configuration Bus width (bit)",
-                      "Memory Bus type & width", "Memory Bus type & width (bit)")
+    bus_w_text = _get(
+        raw,
+        "Memory Bus width (bit)",
+        "Memory configuration Bus width (bit)",
+        "Memory Bus type & width",
+        "Memory Bus type & width (bit)",
+    )
     entry["memory_bus_width_bit"] = _parse_bus_width(bus_w_text)
 
     # Memory bandwidth
-    bw_text = _get(raw,
-                   "Memory Bandwidth (GB/s)", "Memory configuration Bandwidth (GB/s)")
+    bw_text = _get(raw, "Memory Bandwidth (GB/s)", "Memory configuration Bandwidth (GB/s)")
     if bw_text is not None:
         entry["memory_bandwidth_gbs"] = _first_number(bw_text)
 
     # ── Clock speeds ──
     # Base clock
-    base_text = _get(raw,
-                     "Clock speeds Base core clock (MHz)",
-                     "Clock speeds Base core (MHz)",
-                     "Clock rate Base (MHz)",
-                     "Clock rate Core (MHz)",
-                     "Core Clock (MHz)",
-                     "Core clock (MHz)",
-                     "Clock Speeds Base (MHz)",
-                     "Clock speed Core (MHz)",
-                     "Clock speed Min (MHz)",
-                     "Shaders Base clock (MHz)")
+    base_text = _get(
+        raw,
+        "Clock speeds Base core clock (MHz)",
+        "Clock speeds Base core (MHz)",
+        "Clock rate Base (MHz)",
+        "Clock rate Core (MHz)",
+        "Core Clock (MHz)",
+        "Core clock (MHz)",
+        "Clock Speeds Base (MHz)",
+        "Clock speed Core (MHz)",
+        "Clock speed Min (MHz)",
+        "Shaders Base clock (MHz)",
+    )
     entry["clock_base_mhz"] = _parse_clock_mhz(base_text)
 
     # Boost clock
-    boost_text = _get(raw,
-                      "Clock speeds Boost core clock (MHz)",
-                      "Clock speeds Boost core (MHz)",
-                      "Clock rate Max Boost (MHz)",
-                      "Clock rate Average Boost (MHz)",
-                      "Boost clock (MHz)",
-                      "Clock Speeds Boost (MHz)",
-                      "Shaders Max boost clock (MHz)")
+    boost_text = _get(
+        raw,
+        "Clock speeds Boost core clock (MHz)",
+        "Clock speeds Boost core (MHz)",
+        "Clock rate Max Boost (MHz)",
+        "Clock rate Average Boost (MHz)",
+        "Boost clock (MHz)",
+        "Clock Speeds Boost (MHz)",
+        "Shaders Max boost clock (MHz)",
+    )
     entry["clock_boost_mhz"] = _parse_clock_mhz(boost_text)
 
     # Memory clock — only use explicitly MHz-labeled fields.
     # GT/s and MT/s have ambiguous conversion factors depending on memory type,
     # so we skip them and prefer direct MHz values.
-    mem_clk_text = _get(raw,
-                        "Memory clock (MHz)",
-                        "Memory Clock (MHz)",
-                        "Clock rate Memory (MHz)")
+    mem_clk_text = _get(raw, "Memory clock (MHz)", "Memory Clock (MHz)", "Clock rate Memory (MHz)")
     if mem_clk_text is not None:
         entry["clock_memory_mhz"] = _parse_clock_mhz(mem_clk_text)
     else:
         # Fallback: GT/s × 1000 for a rough MHz-equivalent
-        gts_text = _get(raw,
-                        "Clock speeds Memory (GT/s)",
-                        "Clock Speeds Memory (GT/s)",
-                        "Clock speed Memory (GT/s)",
-                        "Memory (GT/s)")
+        gts_text = _get(
+            raw,
+            "Clock speeds Memory (GT/s)",
+            "Clock Speeds Memory (GT/s)",
+            "Clock speed Memory (GT/s)",
+            "Memory (GT/s)",
+        )
         if gts_text is not None:
             v = _first_number(gts_text)
             if v is not None:
@@ -569,73 +615,80 @@ def normalize_entry(gpu_id: str, raw: Dict[str, Any]) -> Dict[str, Any]:
 
     # ── Processing power ──
     # FP16 (half precision)
-    fp16 = _get(raw,
-                "Processing power (TFLOPS) Half precision",
-                "Processing power (TFLOPS) Half",
-                "Processing power (TFLOPS) Half precision Tensor Core FP32 Accumulate",
-                "Vector TFLOPS FP16")
+    fp16 = _get(
+        raw,
+        "Processing power (TFLOPS) Half precision",
+        "Processing power (TFLOPS) Half",
+        "Processing power (TFLOPS) Half precision Tensor Core FP32 Accumulate",
+        "Vector TFLOPS FP16",
+    )
     if fp16 is not None:
         entry["tflops_fp16"] = _parse_tflops(fp16, "tflops")
     else:
-        fp16_g = _get(raw,
-                      "Processing power (GFLOPS) Half precision",
-                      "Processing power (GFLOPS) Half")
+        fp16_g = _get(
+            raw, "Processing power (GFLOPS) Half precision", "Processing power (GFLOPS) Half"
+        )
         if fp16_g is not None:
             entry["tflops_fp16"] = _parse_tflops(fp16_g, "gflops")
 
     # FP32 (single precision)
-    fp32 = _get(raw,
-                "Processing power (TFLOPS) Single precision",
-                "Processing power (TFLOPS) Single",
-                "Processing power (TFLOPS) Single precision (MAD or FMA)",
-                "Vector TFLOPS FP32")
+    fp32 = _get(
+        raw,
+        "Processing power (TFLOPS) Single precision",
+        "Processing power (TFLOPS) Single",
+        "Processing power (TFLOPS) Single precision (MAD or FMA)",
+        "Vector TFLOPS FP32",
+    )
     if fp32 is not None:
         entry["tflops_fp32"] = _parse_tflops(fp32, "tflops")
     else:
-        fp32_g = _get(raw,
-                      "Processing power (GFLOPS) Single precision",
-                      "Processing power (GFLOPS) Single",
-                      "Processing power (GFLOPS) Single precision (Boost)",
-                      "Processing power (GFLOPS)")
+        fp32_g = _get(
+            raw,
+            "Processing power (GFLOPS) Single precision",
+            "Processing power (GFLOPS) Single",
+            "Processing power (GFLOPS) Single precision (Boost)",
+            "Processing power (GFLOPS)",
+        )
         if fp32_g is not None:
             entry["tflops_fp32"] = _parse_tflops(fp32_g, "gflops")
 
     # FP64 (double precision)
-    fp64 = _get(raw,
-                "Processing power (TFLOPS) Double precision",
-                "Processing power (TFLOPS) Double",
-                "Processing power (TFLOPS) Double precision (FMA)",
-                "Vector TFLOPS FP64")
+    fp64 = _get(
+        raw,
+        "Processing power (TFLOPS) Double precision",
+        "Processing power (TFLOPS) Double",
+        "Processing power (TFLOPS) Double precision (FMA)",
+        "Vector TFLOPS FP64",
+    )
     if fp64 is not None:
         entry["tflops_fp64"] = _parse_tflops(fp64, "tflops")
     else:
-        fp64_g = _get(raw,
-                      "Processing power (GFLOPS) Double precision",
-                      "Processing power (GFLOPS) Double")
+        fp64_g = _get(
+            raw, "Processing power (GFLOPS) Double precision", "Processing power (GFLOPS) Double"
+        )
         if fp64_g is not None:
             entry["tflops_fp64"] = _parse_tflops(fp64_g, "gflops")
 
     # Fallback: if fp16 is None but tensor data exists, use tensor
     if entry["tflops_fp16"] is None:
-        tensor = _get(raw,
-                      "Processing power (TFLOPS) Tensor compute (FP16)",
-                      "Processing power (TFLOPS) Tensor compute (FP16) (sparse)",
-                      "Processing power (TFLOPS) Tensor compute (FP16) (2:1 sparse)",
-                      "Processing power (TFLOPS) Tensor compute FP16 (2:1 sparse)",
-                      "Processing power (TFLOPS) Tensor",
-                      "Processing power (GFLOPS) Tensor compute (FP16)")
+        tensor = _get(
+            raw,
+            "Processing power (TFLOPS) Tensor compute (FP16)",
+            "Processing power (TFLOPS) Tensor compute (FP16) (sparse)",
+            "Processing power (TFLOPS) Tensor compute (FP16) (2:1 sparse)",
+            "Processing power (TFLOPS) Tensor compute FP16 (2:1 sparse)",
+            "Processing power (TFLOPS) Tensor",
+            "Processing power (GFLOPS) Tensor compute (FP16)",
+        )
         if tensor is not None:
             # Check if GFLOPS key
             is_gflops = "GFLOPS" in str(
-                [k for k in raw.keys() if "Tensor" in k and not _is_empty(raw.get(k))])
-            entry["tflops_fp16"] = _parse_tflops(tensor,
-                                                  "gflops" if is_gflops else "tflops")
+                [k for k in raw.keys() if "Tensor" in k and not _is_empty(raw.get(k))]
+            )
+            entry["tflops_fp16"] = _parse_tflops(tensor, "gflops" if is_gflops else "tflops")
 
     # ── Price ──
-    price_text = _get(raw,
-                      "Release Price (USD)",
-                      "Release price (USD)",
-                      "Release price (USD) MSRP")
+    price_text = _get(raw, "Release Price (USD)", "Release price (USD)", "Release price (USD) MSRP")
     entry["price_usd"] = _parse_price(price_text)
 
     # Fallback: "Release Date & Price" combined field (AMD)
@@ -647,29 +700,45 @@ def normalize_entry(gpu_id: str, raw: Dict[str, Any]) -> Dict[str, Any]:
 
     # ── API versions ──
     entry["direct3d_version"] = _parse_version(
-        _get(raw, "Supported API version Direct3D",
-             "API compliance (version) Direct3D",
-             "API compliance (version) DirectX",
-             "Supported API version DirectX"))
+        _get(
+            raw,
+            "Supported API version Direct3D",
+            "API compliance (version) Direct3D",
+            "API compliance (version) DirectX",
+            "Supported API version DirectX",
+        )
+    )
 
     entry["opengl_version"] = _parse_version(
-        _get(raw, "Supported API version OpenGL",
-             "API compliance (version) OpenGL",
-             "Latest supported API version OpenGL"))
+        _get(
+            raw,
+            "Supported API version OpenGL",
+            "API compliance (version) OpenGL",
+            "Latest supported API version OpenGL",
+        )
+    )
 
     entry["opencl_version"] = _parse_version(
-        _get(raw, "Supported API version OpenCL",
-             "API compliance (version) OpenCL"))
+        _get(raw, "Supported API version OpenCL", "API compliance (version) OpenCL")
+    )
 
     entry["vulkan_version"] = _parse_version(
-        _get(raw, "Supported API version Vulkan",
-             "API compliance (version) Vulkan",
-             "Latest supported API version Vulkan"))
+        _get(
+            raw,
+            "Supported API version Vulkan",
+            "API compliance (version) Vulkan",
+            "Latest supported API version Vulkan",
+        )
+    )
 
     entry["cuda_version"] = _parse_version(
-        _get(raw, "Supported API version CUDA",
-             "CUDA compute capability",
-             "Supported API version CUDA Compute Capability"))
+        _get(
+            raw,
+            "Supported API version CUDA",
+            "CUDA compute capability",
+            "Supported API version CUDA Compute Capability",
+        )
+    )
 
     return entry
 
@@ -678,6 +747,7 @@ def normalize_entry(gpu_id: str, raw: Dict[str, Any]) -> Dict[str, Any]:
 #  Slug ID generation
 # ─────────────────────────────────────────────
 
+
 def _make_id(vendor: Optional[str], model_name: Optional[str]) -> str:
     """Generate a human-readable slug ID from vendor + model name.
 
@@ -685,9 +755,9 @@ def _make_id(vendor: Optional[str], model_name: Optional[str]) -> str:
     """
     parts = f"{vendor or 'unknown'} {model_name or 'unknown'}"
     slug = parts.lower()
-    slug = re.sub(r'[^a-z0-9]+', '-', slug)  # replace non-alphanumeric with dash
-    slug = slug.strip('-')
-    slug = re.sub(r'-{2,}', '-', slug)        # collapse multiple dashes
+    slug = re.sub(r"[^a-z0-9]+", "-", slug)  # replace non-alphanumeric with dash
+    slug = slug.strip("-")
+    slug = re.sub(r"-{2,}", "-", slug)  # collapse multiple dashes
     return slug or "unknown"
 
 
@@ -695,8 +765,10 @@ def _make_id(vendor: Optional[str], model_name: Optional[str]) -> str:
 #  Top-level normalize function
 # ─────────────────────────────────────────────
 
-def normalize(input_path: str = "gpu_data_raw.json",
-              output_path: str = "gpu_data.json") -> List[Dict]:
+
+def normalize(
+    input_path: str = "gpu_data_raw.json", output_path: str = "gpu_data.json"
+) -> List[Dict]:
     """Read raw GPU catalog, normalize every entry, write as JSON array."""
     with open(input_path, "r", encoding="utf-8-sig") as f:
         raw_data: Dict[str, Dict] = json.load(f)
@@ -731,13 +803,16 @@ def normalize(input_path: str = "gpu_data_raw.json",
 
     total = len(result)
     with_mem = sum(1 for e in result if e["memory_gb"] is not None)
-    with_tflops = sum(1 for e in result
-                      if e["tflops_fp16"] is not None or e["tflops_fp32"] is not None)
+    with_tflops = sum(
+        1 for e in result if e["tflops_fp16"] is not None or e["tflops_fp32"] is not None
+    )
     with_price = sum(1 for e in result if e["price_usd"] is not None)
 
     print(f"[OK] Normalized {total} GPUs -> {output_path}")
-    print(f"   Memory: {with_mem}/{total} | TFLOPS: {with_tflops}/{total} | "
-          f"Price: {with_price}/{total} | Skipped: {skipped}")
+    print(
+        f"   Memory: {with_mem}/{total} | TFLOPS: {with_tflops}/{total} | "
+        f"Price: {with_price}/{total} | Skipped: {skipped}"
+    )
 
     return result
 
