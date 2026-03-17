@@ -16,8 +16,39 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Filter paths
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/**'
+              - '.pre-commit-config.yaml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/**'
+              - '.pre-commit-config.yaml'
+            infra:
+              - 'docker-compose.yml'
+              - 'docker-compose.prod.yml'
+              - 'nginx/**'
+              - '.github/workflows/**'
+
   repo-hygiene:
     name: Repo hygiene and secret scan
     runs-on: ubuntu-latest
@@ -52,7 +83,8 @@ jobs:
 
   backend-fast:
     name: Backend fast checks (branch push)
-    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    needs: changes
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main' && needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -92,7 +124,13 @@ jobs:
 
   backend-quality:
     name: Backend full checks (main/pr)
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    needs: changes
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (
+        (github.event_name == 'pull_request' || github.ref == 'refs/heads/main') &&
+        needs.changes.outputs.backend == 'true'
+      )
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -133,6 +171,9 @@ jobs:
           uv run coverage json -o coverage.json
           uv run python scripts/check_coverage_thresholds.py --overall-line 85 --overall-branch 80 --core-line 95 --core-branch 90
 
+      - name: Backend Docker build
+        run: docker build .
+
       - name: Upload backend coverage artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -146,7 +187,8 @@ jobs:
 
   frontend-fast:
     name: Frontend fast checks (branch push)
-    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    needs: changes
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main' && needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -182,7 +224,13 @@ jobs:
 
   frontend-quality:
     name: Frontend full checks (main/pr)
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    needs: changes
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (
+        (github.event_name == 'pull_request' || github.ref == 'refs/heads/main') &&
+        needs.changes.outputs.frontend == 'true'
+      )
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -219,6 +267,9 @@ jobs:
       - name: Production build
         run: npm run build
 
+      - name: Frontend Docker build
+        run: docker build .
+
       - name: Upload frontend coverage artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -227,3 +278,18 @@ jobs:
           path: |
             frontend/coverage/
           if-no-files-found: warn
+
+  infra-compose-validate:
+    name: Infra compose validate
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate local compose
+        run: docker compose -f docker-compose.yml config -q
+
+      - name: Validate production compose
+        run: docker compose -f docker-compose.prod.yml config -q
