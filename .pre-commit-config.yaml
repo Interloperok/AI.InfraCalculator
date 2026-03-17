@@ -1,8 +1,12 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
+      - id: trailing-whitespace
       - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
   - repo: local
     hooks:
       - id: gitleaks-staged
@@ -12,37 +16,44 @@ repos:
         pass_filenames: false
         always_run: true
       - id: backend-ruff-check
-        name: backend ruff check
-        entry: bash -lc 'cd backend && uv run ruff check .'
+        name: backend ruff check (fix)
+        entry: bash -lc 'cd backend && uv run ruff check --fix --exit-non-zero-on-fix .'
         language: system
         pass_filenames: false
-      - id: backend-ruff-format-check
-        name: backend ruff format check
-        entry: bash -lc 'cd backend && uv run ruff format --check .'
+        files: ^backend/
+      - id: backend-ruff-format
+        name: backend ruff format
+        entry: bash -lc 'cd backend && uv run ruff format .'
         language: system
         pass_filenames: false
+        files: ^backend/
       - id: backend-ty-check
         name: backend ty check
         entry: bash -lc 'cd backend && uv run ty check .'
         language: system
         pass_filenames: false
+        files: ^backend/
       - id: backend-mypy-check
         name: backend mypy check
         entry: bash -lc 'cd backend && uv run mypy .'
         language: system
         pass_filenames: false
+        files: ^backend/
       - id: frontend-lint
         name: frontend lint
         entry: bash -lc 'cd frontend && npm run lint'
         language: system
         pass_filenames: false
-      - id: frontend-format-check
-        name: frontend format check
-        entry: bash -lc 'cd frontend && npm run format:check'
+        files: ^frontend/
+      - id: frontend-format
+        name: frontend format
+        entry: bash -lc 'cd frontend && npm run format'
         language: system
         pass_filenames: false
+        files: ^frontend/
       - id: frontend-typecheck
         name: frontend typecheck
         entry: bash -lc 'cd frontend && npm run typecheck'
         language: system
         pass_filenames: false
+        files: ^frontend/
