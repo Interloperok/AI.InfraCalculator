@@ -1,4 +1,4 @@
-# Disabled intentionally while repository remains private.
+# Disabled intentionally.
 # Enable by renaming this file to `security.yml`.
 
 name: Security
@@ -15,6 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  actions: read
   contents: read
   security-events: write
 
@@ -22,16 +23,24 @@ jobs:
   secret-scan:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: "8.30.0"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install gitleaks CLI
+        run: |
+          set -euo pipefail
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o /tmp/gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}"
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          chmod +x /tmp/gitleaks
 
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: detect --source . --config gitleaks.toml --redact --no-banner
+        run: /tmp/gitleaks detect --source . --config gitleaks.toml --redact --no-banner
 
   dependency-scan-backend:
     name: Backend dependency scan (pip-audit)
@@ -42,16 +51,16 @@ jobs:
         working-directory: backend
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup uv and Python 3.14
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.14"
           enable-cache: true
 
       - name: Export locked requirements
-        run: uv export --frozen --format requirements-txt -o /tmp/backend-requirements.txt
+        run: uv export --frozen --format requirements-txt --no-hashes --no-emit-project -o /tmp/backend-requirements.txt
 
       - name: Run pip-audit
         run: uvx pip-audit -r /tmp/backend-requirements.txt
@@ -65,7 +74,7 @@ jobs:
         working-directory: frontend
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -86,15 +95,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: python, javascript
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-
       - name: Analyze
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
