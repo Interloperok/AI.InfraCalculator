@@ -1,6 +1,3 @@
-# Disabled intentionally while repository remains private.
-# Enable by renaming this file to `ci.yml`.
-
 name: CI
 
 on:
