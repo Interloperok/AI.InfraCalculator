@@ -17,7 +17,7 @@ dependencies = [
   "openpyxl>=3.1.0",
   "pandas>=2.2.0",
   "pydantic>=2.12,<3",
-  "requests==2.32.5",
+  "requests==2.33.0",
   "uvicorn==0.42.0",
 ]
 
