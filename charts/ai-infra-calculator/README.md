@@ -205,16 +205,74 @@ Open: http://calc.localhost/
 
 ## Rebuild + redeploy loop (during P0+ development)
 
-Single-line redeploy after changing backend code:
+### The Docker Desktop K8s caching footgun
+
+Docker Desktop's Kubernetes runs containerd as the runtime, and its image
+store is logically separate from the host docker daemon's. When you
+`docker build -t ai-infra-calculator/backend:dev backend/` a second time,
+the host daemon updates its `:dev` tag to a new digest — but containerd
+keeps the OLD image cached under the same tag. With
+`imagePullPolicy: IfNotPresent` (which we use, because the image isn't in
+any registry), `kubectl rollout restart` creates new pods that resolve
+`:dev` against the cached digest and run the OLD code.
+
+**Symptom:** rebuild → rollout restart → new pod is Running 1/1, but the
+endpoint behaves identically to before the rebuild. New code never reached
+the cluster.
+
+**Fix:** use a unique tag per build so containerd treats each rebuild as
+a different image. We tag per phase (`:dev` for first deploy, `:p1` for
+P1 changes, `:p2` for P2, etc.) and `helm upgrade --set
+backend.image.tag=...`.
+
+### Backend rebuild — recommended loop
 
 ```bash
-docker build -t ai-infra-calculator/backend:dev backend/ && \
-kind load docker-image ai-infra-calculator/backend:dev --name calc-dev && \
-kubectl rollout restart deployment/calc-ai-infra-calculator-backend -n calc && \
+PHASE=p2  # bump per phase, or use $(git rev-parse --short HEAD)
+
+# 1. Build with a fresh tag (the host daemon copy)
+docker build -t ai-infra-calculator/backend:${PHASE} backend/
+
+# 2. Helm upgrade so the deployment requests the fresh tag
+helm upgrade calc ./charts/ai-infra-calculator \
+  -f ./charts/ai-infra-calculator/values-kind.yaml \
+  --set backend.image.tag=${PHASE} \
+  --namespace calc
+
+# 3. Wait for the new pod to be Ready
 kubectl rollout status deployment/calc-ai-infra-calculator-backend -n calc
+
+# 4. (Defensive) verify the running pod's image digest matches the local rebuild.
+#    If the digests differ, kubelet served a cached image; force-recreate the pod.
+kubectl get pod -n calc -l app.kubernetes.io/component=backend \
+  -o jsonpath='{.items[0].status.containerStatuses[0].imageID}{"\n"}'
+docker image inspect ai-infra-calculator/backend:${PHASE} --format '{{.Id}}'
+# If they differ:
+#   kubectl delete pod -n calc -l app.kubernetes.io/component=backend
 ```
 
-(Replace `backend` with `frontend` for UI changes; remember to pass the right `--build-arg`.)
+### Frontend rebuild
+
+Same pattern, but remember `REACT_APP_API_URL` is baked at build time:
+
+```bash
+docker build \
+  --build-arg REACT_APP_API_URL=http://localhost:8000 \
+  -t ai-infra-calculator/frontend:${PHASE} frontend/
+
+helm upgrade calc ./charts/ai-infra-calculator \
+  -f ./charts/ai-infra-calculator/values-kind.yaml \
+  --set frontend.image.tag=${PHASE} \
+  --namespace calc
+```
+
+### Why not just `kind load docker-image`?
+
+That command works for [kind](https://kind.sigs.k8s.io/) clusters
+(Kubernetes-IN-Docker — the project), but Docker Desktop ships its OWN
+single-node Kubernetes that uses containerd directly without a kind
+sidecar. `kind` CLI isn't required and doesn't help here. The unique-tag
+workflow above is the cross-platform replacement.
 
 ## Customizing for production
 
