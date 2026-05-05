@@ -82,6 +82,67 @@ def calc_sl_pf(SP, Prp, MRT, dialog_turns):
     return SP + n_prp * Prp + max(0, n_prp - 1) * MRT
 
 
+def calc_ts_agent(
+    SP,
+    SP_tools,
+    C_rag_static,
+    Prp,
+    C_rag_dynamic,
+    MRT,
+    A,
+    A_tool,
+    n_prp,
+    k_calls,
+):
+    """
+    Приложение В.4 — TS для агентных архитектур (multi-call workloads)
+
+    TS_agent = SP_eff + N_prp × K_calls × (Prp_eff + MRT + A_eff)
+
+    Где (В.1-В.3):
+      SP_eff = SP + SP_tools + C_rag_static
+      Prp_eff = Prp + C_rag_dynamic
+      A_eff = A + A_tool
+
+    При K_calls = 1 и нулевых надбавках (SP_tools = C_rag_* = A_tool = 0)
+    формула эквивалентна (2.2) из ``calc_session_context_TS`` —
+    обратная совместимость.
+
+    Используется в KV-кэш формуле (вместо TS) для агентных сценариев:
+    ReAct, Self-Refine, Multi-agent (CrewAI / LangGraph), Function calling.
+    """
+    SP_eff = SP + SP_tools + C_rag_static
+    Prp_eff = Prp + C_rag_dynamic
+    A_eff = A + A_tool
+    return SP_eff + n_prp * k_calls * (Prp_eff + MRT + A_eff)
+
+
+def calc_sl_pf_agent(
+    SP,
+    SP_tools,
+    C_rag_static,
+    Prp,
+    C_rag_dynamic,
+    MRT,
+    n_prp,
+    k_calls,
+):
+    """
+    Приложение В.4 (производное) — SL_pf для агентных архитектур
+
+    SL_pf_agent = SP_eff + (N_prp × K_calls) × Prp_eff + (N_prp × K_calls − 1) × MRT
+
+    Input-only длина для пиковой агентной сессии. При K_calls = 1 и
+    нулевых надбавках эквивалентно ``calc_sl_pf``. Не включает A / A_tool —
+    последовательно матчит соглашение из ``calc_sl_pf`` (предыдущие
+    ответы не учитываются как prefill).
+    """
+    SP_eff = SP + SP_tools + C_rag_static
+    Prp_eff = Prp + C_rag_dynamic
+    total_calls = n_prp * k_calls
+    return SP_eff + total_calls * Prp_eff + max(0, total_calls - 1) * MRT
+
+
 def calc_SL(TS, TSmax):
     """
     Раздел 3.2 — Длина последовательности контекстного окна

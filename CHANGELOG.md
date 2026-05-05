@@ -7,14 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### v1.3.0 — Methodology v3 parity (P0–P7)
+### v1.3.0 — Methodology v3 parity (P0–P8)
 
 Brings the calculator from methodology v2 to v3 across calibration,
 memory-bandwidth-bound decode, TTFT corrections, MoE accounting,
 iterative servers-by-compute fixed-point, MLA support, loaded-latency
-SLA, and continuous-batching prefill. Stacks under a single
-semver-bump because default-relying callers see numeric shifts when
-their inputs match the regimes the new formulas correct.
+SLA, continuous-batching prefill, and agentic K_calls. Stacks under a
+single semver-bump because default-relying callers see numeric shifts
+when their inputs match the regimes the new formulas correct.
+
+#### P8: Agentic K_calls / RAG / tool-use (Appendix В)
+
+Implements the §В.4 generalization of the §2.2 token formula. v2
+under-sized agentic workloads (ReAct, Self-Refine, multi-agent) by
+3-20× because each user-level session triggers K_calls LLM
+invocations, each carrying tool definitions and accumulated context.
+
+**Added:**
+- `core.sizing_math.calc_ts_agent(...)`:
+  `TS_agent = SP_eff + N_prp · K_calls · (Prp_eff + MRT + A_eff)`
+  with `SP_eff = SP + SP_tools + C_rag_static`,
+  `Prp_eff = Prp + C_rag_dynamic`,
+  `A_eff = A + A_tool`. Reduces to v2 (2.2) at `K_calls=1` + zero
+  tool/RAG fields.
+- `core.sizing_math.calc_sl_pf_agent(...)`: agentic generalization of
+  `calc_sl_pf` for input-only prefill length.
+- `SizingInput` new optional fields:
+  - `k_calls` (default 1) — LLM invocations per user session.
+  - `sp_tools` (default 0) — tool-definitions tokens.
+  - `c_rag_static` (default 0) — static RAG context.
+  - `c_rag_dynamic` (default 0) — dynamic per-query RAG.
+  - `a_tool` (default 0) — tool_call JSON answer extras.
+- 6 unit tests covering: reduction to v2, ReAct config, K_calls
+  scaling, SP_tools vs A_tool placement (one-shot vs amplified).
+
+**Changed:**
+- `services.sizing_service.run_sizing()`:
+  - `TS` now computed via `calc_ts_agent` (TS for KV cache).
+  - `SL_pf` now computed via `calc_sl_pf_agent` (input-only for TTFT/Cmodel).
+  - **R amplification:** `effective_R = R · K_calls` is passed to
+    `calc_servers_by_compute` — each user session generates K_calls
+    requests/sec to the LLM, not just R.
+- Old `calc_session_context_TS` and `calc_sl_pf` imports removed from
+  the service (functions still exported from `core` for direct test use).
+
+**Notes:**
+- Backwards compatible: existing fixtures (no agentic fields specified)
+  use `K_calls=1` defaults → `TS_agent = TS` and `SL_pf_agent = SL_pf`,
+  numerics preserved. Goldens unchanged.
+- For ReAct with `K_calls=5`, `sp_tools=2000`, `c_rag_dynamic=1000`,
+  `a_tool=150`: TS jumps from ~24k (v2 form) to ~150k (matches the
+  В.4 worked example in the methodology — Example 2А-2В).
+- The R-amplification means servers_by_compute scales linearly with
+  K_calls in compute-dominated regimes. For Mixtral-style configs in
+  ReAct mode, expect 5-10× more servers vs single-turn assumption.
 
 #### P7: Continuous-batching prefill (`engine_mode`, `C_pf`)
 

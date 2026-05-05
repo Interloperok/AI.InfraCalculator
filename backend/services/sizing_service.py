@@ -25,9 +25,9 @@ from core.sizing_math import (
     calc_p_effective,
     calc_servers_by_compute,
     calc_servers_by_memory,
-    calc_session_context_TS,
     calc_sessions_per_server,
-    calc_sl_pf,
+    calc_sl_pf_agent,
+    calc_ts_agent,
     calc_th_decode_analyt,
     calc_th_decode_mem,
     calc_th_prefill_analyt,
@@ -84,13 +84,26 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         inp.safe_margin,
     )
 
-    # ── Section 2.2: TS и SL — оценка длины контекста сессии ──
-    TS = calc_session_context_TS(
-        inp.system_prompt_tokens_SP,
-        inp.user_prompt_tokens_Prp,
-        inp.reasoning_tokens_MRT,
-        inp.answer_tokens_A,
-        inp.dialog_turns,
+    # ── Section 2.2 (P8): TS и SL — оценка длины контекста сессии ──
+    # Use the agentic generalization: at K_calls=1 + zero tool/RAG fields,
+    # reduces to the v2 (2.2) formula. With agentic params, includes tool
+    # definitions, RAG context, multi-call amplification.
+    k_calls = int(inp.k_calls or 1)
+    sp_tools = float(inp.sp_tools or 0)
+    c_rag_static = float(inp.c_rag_static or 0)
+    c_rag_dynamic = float(inp.c_rag_dynamic or 0)
+    a_tool = float(inp.a_tool or 0)
+    TS = calc_ts_agent(
+        SP=inp.system_prompt_tokens_SP,
+        SP_tools=sp_tools,
+        C_rag_static=c_rag_static,
+        Prp=inp.user_prompt_tokens_Prp,
+        C_rag_dynamic=c_rag_dynamic,
+        MRT=inp.reasoning_tokens_MRT,
+        A=inp.answer_tokens_A,
+        A_tool=a_tool,
+        n_prp=inp.dialog_turns,
+        k_calls=k_calls,
     )
     SL = calc_SL(TS, inp.max_context_window_TSmax)
 
@@ -218,14 +231,20 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         bw_gpu = catalog_bw if catalog_bw > 0 else None
 
 
-    # ── §7.1 (P2): SL_pf for prefill / TTFT / Cmodel ──
+    # ── §7.1 (P2 + P8): SL_pf for prefill / TTFT / Cmodel ──
     # Input-only sequence length (excludes answer / last-turn reasoning that
     # haven't been generated yet). Used in TTFT and Cmodel formulas.
-    SL_pf = calc_sl_pf(
-        inp.system_prompt_tokens_SP,
-        inp.user_prompt_tokens_Prp,
-        inp.reasoning_tokens_MRT,
-        inp.dialog_turns,
+    # P8: agentic generalization — reduces to calc_sl_pf at K_calls=1 + zero
+    # tool/RAG fields.
+    SL_pf = calc_sl_pf_agent(
+        SP=inp.system_prompt_tokens_SP,
+        SP_tools=sp_tools,
+        C_rag_static=c_rag_static,
+        Prp=inp.user_prompt_tokens_Prp,
+        C_rag_dynamic=c_rag_dynamic,
+        MRT=inp.reasoning_tokens_MRT,
+        n_prp=inp.dialog_turns,
+        k_calls=k_calls,
     )
     SL_pf_eff = SL_pf * (1.0 - inp.eta_cache)
 
@@ -323,8 +342,11 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         # C_model with BS_real (uses SL_pf_eff per §7.1)
         cm = calc_Cmodel(SL_pf_eff, th_pf_local, Tdec, th_dec_session, bs_real=bs_r)
         th_srv = calc_th_server_comp(NcountTP, cm)
+        # P8: amplified rps because each user-session triggers K_calls
+        # LLM invocations. effective_R = R · K_calls.
+        effective_R = inp.rps_per_session_R * k_calls
         sc = calc_servers_by_compute(
-            Ssim, inp.rps_per_session_R, inp.sla_reserve_KSLA, th_srv
+            Ssim, effective_R, inp.sla_reserve_KSLA, th_srv
         )
         return {
             "bs_real": bs_r,

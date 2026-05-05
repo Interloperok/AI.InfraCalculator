@@ -483,3 +483,85 @@ class TestSelectThPrefill:
         v, m = select_th_prefill(th_compute=200.0, th_mem=2000.0)
         assert v == 200.0
         assert m == "compute"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Appendix В: Agentic K_calls / RAG / tool-use (P8)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestAgenticTSAndSLPf:
+    """calc_ts_agent and calc_sl_pf_agent — Appendix В.4 generalization."""
+
+    def test_ts_agent_reduces_to_v2_at_neutral_defaults(self) -> None:
+        from core.sizing_math import calc_session_context_TS, calc_ts_agent
+        # K_calls=1, all tool/RAG fields zero → must equal v2 TS.
+        ts_v2 = calc_session_context_TS(SP=1000, Prp=200, MRT=4096, A=400, dialog_turns=5)
+        ts_agent = calc_ts_agent(
+            SP=1000, SP_tools=0, C_rag_static=0,
+            Prp=200, C_rag_dynamic=0, MRT=4096, A=400, A_tool=0,
+            n_prp=5, k_calls=1,
+        )
+        assert ts_agent == ts_v2
+
+    def test_sl_pf_agent_reduces_to_calc_sl_pf_at_neutral_defaults(self) -> None:
+        from core.sizing_math import calc_sl_pf, calc_sl_pf_agent
+        sl_pf_v2 = calc_sl_pf(SP=800, Prp=150, MRT=0, dialog_turns=4)
+        sl_pf_agent = calc_sl_pf_agent(
+            SP=800, SP_tools=0, C_rag_static=0,
+            Prp=150, C_rag_dynamic=0, MRT=0, n_prp=4, k_calls=1,
+        )
+        assert sl_pf_agent == sl_pf_v2
+
+    def test_react_agent_5_calls(self) -> None:
+        # ReAct agent: K_calls=5, sp_tools=2000, c_rag_dynamic=1000, a_tool=150
+        # SP_eff = 1000 + 2000 + 0 = 3000
+        # Prp_eff = 200 + 1000 = 1200
+        # A_eff = 400 + 150 = 550
+        # TS_agent = 3000 + 5 × 5 × (1200 + 4096 + 550) = 3000 + 25 × 5846 = 149150
+        from core.sizing_math import calc_ts_agent
+        result = calc_ts_agent(
+            SP=1000, SP_tools=2000, C_rag_static=0,
+            Prp=200, C_rag_dynamic=1000, MRT=4096, A=400, A_tool=150,
+            n_prp=5, k_calls=5,
+        )
+        assert result == 3000 + 5 * 5 * (1200 + 4096 + 550)
+
+    def test_ts_agent_grows_with_k_calls(self) -> None:
+        from core.sizing_math import calc_ts_agent
+        params = dict(SP=1000, SP_tools=0, C_rag_static=0,
+                      Prp=200, C_rag_dynamic=0, MRT=0, A=400, A_tool=0, n_prp=5)
+        single = calc_ts_agent(**params, k_calls=1)
+        multi = calc_ts_agent(**params, k_calls=10)
+        # SP_eff stays the same; the per-call portion scales with k_calls
+        assert multi - 1000 == 10 * (single - 1000)
+
+    def test_sp_tools_only_grows_sp_eff_not_per_call(self) -> None:
+        from core.sizing_math import calc_ts_agent
+        without_tools = calc_ts_agent(
+            SP=1000, SP_tools=0, C_rag_static=0,
+            Prp=200, C_rag_dynamic=0, MRT=0, A=400, A_tool=0,
+            n_prp=5, k_calls=3,
+        )
+        with_tools = calc_ts_agent(
+            SP=1000, SP_tools=2000, C_rag_static=0,
+            Prp=200, C_rag_dynamic=0, MRT=0, A=400, A_tool=0,
+            n_prp=5, k_calls=3,
+        )
+        # SP_tools shifts SP_eff once; not multiplied by n_prp · k_calls
+        assert with_tools - without_tools == 2000
+
+    def test_a_tool_amplified_by_k_calls(self) -> None:
+        from core.sizing_math import calc_ts_agent
+        # A_tool sits inside (Prp_eff + MRT + A_eff) and gets multiplied
+        without = calc_ts_agent(
+            SP=1000, SP_tools=0, C_rag_static=0,
+            Prp=200, C_rag_dynamic=0, MRT=0, A=400, A_tool=0,
+            n_prp=5, k_calls=3,
+        )
+        with_a_tool = calc_ts_agent(
+            SP=1000, SP_tools=0, C_rag_static=0,
+            Prp=200, C_rag_dynamic=0, MRT=0, A=400, A_tool=150,
+            n_prp=5, k_calls=3,
+        )
+        assert with_a_tool - without == 5 * 3 * 150

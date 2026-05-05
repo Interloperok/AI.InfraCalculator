@@ -59,6 +59,39 @@ class SizingInput(BaseModel):
         default=5, description="Кол-во сообщений в диалоге для оценки длины сессии"
     )
 
+    # ── Section 2.2 (P8): Agentic / RAG / tool-use overhead (Appendix В) ──
+    # All optional with neutral defaults so TS_agent reduces to TS for
+    # single-call workloads.
+    k_calls: Optional[conint(ge=1)] = Field(
+        default=1,
+        description="Число LLM-вызовов на пользовательский запрос (Appendix В.4). "
+        "1: single-turn / RAG (без агентного цикла). "
+        "3-10: ReAct, Self-Refine. "
+        "6-20: мультиагентные системы (CrewAI, LangGraph). "
+        "Влияет на TS_agent (KV-кэш) и эффективную rps_per_session_R = R · K_calls.",
+    )
+    sp_tools: Optional[confloat(ge=0)] = Field(
+        default=0,
+        description="Tool definitions tokens (SP_tools, Appendix В.1). "
+        "Размер описаний инструментов в системном промпте. "
+        "ReAct с 10 инструментами: ~5000.",
+    )
+    c_rag_static: Optional[confloat(ge=0)] = Field(
+        default=0,
+        description="Статический RAG-контекст (C_rag_static, Appendix В.1). "
+        "Загружается один раз при инициализации сессии.",
+    )
+    c_rag_dynamic: Optional[confloat(ge=0)] = Field(
+        default=0,
+        description="Динамический RAG-контекст (C_rag_dynamic, Appendix В.2). "
+        "Подгружается под конкретный запрос. Типично 500-5000.",
+    )
+    a_tool: Optional[confloat(ge=0)] = Field(
+        default=0,
+        description="Дополнительные токены ответа для tool_call JSON (A_tool, Appendix В.3). "
+        "Типично 50-200.",
+    )
+
     # ── Section 3.1: Model ──
     params_billions: confloat(gt=0) = Field(..., description="Параметры модели в миллиардах (P_total)")
     params_active: Optional[confloat(gt=0)] = Field(
