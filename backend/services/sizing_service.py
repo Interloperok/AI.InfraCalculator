@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 
 from core.sizing_math import (
+    calc_bs_real,
     calc_Cmodel,
     calc_FPS,
     calc_Kbatch,
@@ -142,9 +143,8 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         )
 
     # ── Section 6.1: Throughput per instance ──
-    # P3 — MoE accounting: resolve P_active (for FPS) and P_effective(BS=1)
-    # for memory-bandwidth formula. Dense models (no MoE fields) keep
-    # P_active = P_total → behavior identical to pre-P3.
+    # P3 — MoE accounting: resolve P_active (for FPS, BS-independent).
+    # P_effective is BS-dependent and lives in the §6.4 iteration loop.
     p_active = float(inp.params_active) if inp.params_active else float(inp.params_billions)
     is_moe_detailed = (
         inp.params_dense is not None
@@ -155,16 +155,6 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         and inp.k_experts is not None
         and inp.k_experts > 0
     )
-    if is_moe_detailed:
-        p_effective = calc_p_effective(
-            p_dense=float(inp.params_dense),
-            p_moe=float(inp.params_moe),
-            n_experts=int(inp.n_experts),
-            k_experts=int(inp.k_experts),
-            bs_real=1,
-        )
-    else:
-        p_effective = p_active
 
     FPS = calc_FPS(p_active)
     Tdec = calc_Tdec(inp.answer_tokens_A, inp.reasoning_tokens_MRT)
@@ -196,65 +186,18 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         Tdec,
     )
 
-    # ── §6.1 H-7: Memory-bandwidth-bound decode (P1) ──
-    # Resolve GPU memory bandwidth: input takes priority, fall back to catalog
-    # by exact gpu_id (no memory-fallback to avoid spurious matches).
+    # ── §6.1 H-7: Memory-bandwidth-bound decode (P1) — resolve bw_gpu ──
     bw_gpu = inp.bw_gpu_gbs
     if bw_gpu is None and inp.gpu_id:
         catalog_bw = lookup_gpu_bandwidth_gbs(inp.gpu_id)
         bw_gpu = catalog_bw if catalog_bw > 0 else None
 
-    th_dec_mem = calc_th_decode_mem(
-        bw_gpu_gbs=bw_gpu if bw_gpu is not None else 0.0,
-        eta_mem=inp.eta_mem,
-        params_billions=p_effective,
-        b_quant=inp.bytes_per_param,
-        mkv_gb=MKV,
-        bs_real=1,
-        o_fixed_gb=inp.o_fixed,
-    )
-
-    # Приоритет: эмпирические значения > min(compute, mem)
+    # Empirical prefill override (BS-independent)
     th_pf = inp.th_prefill_empir if inp.th_prefill_empir else th_pf_analyt
 
-    if inp.th_decode_empir:
-        th_dec_selected = inp.th_decode_empir
-        mode_decode_bound = "empirical"
-    else:
-        th_dec_selected, mode_decode_bound = select_th_decode(th_dec_analyt, th_dec_mem)
-
-    # K_spec — speculative-decoding multiplier (§3.1 H-5). Applied after the
-    # min(compute, mem) selection. Default 1.0 → unchanged. Used everywhere
-    # th_dec flows downstream: Cmodel, generation_time, e2e_latency, TTFT.
-    th_dec = th_dec_selected * inp.k_spec
-
-    # ── Section 6.2: Cmodel — req/sec на 1 экземпляр ──
-    # Используем SL (= min(TS, TSmax)), а не TS: prefill обрабатывает
-    # не более SL токенов (ограничено контекстным окном модели).
-    Cmodel = calc_Cmodel(SL, th_pf, Tdec, th_dec)
-
-    # ── Section 6.3: Пропускная способность сервера по compute ──
-    # Методика v3, изм.8: Th_server_comp = N_model_TP=Z × Cmodel
-    # Используется NcountTP (с учётом TP-множителя Z) вместо Ncount_model.
-    th_server = calc_th_server_comp(NcountTP, Cmodel)
-
-    # ── Section 6.4: Серверы по compute ──
-    servers_comp = calc_servers_by_compute(
-        Ssim,
-        inp.rps_per_session_R,
-        inp.sla_reserve_KSLA,
-        th_server,
-    )
-    if servers_comp is math.inf:
-        raise ValidationAppError(
-            "Пропускная способность сервера = 0. "
-            "Проверьте TFLOPS GPU, throughput или кол-во экземпляров на сервер."
-        )
-
-    # ── Section 7: Проверка конфигурации по TTFT и e2eLatency ──
-    # Изм.9: T_out удалён, используем Tdec (уже рассчитан в п.6.1)
-    # P2: SL_pf (input-only length) instead of SL (full session) for TTFT;
-    #     η_cache reduces effective prefill length; T_overhead added.
+    # ── §7.1 (P2): SL_pf for prefill / TTFT / Cmodel ──
+    # Input-only sequence length (excludes answer / last-turn reasoning that
+    # haven't been generated yet). Used in TTFT and Cmodel formulas.
     SL_pf = calc_sl_pf(
         inp.system_prompt_tokens_SP,
         inp.user_prompt_tokens_Prp,
@@ -262,6 +205,97 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         inp.dialog_turns,
     )
     SL_pf_eff = SL_pf * (1.0 - inp.eta_cache)
+
+    # ── §6.4 (P4): Iterative servers-by-compute fixed-point ──
+    # Couples BS_real ↔ Servers_count. As servers grow, BS_real shrinks,
+    # per-session throughput rises (less compute / mem traffic per request),
+    # which reduces required servers. Loop converges within 3-5 iterations
+    # for typical workloads; max 10 to handle compute↔memory boundary
+    # oscillations.
+    MAX_ITER = 10
+
+    def _iteration_state(servers_in: int) -> dict:
+        """Compute derived state for one iteration given a server count."""
+        bs_r = calc_bs_real(Ssim, NcountTP, servers_in, bs_max=S_TP_z)
+        # P_effective grows with BS for MoE (broader expert coverage)
+        if is_moe_detailed:
+            p_eff_local = calc_p_effective(
+                p_dense=float(inp.params_dense),
+                p_moe=float(inp.params_moe),
+                n_experts=int(inp.n_experts),
+                k_experts=int(inp.k_experts),
+                bs_real=bs_r,
+            )
+        else:
+            p_eff_local = p_active
+        # Compute branch is per-session at this BS (instance / BS)
+        th_dec_cmp_session = th_dec_analyt / bs_r if bs_r > 0 else th_dec_analyt
+        # Mem branch — formula already per-session at given BS
+        th_dec_mem_local = calc_th_decode_mem(
+            bw_gpu_gbs=bw_gpu if bw_gpu is not None else 0.0,
+            eta_mem=inp.eta_mem,
+            params_billions=p_eff_local,
+            b_quant=inp.bytes_per_param,
+            mkv_gb=MKV,
+            bs_real=bs_r,
+            o_fixed_gb=inp.o_fixed,
+        )
+        # Empirical override or selector + K_spec
+        if inp.th_decode_empir:
+            sel = inp.th_decode_empir
+            mode = "empirical"
+        else:
+            sel, mode = select_th_decode(th_dec_cmp_session, th_dec_mem_local)
+        th_dec_session = sel * inp.k_spec
+        # C_model with BS_real (uses SL_pf_eff per §7.1)
+        cm = calc_Cmodel(SL_pf_eff, th_pf, Tdec, th_dec_session, bs_real=bs_r)
+        th_srv = calc_th_server_comp(NcountTP, cm)
+        sc = calc_servers_by_compute(
+            Ssim, inp.rps_per_session_R, inp.sla_reserve_KSLA, th_srv
+        )
+        return {
+            "bs_real": bs_r,
+            "p_effective": p_eff_local,
+            "th_dec_compute_per_session": th_dec_cmp_session,
+            "th_dec_mem": th_dec_mem_local,
+            "th_dec": th_dec_session,
+            "mode_decode_bound": mode,
+            "cmodel": cm,
+            "th_server_comp": th_srv,
+            "servers_comp": sc,
+        }
+
+    servers = servers_mem
+    state = _iteration_state(servers)
+    iteration_count = 1
+    for i in range(MAX_ITER):
+        iteration_count = i + 1
+        state = _iteration_state(servers)
+        if state["servers_comp"] is math.inf:
+            raise ValidationAppError(
+                "Пропускная способность сервера = 0. "
+                "Проверьте TFLOPS GPU, throughput или кол-во экземпляров на сервер."
+            )
+        new_servers = max(servers_mem, state["servers_comp"])
+        # Convergence: |Δ| ≤ 1 vs previous iter. Take max for stability —
+        # protects against 1-cycle oscillation near the compute/memory boundary.
+        if i > 0 and abs(new_servers - servers) <= 1:
+            servers = max(servers, new_servers)
+            state = _iteration_state(servers)
+            break
+        servers = new_servers
+
+    BS_real = state["bs_real"]
+    p_effective = state["p_effective"]
+    th_dec_compute_per_session = state["th_dec_compute_per_session"]
+    th_dec_mem = state["th_dec_mem"]
+    th_dec = state["th_dec"]
+    mode_decode_bound = state["mode_decode_bound"]
+    Cmodel = state["cmodel"]
+    th_server = state["th_server_comp"]
+    servers_comp = state["servers_comp"]
+
+    # ── Section 7 (P2): TTFT + e2eLatency at converged BS_real ──
     ttft_analyt = calc_ttft(SL_pf_eff, th_pf, th_dec, inp.t_overhead)
     gen_time_analyt = calc_generation_time(Tdec, th_dec)
     e2e_latency_analyt = calc_e2e_latency(ttft_analyt, gen_time_analyt)
@@ -364,6 +398,11 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         p_active_used=p_active,
         p_effective_used=round(p_effective, 4),
         is_moe_detailed=is_moe_detailed,
+        BS_real=BS_real,
+        iteration_count=iteration_count,
+        th_dec_compute_per_session_at_bs=round(th_dec_compute_per_session, 4)
+        if th_dec_compute_per_session > 0
+        else None,
         Tdec_tokens=Tdec,
         th_prefill=th_pf,
         th_decode=th_dec,

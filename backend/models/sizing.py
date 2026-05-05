@@ -313,13 +313,29 @@ class SizingOutput(BaseModel):
     )
     p_effective_used: Optional[float] = Field(
         default=None,
-        description="P_effective(BS_real=1) — эффективное число параметров для memory traffic "
-        "(§6.1 H-7). Для MoE: P_dense + P_moe·k/N. Для dense: = p_active_used.",
+        description="P_effective(BS_real) — эффективное число параметров для memory traffic "
+        "(§6.1 H-7). Вычислено при сошедшемся BS_real. Для MoE: "
+        "P_dense + P_moe·[1−(1−k/N)^BS]. Для dense: = p_active_used.",
     )
     is_moe_detailed: bool = Field(
         default=False,
         description="True если все MoE-поля заданы (params_dense, params_moe, n_experts, k_experts) "
         "и применена формула P_effective(BS_real). False для dense / неполной MoE-конфигурации.",
+    )
+    BS_real: Optional[int] = Field(
+        default=None,
+        description="Реальный размер батча на экземпляр модели при сошедшемся числе "
+        "серверов (§6.2/§6.4). BS_real = min(BS_max, ⌈Ssim/(Ncount·Servers)⌉).",
+    )
+    iteration_count: Optional[int] = Field(
+        default=None,
+        description="Число итераций фиксированной точки (§6.4) до сходимости. "
+        "Типично 2-5; максимум 10.",
+    )
+    th_dec_compute_per_session_at_bs: Optional[float] = Field(
+        default=None,
+        description="Th_dec^compute / BS_real — per-session compute-bound throughput "
+        "при сошедшемся BS_real. Используется для select_th_decode при v3 итерации.",
     )
     Tdec_tokens: float = Field(..., description="Токены decode фазы (Tdec = A + MRT)")
     th_prefill: float = Field(..., description="Throughput prefill (tokens/sec)")

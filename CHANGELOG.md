@@ -7,18 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### v1.3.0 — Methodology v3 parity (P0–P3 of 7)
+### v1.3.0 — Methodology v3 parity (P0–P4 of 7)
 
-Brings the calculator from methodology v2 to v3 in four backwards-
-compatible phases. Stacks under a single semver-major release because
-default-relying callers see numeric shifts (TTFT, decode throughput,
-server counts) when their inputs match the regimes the new formulas
-correct.
+Brings the calculator from methodology v2 to v3 across calibration,
+memory-bandwidth-bound decode, TTFT corrections, MoE accounting, and
+the iterative servers-by-compute fixed-point loop. Stacks under a
+single semver-bump because default-relying callers see numeric shifts
+(TTFT, decode throughput, server counts) when their inputs match the
+regimes the new formulas correct.
 
-Phases P4–P6 (iterative servers-by-compute, MLA branch, loaded
-latency) remain ahead of v1.3.0 but the formulas in P0–P3 stand on
-their own and are independently verifiable. Future v1.4.x / v1.5.x
-will land them.
+Phases P5–P6 (MLA branch, loaded latency) remain ahead.
+
+#### P4: Iterative servers-by-compute (§6.4 fixed-point)
+
+Couples `BS_real` (real batch size per instance) back to
+`Servers_count`. v2's single-shot calculation under-counted Cmodel by
+ignoring batch parallelism; with iteration, `Cmodel` rises with
+`BS_real` (batch amortizes prefill time across requests) and
+`Servers_comp` drops accordingly. For memory-tight configurations
+(BS_real capped at S_TP_z), memory still dominates so `servers_final`
+stays the same. For compute-tight or batch-friendly configs,
+`servers_final` can shift down (or up — depends on regime).
+
+**Added:**
+- `core.sizing_math.calc_bs_real(ssim, ncount, servers, bs_max)`:
+  `BS_real = min(bs_max, ⌈Ssim/(Ncount·Servers)⌉)`. Edge cases: 0
+  servers / 0 sessions → returns 1.
+- `SizingOutput`:
+  - `BS_real` — converged batch size per instance.
+  - `iteration_count` — number of iterations to convergence (typically 2-5; max 10).
+  - `th_dec_compute_per_session_at_bs` — diagnostic; per-session compute branch at converged BS.
+- 8 unit tests for `calc_bs_real` and the new `calc_Cmodel` v3 form.
+- 4 new pipeline assertions in `test_sizing.py::TestFullPipeline` covering
+  `BS_real`, `iteration_count`, the per-session vs instance-level th_dec
+  branches.
+
+**Changed:**
+- `core.sizing_math.calc_Cmodel` signature is now
+  `calc_Cmodel(sl_pf_eff, th_pf, Tdec, th_dec_per_session, bs_real=1)`.
+  Formula: `BS_real / (SL_pf^eff/Th_pf + T_dec/Th_dec_per_session)`.
+  At `bs_real=1` numerically equivalent to the v2 form. First parameter
+  is renamed `TS` → `sl_pf_eff`; positional callers unaffected.
+- `services.sizing_service.run_sizing()`:
+  - Computes `SL_pf` and `SL_pf_eff` *before* the iteration (used in `Cmodel`).
+  - Replaces the single-shot servers_comp pass with a fixed-point loop
+    over `_iteration_state(servers)` — recomputes `BS_real`,
+    `P_effective(BS_real)`, per-session `Th_dec_compute = Th_dec^analyt / BS_real`,
+    `Th_dec_mem(BS_real)` (denominator now includes `BS_real·MKV`),
+    `Cmodel`, `Th_server_comp`, `Servers_comp` per iteration.
+  - Convergence: `|Δ servers| ≤ 1` after iteration ≥ 1; `max(servers, new_servers)`
+    on convergence to absorb 1-cycle oscillations near the
+    compute↔memory boundary. Max 10 iterations.
+- `Cmodel` for `Cmodel_rps` output now uses `SL_pf_eff` (per §7.1) rather than
+  `SL` — corrects a v2 inconsistency that was carried into P2 but not
+  fully addressed.
+- Goldens (3 fixtures) regenerated:
+  - `baseline_small`: servers_final 3 → **2** (BS=50, compute now over-supplied).
+  - `high_load_enterprise`: servers_final 22 → 22 (memory still dominates; BS=57=S_TP_z).
+  - `long_context_compute_bound`: servers_final 37 → **6** (BS=57, single-shot v2 dramatically over-counted).
+- `test_sizing.py` `EXCEL_EXPECTED` updated for shifted `Cmodel`,
+  `th_decode` (now per-session), `th_server_comp`, `servers_by_compute`.
+
+**Notes:**
+- Convergence in 2 iterations on every existing fixture. Loop budget
+  set to 10 for safety against oscillation; haven't observed it in the
+  current test suite.
+- The shift in `long_context_compute_bound` (37 → 6 servers) reflects
+  v2's bias toward over-counting in compute-bound regimes when
+  per-instance batch parallelism is high.
+- `th_decode` semantics changed: now reports per-session at converged
+  BS, was instance-level. The instance-level rate is still surfaced as
+  `th_dec_compute` for diagnostic purposes.
 
 #### P3: MoE accounting (P_active / P_effective)
 

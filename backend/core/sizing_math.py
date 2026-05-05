@@ -326,18 +326,41 @@ def select_th_decode(th_compute, th_mem):
     return th_compute, "compute"
 
 
-def calc_Cmodel(TS, th_pf, Tdec, th_dec):
+def calc_Cmodel(sl_pf_eff, th_pf, Tdec, th_dec_per_session, bs_real=1):
     """
-    Раздел 6.2 — Среднее число запросов/сек на 1 экземпляр модели
+    Раздел 6.2 — Среднее число запросов/сек на 1 экземпляр модели (v3)
 
-    Cmodel = 1 / (TS / Th_pf + Tdec / Th_dec)
+    C_model(BS_real) = BS_real / (SL_pf^eff / Th_pf + T_dec / Th_dec_per_session)
+
+    При BS_real = 1 эквивалентно прежней формуле v2 (1 / time_per_request).
+    Th_dec_per_session — пропускная способность decode на одну сессию при
+    данном BS_real (после деления compute-ветви на BS_real и применения
+    K_spec). См. iter §6.4.
     """
-    if th_pf <= 0 or th_dec <= 0:
+    if th_pf <= 0 or th_dec_per_session <= 0 or bs_real <= 0:
         return 0.0
-    time_per_request = TS / th_pf + Tdec / th_dec
+    time_per_request = sl_pf_eff / th_pf + Tdec / th_dec_per_session
     if time_per_request <= 0:
         return 0.0
-    return 1.0 / time_per_request
+    return bs_real / time_per_request
+
+
+def calc_bs_real(ssim, ncount_per_server, servers, bs_max=None):
+    """
+    Раздел 6.2 / 6.4 — Реальный размер батча на экземпляр модели.
+
+    BS_real = min(BS_max, ⌈Ssim / (Ncount·Servers)⌉)
+
+    BS_max — потолок по памяти (S_TP_z). Если не задан, потолок не
+    применяется. Минимум всегда 1 (вырожденный случай — 0 запросов).
+    """
+    if servers <= 0 or ncount_per_server <= 0:
+        return 1
+    raw = math.ceil(ssim / (ncount_per_server * servers))
+    capped = max(1, raw)
+    if bs_max is not None and bs_max > 0:
+        return min(int(bs_max), capped)
+    return capped
 
 
 def calc_th_server_comp(Ncount_model, Cmodel):

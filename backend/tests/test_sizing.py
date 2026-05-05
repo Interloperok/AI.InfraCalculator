@@ -118,10 +118,18 @@ EXCEL_EXPECTED = dict(
     Tdec=400.0,  # A + MRT = 400 + 0
     Fcount_model_tflops=312.0,  # 1 × 312
     th_prefill=8563.064721739373,  # аналитический расчёт
-    th_decode=6402.657929509471,  # аналитический расчёт
-    Cmodel=1.888229890920555,  # 1 / (SL/Th_pf + Tdec/Th_dec)
-    th_server_comp=3.77645978184111,  # NcountTP × Cmodel = 2 × 1.888 (изм.8)
-    Servers_comp=17,  # ceil(2500 × 0.02 × 1.25 / 3.776)
+    # P4: th_decode is now per-session at converged BS_real (was instance-level).
+    # th_dec_compute_instance / BS_real = 6402.66 / 57 = 112.33 (BS capped at S_TP_z)
+    th_decode=112.32733209665739,
+    th_dec_compute_instance=6402.657929509471,  # raw analytical compute branch (instance-level)
+    BS_real=57,  # min(S_TP_z=57, ceil(2500/(2*22))=57) — memory-tight
+    iteration_count=2,
+    # P4: Cmodel = BS_real / (SL_pf_eff/Th_pf + Tdec/Th_dec_per_session) — was 1/(...) at BS=1
+    Cmodel=15.021416029121713,
+    # NcountTP × Cmodel = 2 × 15.021 = 30.04 (was 3.776)
+    th_server_comp=30.042832058243427,
+    # ceil(2500 × 0.02 × 1.25 / 30.04) = ceil(2.08) = 3 (was 17 in v2 single-shot)
+    Servers_comp=3,
     # Section 8
     Servers_final=22,
 )
@@ -244,15 +252,24 @@ class TestSection6Compute:
         assert result == pytest.approx(EXCEL_EXPECTED["th_prefill"], rel=1e-4)
 
     def test_th_decode_analyt(self):
+        # calc_th_decode_analyt is the instance-level compute branch (raw).
+        # Per-session (used in C_model post-P4) divides this by BS_real.
         Fcount_flops = 312 * 1e12 * 1
         result = calc_th_decode_analyt(
             Fcount_flops, 0.15, EXCEL_EXPECTED["Kbatch"], 64e9, 64, 4096, 4000, 400
         )
-        assert result == pytest.approx(EXCEL_EXPECTED["th_decode"], rel=1e-4)
+        assert result == pytest.approx(EXCEL_EXPECTED["th_dec_compute_instance"], rel=1e-4)
 
     def test_Cmodel(self):
-        """Cmodel использует SL (не TS!)"""
-        result = calc_Cmodel(4000, EXCEL_EXPECTED["th_prefill"], 400, EXCEL_EXPECTED["th_decode"])
+        """v3 Cmodel: BS_real / (SL_pf_eff/Th_pf + Tdec/Th_dec_per_session). Uses SL_pf, not SL."""
+        # SL_pf for EXCEL_INPUT (SP=1000, Prp=200, MRT=0, n_prp=5) = 1000 + 5·200 + 4·0 = 2000
+        result = calc_Cmodel(
+            sl_pf_eff=2000,
+            th_pf=EXCEL_EXPECTED["th_prefill"],
+            Tdec=400,
+            th_dec_per_session=EXCEL_EXPECTED["th_decode"],
+            bs_real=EXCEL_EXPECTED["BS_real"],
+        )
         assert result == pytest.approx(EXCEL_EXPECTED["Cmodel"], rel=1e-4)
 
     def test_th_server_comp(self):
@@ -338,7 +355,21 @@ class TestFullPipeline:
         assert excel_result.th_prefill == pytest.approx(EXCEL_EXPECTED["th_prefill"], rel=1e-4)
 
     def test_th_decode(self, excel_result):
+        # P4: th_decode is now per-session at converged BS_real
         assert excel_result.th_decode == pytest.approx(EXCEL_EXPECTED["th_decode"], rel=1e-4)
+
+    def test_th_dec_compute_instance_branch(self, excel_result):
+        # The raw compute branch (instance-level, before BS division) is exposed
+        # as th_dec_compute for diagnostic purposes.
+        assert excel_result.th_dec_compute == pytest.approx(
+            EXCEL_EXPECTED["th_dec_compute_instance"], rel=1e-4
+        )
+
+    def test_BS_real_converged(self, excel_result):
+        assert excel_result.BS_real == EXCEL_EXPECTED["BS_real"]
+
+    def test_iteration_count(self, excel_result):
+        assert excel_result.iteration_count == EXCEL_EXPECTED["iteration_count"]
 
     def test_Cmodel(self, excel_result):
         assert excel_result.Cmodel_rps == pytest.approx(EXCEL_EXPECTED["Cmodel"], rel=1e-4)

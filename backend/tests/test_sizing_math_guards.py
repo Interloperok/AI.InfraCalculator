@@ -54,11 +54,11 @@ def test_calc_decode_returns_zero_when_flops_non_positive() -> None:
 
 
 def test_calc_cmodel_returns_zero_when_throughput_non_positive() -> None:
-    assert calc_Cmodel(TS=100.0, th_pf=0.0, Tdec=50.0, th_dec=1.0) == 0.0
+    assert calc_Cmodel(sl_pf_eff=100.0, th_pf=0.0, Tdec=50.0, th_dec_per_session=1.0) == 0.0
 
 
 def test_calc_cmodel_returns_zero_when_time_per_request_non_positive() -> None:
-    assert calc_Cmodel(TS=-1.0, th_pf=1.0, Tdec=0.0, th_dec=1.0) == 0.0
+    assert calc_Cmodel(sl_pf_eff=-1.0, th_pf=1.0, Tdec=0.0, th_dec_per_session=1.0) == 0.0
 
 
 def test_calc_ttft_returns_inf_for_non_positive_prefill_throughput() -> None:
@@ -265,3 +265,62 @@ class TestCalcPEffective:
         # Hypothetical: P_dense=0, all in experts.
         from core.sizing_math import calc_p_effective
         assert calc_p_effective(p_dense=0, p_moe=100, n_experts=8, k_experts=1, bs_real=1) == 100 / 8
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# §6.4: BS_real and iterative servers-by-compute (P4)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestCalcBSReal:
+    """calc_bs_real — real batch size per instance."""
+
+    def test_basic_division(self) -> None:
+        from core.sizing_math import calc_bs_real
+        # 400 sessions, 4 instances per server, 2 servers → 50 sessions per instance
+        assert calc_bs_real(ssim=400, ncount_per_server=4, servers=2) == 50
+
+    def test_capped_at_bs_max(self) -> None:
+        from core.sizing_math import calc_bs_real
+        # Without cap: 400 sessions / (4*1) = 100. With cap S_TP_z=62 → 62.
+        assert calc_bs_real(ssim=400, ncount_per_server=4, servers=1, bs_max=62) == 62
+
+    def test_minimum_one(self) -> None:
+        from core.sizing_math import calc_bs_real
+        # 1 session, lots of capacity → BS_real = max(1, ceil(1/...)) = 1
+        assert calc_bs_real(ssim=1, ncount_per_server=4, servers=10) == 1
+
+    def test_zero_sessions(self) -> None:
+        # Edge case: no users → BS_real = max(1, ceil(0)) = 1
+        from core.sizing_math import calc_bs_real
+        assert calc_bs_real(ssim=0, ncount_per_server=4, servers=10) == 1
+
+    def test_zero_servers_returns_one(self) -> None:
+        # Defensive: pre-iteration state when servers not yet known
+        from core.sizing_math import calc_bs_real
+        assert calc_bs_real(ssim=400, ncount_per_server=4, servers=0) == 1
+
+    def test_ceiling_rounds_up(self) -> None:
+        from core.sizing_math import calc_bs_real
+        # 100 / (3*3) = 11.11 → ceil = 12
+        assert calc_bs_real(ssim=100, ncount_per_server=3, servers=3) == 12
+
+
+class TestCmodelV3Form:
+    """calc_Cmodel — v3 form. At BS=1, equivalent to v2."""
+
+    def test_bs_one_equals_v2_form(self) -> None:
+        from core.sizing_math import calc_Cmodel
+        # At BS=1: BS / (sl_pf/th_pf + Tdec/th_dec_per_session) = 1 / time_per_request
+        result = calc_Cmodel(sl_pf_eff=2000, th_pf=8563.06, Tdec=400, th_dec_per_session=6402.66, bs_real=1)
+        expected = 1.0 / (2000 / 8563.06 + 400 / 6402.66)
+        assert abs(result - expected) < 1e-9
+
+    def test_bs_real_scales_throughput(self) -> None:
+        from core.sizing_math import calc_Cmodel
+        # At higher BS (and lower per-session th_dec), Cmodel grows because
+        # batch parallelism amortizes prefill time.
+        # th_dec_per_session at BS=57: th_dec_instance / 57 = 6402.66 / 57 = 112.33
+        result_bs1 = calc_Cmodel(sl_pf_eff=2000, th_pf=8563.06, Tdec=400, th_dec_per_session=6402.66, bs_real=1)
+        result_bs57 = calc_Cmodel(sl_pf_eff=2000, th_pf=8563.06, Tdec=400, th_dec_per_session=112.33, bs_real=57)
+        assert result_bs57 > result_bs1
