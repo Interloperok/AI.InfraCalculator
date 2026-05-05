@@ -4,7 +4,7 @@ import Calculator from "./features/calculator/Calculator";
 import { GITHUB_URL } from "./config";
 import "./App.css";
 
-const APP_VERSION = "0.1.0";
+const APP_VERSION = "1.3.0";
 const GOOGLE_DOCS_URL =
   "https://docs.google.com/document/d/1_H4QWAda19SFJbaHD4oHycYAh5TdECCr/edit?usp=sharing&ouid=114772934094426194553&rtpof=true&sd=true";
 

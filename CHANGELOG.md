@@ -7,13 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### v3.0.0-alpha — P3: MoE accounting (P_active / P_effective)
+### v1.3.0 — Methodology v3 parity (P0–P3 of 7)
+
+Brings the calculator from methodology v2 to v3 in four backwards-
+compatible phases. Stacks under a single semver-major release because
+default-relying callers see numeric shifts (TTFT, decode throughput,
+server counts) when their inputs match the regimes the new formulas
+correct.
+
+Phases P4–P6 (iterative servers-by-compute, MLA branch, loaded
+latency) remain ahead of v1.3.0 but the formulas in P0–P3 stand on
+their own and are independently verifiable. Future v1.4.x / v1.5.x
+will land them.
+
+#### P3: MoE accounting (P_active / P_effective)
 
 Implements §6.1 MoE expansion from methodology v3 — fixes a v2 bug
 where `FPS = 2·P_total·10⁹` overcounted FLOPs for MoE models (where
 only `P_active` weights actually participate in a forward pass).
 
-#### Added
+**Added:**
 - `core.sizing_math.calc_p_effective(p_dense, p_moe, n_experts, k_experts, bs_real)`:
   `P_eff(BS) = P_dense + P_moe · [1 − (1 − k/N)^BS]`. For dense
   models (P_moe=0) returns P_dense.
@@ -30,7 +43,7 @@ only `P_active` weights actually participate in a forward pass).
 - 6 unit tests covering dense fallback, Mixtral, DeepSeek-V3, coverage
   growth with batch.
 
-#### Changed
+**Changed:**
 - `services.sizing_service.run_sizing()`:
   - Resolves `p_active = inp.params_active or inp.params_billions`.
   - When all 4 MoE fields supplied (params_dense, params_moe, n_experts,
@@ -42,7 +55,7 @@ only `P_active` weights actually participate in a forward pass).
   `p_active_used = params_billions`, `p_effective_used = p_active_used`,
   `is_moe_detailed = false`. No numeric shifts in existing fixtures.
 
-#### Notes
+**Notes:**
 - Dense path (no MoE fields supplied) is fully unchanged — golden
   numerics preserved.
 - Real MoE configs see large compute-throughput increases (smaller FPS)
@@ -53,13 +66,13 @@ only `P_active` weights actually participate in a forward pass).
 - `BS_real = 1` for now. P4 will couple `BS_real` to `Servers_count`
   via fixed-point iteration → `P_eff(BS_real)` grows with batch.
 
-### v3.0.0-alpha — P2: TTFT corrections + SL_pf separation
+#### P2: TTFT corrections + SL_pf separation
 
 Implements §7.1 from methodology v3 — fixes the long-standing v2 bug
 where TTFT used the full session length `SL` (including answer and
 reasoning tokens that haven't been generated yet).
 
-#### Added
+**Added:**
 - `core.sizing_math.calc_sl_pf()` — input-only sequence length:
   `SL_pf = SP + N_prp·Prp + (N_prp − 1)·MRT`. Used for prefill/TTFT,
   distinct from `SL` which stays for KV-cache sizing.
@@ -67,7 +80,7 @@ reasoning tokens that haven't been generated yet).
 - `SizingOutput.SL_pf_eff_after_cache` — after `η_cache` reduction.
 - 6 unit tests for `calc_sl_pf` and the new `calc_ttft` signature.
 
-#### Changed
+**Changed:**
 - `core.sizing_math.calc_ttft()` signature:
   `calc_ttft(sl_pf_eff, th_pf, th_dec, t_overhead=0.0)`. New formula:
   `TTFT = SL_pf^eff/Th_pf + 1/Th_dec + T_overhead`.
@@ -83,7 +96,7 @@ reasoning tokens that haven't been generated yet).
 - `tests/test_sizing_math_guards.py`: updated `calc_ttft` call to use
   `sl_pf_eff=` keyword (was `SL=`).
 
-#### Notes
+**Notes:**
 - The TTFT drops are large because v2 was using the post-generation
   length (multi-turn full session) where it should have been using the
   input length only. Real-world callers will see lower TTFT estimates
@@ -94,12 +107,12 @@ reasoning tokens that haven't been generated yet).
   Operators using vLLM APC / SGLang RadixAttention can set
   `eta_cache=0.3..0.5` to reflect realistic chat workloads.
 
-### v3.0.0-alpha — P1: Memory-bandwidth-bound decode
+#### P1: Memory-bandwidth-bound decode
 
 Implements §6.1 H-7 from methodology v3:
 `Th_dec = min(Th_dec^compute, Th_dec^mem)`.
 
-#### Added
+**Added:**
 - `core.sizing_math.calc_th_decode_mem()` — memory-bandwidth-bound decode formula:
   `Th_dec_mem = (BW_GPU·1e9·η_mem) / (P·1e9·B_quant + BS·M_KV·1024³ + O_fixed·1024³)`.
   Returns 0.0 if `bw_gpu_gbs` is None/0 (mem branch silently skipped).
@@ -112,7 +125,7 @@ Implements §6.1 H-7 from methodology v3:
   `bw_gpu_gbs_used`. All optional — `None` when not applicable.
 - 10 unit tests covering mem-bound formula behavior and selector cases.
 
-#### Changed
+**Changed:**
 - `services.sizing_service.run_sizing()` — decode throughput now resolves from
   `min(compute, mem)`. Empirical override (`th_decode_empir`) still takes
   highest priority. `mode_decode_bound` records which branch dominated.
@@ -120,7 +133,7 @@ Implements §6.1 H-7 from methodology v3:
   `gpu_id="fixture-gpu"` which resolves to no bandwidth → `compute_only` →
   `th_decode` numeric value preserved (regression-safe).
 
-#### Notes
+**Notes:**
 - For BS_real, P1 uses **BS=1**. Iterative coupling between `Servers_count`
   and `BS_real` lands in P4 (§6.4 fixed-point loop).
 - `params_billions` is treated as `P_active` for now. P3 will add
@@ -131,12 +144,12 @@ Implements §6.1 H-7 from methodology v3:
   behavior — for typical decode workloads this means lower `th_decode`
   and higher `servers_by_compute`.
 
-### v3.0.0-alpha — Methodology v3 calibration baseline (P0)
+#### P0: Methodology v3 calibration baseline
 
 Aligns calculator defaults with the v3-calibrated coefficients from the published methodology
 (see `Interloperok/AI.ServerCalculation.Methodology`, Appendix Е).
 
-#### Added
+**Added:**
 - `backend/core/methodology_constants.py` — single source of truth for v3-calibrated defaults
   (`ETA_PF_DEFAULT`, `ETA_DEC_DEFAULT`, `ETA_MEM_DEFAULT`, `C_SAT_DEFAULT`, `T_OVERHEAD_DEFAULT`,
   `ETA_CACHE_DEFAULT`, `K_SPEC_DEFAULT`, `O_FIXED_DEFAULT`).
@@ -152,17 +165,17 @@ Aligns calculator defaults with the v3-calibrated coefficients from the publishe
   - `eta_cache` — prefix-cache fraction (P2).
   - `k_spec` — speculative-decoding multiplier (P2).
 
-#### Changed
+**Changed:**
 - `SizingInput` calibration defaults shifted to v3 values:
   - `eta_prefill`: `0.20` → `0.167`.
   - `eta_decode`: `0.15` → `0.20`.
   - `saturation_coeff_C`: `8.0` → `6.0`.
 - `tests/payload.json`, `tests/whatif.json` — example payloads updated to v3 defaults.
 
-#### Removed
+**Removed:**
 - `backend/reportTemplate_old.xlsx` — legacy template, no references.
 
-#### Notes
+**Notes:**
 - **No formulas changed in this release.** Only defaults and field declarations.
 - Existing API callers that pass explicit `eta_prefill` / `eta_decode` / `saturation_coeff_C`
   values are unaffected.

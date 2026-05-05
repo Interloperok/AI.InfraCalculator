@@ -59,6 +59,9 @@ jobs:
           python-version: "3.14"
           enable-cache: true
 
+      - name: Verify version sync
+        run: ./scripts/sync_version.sh --check
+
       - name: Trim trailing whitespace
         run: uvx pre-commit run trailing-whitespace --all-files
 

@@ -2,8 +2,8 @@ apiVersion: v2
 name: ai-infra-calculator
 description: AI Infrastructure Calculator — FastAPI backend + React frontend for GPU sizing
 type: application
-version: 0.1.0
-appVersion: "v3.0.0-alpha"
+version: 1.3.0
+appVersion: "1.3.0"
 home: https://calc.aicolab.space/
 sources:
   - https://github.com/Interloperok/AI.InfraCalculator
