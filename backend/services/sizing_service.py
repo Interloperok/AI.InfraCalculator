@@ -23,6 +23,7 @@ from core.sizing_math import (
     calc_servers_by_memory,
     calc_session_context_TS,
     calc_sessions_per_server,
+    calc_sl_pf,
     calc_th_decode_analyt,
     calc_th_decode_mem,
     calc_th_prefill_analyt,
@@ -192,10 +193,15 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     th_pf = inp.th_prefill_empir if inp.th_prefill_empir else th_pf_analyt
 
     if inp.th_decode_empir:
-        th_dec = inp.th_decode_empir
+        th_dec_selected = inp.th_decode_empir
         mode_decode_bound = "empirical"
     else:
-        th_dec, mode_decode_bound = select_th_decode(th_dec_analyt, th_dec_mem)
+        th_dec_selected, mode_decode_bound = select_th_decode(th_dec_analyt, th_dec_mem)
+
+    # K_spec — speculative-decoding multiplier (§3.1 H-5). Applied after the
+    # min(compute, mem) selection. Default 1.0 → unchanged. Used everywhere
+    # th_dec flows downstream: Cmodel, generation_time, e2e_latency, TTFT.
+    th_dec = th_dec_selected * inp.k_spec
 
     # ── Section 6.2: Cmodel — req/sec на 1 экземпляр ──
     # Используем SL (= min(TS, TSmax)), а не TS: prefill обрабатывает
@@ -222,7 +228,16 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
 
     # ── Section 7: Проверка конфигурации по TTFT и e2eLatency ──
     # Изм.9: T_out удалён, используем Tdec (уже рассчитан в п.6.1)
-    ttft_analyt = calc_ttft(SL, th_pf, th_dec)
+    # P2: SL_pf (input-only length) instead of SL (full session) for TTFT;
+    #     η_cache reduces effective prefill length; T_overhead added.
+    SL_pf = calc_sl_pf(
+        inp.system_prompt_tokens_SP,
+        inp.user_prompt_tokens_Prp,
+        inp.reasoning_tokens_MRT,
+        inp.dialog_turns,
+    )
+    SL_pf_eff = SL_pf * (1.0 - inp.eta_cache)
+    ttft_analyt = calc_ttft(SL_pf_eff, th_pf, th_dec, inp.t_overhead)
     gen_time_analyt = calc_generation_time(Tdec, th_dec)
     e2e_latency_analyt = calc_e2e_latency(ttft_analyt, gen_time_analyt)
 
@@ -332,6 +347,8 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         th_server_comp=th_server,
         servers_by_compute=servers_comp,
         # Section 7: SLA validation
+        SL_pf_input_length=SL_pf,
+        SL_pf_eff_after_cache=round(SL_pf_eff, 4),
         ttft_analyt=round(ttft_analyt, 4) if ttft_analyt != float("inf") else None,
         generation_time_analyt=round(gen_time_analyt, 4)
         if gen_time_analyt != float("inf")

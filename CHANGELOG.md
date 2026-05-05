@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v3.0.0-alpha — P2: TTFT corrections + SL_pf separation
+
+Implements §7.1 from methodology v3 — fixes the long-standing v2 bug
+where TTFT used the full session length `SL` (including answer and
+reasoning tokens that haven't been generated yet).
+
+#### Added
+- `core.sizing_math.calc_sl_pf()` — input-only sequence length:
+  `SL_pf = SP + N_prp·Prp + (N_prp − 1)·MRT`. Used for prefill/TTFT,
+  distinct from `SL` which stays for KV-cache sizing.
+- `SizingOutput.SL_pf_input_length` — raw `SL_pf` (before prefix-cache).
+- `SizingOutput.SL_pf_eff_after_cache` — after `η_cache` reduction.
+- 6 unit tests for `calc_sl_pf` and the new `calc_ttft` signature.
+
+#### Changed
+- `core.sizing_math.calc_ttft()` signature:
+  `calc_ttft(sl_pf_eff, th_pf, th_dec, t_overhead=0.0)`. New formula:
+  `TTFT = SL_pf^eff/Th_pf + 1/Th_dec + T_overhead`.
+- `services.sizing_service.run_sizing()`:
+  - Computes `SL_pf` and `SL_pf_eff = SL_pf · (1 − η_cache)`.
+  - Applies `K_spec` multiplier to `th_dec` after `select_th_decode()` —
+    flows into `Cmodel`, `generation_time`, `e2e_latency`, and TTFT's
+    decode term. Default `K_spec = 1.0` → no shift.
+- Golden TTFT and `e2e_latency_analyt` values updated:
+  - `baseline_small`: TTFT 0.9015 → 0.5521 (-39%).
+  - `high_load_enterprise`: TTFT 0.4673 → 0.2597 (-44%).
+  - `long_context_compute_bound`: TTFT 2.866 → 1.7401 (-39%).
+- `tests/test_sizing_math_guards.py`: updated `calc_ttft` call to use
+  `sl_pf_eff=` keyword (was `SL=`).
+
+#### Notes
+- The TTFT drops are large because v2 was using the post-generation
+  length (multi-turn full session) where it should have been using the
+  input length only. Real-world callers will see lower TTFT estimates
+  matching what production load testing reports.
+- `T_overhead` default `0.026 s` adds a small constant (subtracted from
+  the TTFT drop above).
+- `η_cache` default `0.0` means no prefix-cache reduction by default.
+  Operators using vLLM APC / SGLang RadixAttention can set
+  `eta_cache=0.3..0.5` to reflect realistic chat workloads.
+
 ### v3.0.0-alpha — P1: Memory-bandwidth-bound decode
 
 Implements §6.1 H-7 from methodology v3:

@@ -57,13 +57,29 @@ def calc_model_mem_gb(params_b, bytes_per_param, emp_model, safe_margin):
 
 def calc_session_context_TS(SP, Prp, MRT, A, dialog_turns):
     """
-    Раздел 3.2 — Прикидочная длина контекста в сессии
+    Раздел 3.2 — Прикидочная длина контекста в сессии (для KV-кэша)
 
     TS_prp5_s1 = SP + dialog_turns × (Prp + MRT + A)
 
     Предполагается диалог длиной в dialog_turns сообщений (по умолчанию 5).
     """
     return SP + dialog_turns * (Prp + MRT + A)
+
+
+def calc_sl_pf(SP, Prp, MRT, dialog_turns):
+    """
+    Раздел 7.1 — Длина входной последовательности на этапе prefill
+
+    SL_pf = SP + N_prp × Prp + (N_prp − 1) × MRT
+
+    В отличие от SL (полная длина сессии — для KV-кэша), SL_pf считает
+    только те токены, которые попадают на prefill: системный промпт,
+    все запросы пользователя в сессии (N_prp штук) и reasoning-токены
+    предыдущих ходов (N_prp − 1, без последнего, который ещё не сгенерён).
+    Используется в TTFT и Th_pf.
+    """
+    n_prp = dialog_turns
+    return SP + n_prp * Prp + max(0, n_prp - 1) * MRT
 
 
 def calc_SL(TS, TSmax):
@@ -310,15 +326,24 @@ def calc_th_server_comp(Ncount_model, Cmodel):
     return Ncount_model * Cmodel
 
 
-def calc_ttft(SL, th_pf, th_dec):
+def calc_ttft(sl_pf_eff, th_pf, th_dec, t_overhead=0.0):
     """
     Раздел 7.1 — Time To First Token (TTFT)
 
-    TTFT_analyt = SL / Th_pf + 1 / Th_dec
+    TTFT_analyt = SL_pf^eff / Th_pf + 1 / Th_dec + T_overhead
+
+    Где SL_pf^eff = SL_pf · (1 − η_cache) — эффективная длина prefill
+    после префикс-кэширования. Резолвится вызывающим (sizing_service).
+    T_overhead — постоянный per-request overhead (tokenization, proxy,
+    admission), §7.1 / §Е.5.
+
+    Изм. P2: заменяет SL на SL_pf и добавляет T_overhead. Поведение при
+    sl_pf_eff = SL и t_overhead = 0 эквивалентно прежней формуле — миграция
+    обратно совместима для каллеров, передающих позиционные аргументы.
     """
     if th_pf <= 0 or th_dec <= 0:
         return float("inf")
-    return SL / th_pf + 1.0 / th_dec
+    return sl_pf_eff / th_pf + 1.0 / th_dec + t_overhead
 
 
 def calc_generation_time(T_out, th_dec):

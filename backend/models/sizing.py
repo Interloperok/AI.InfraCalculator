@@ -306,6 +306,17 @@ class SizingOutput(BaseModel):
     servers_by_compute: int = Field(..., description="Серверов по вычислениям (Servers_comp)")
 
     # ── Section 7: SLA validation ──
+    SL_pf_input_length: Optional[float] = Field(
+        default=None,
+        description="Длина входной последовательности на prefill "
+        "(SL_pf = SP + N_prp·Prp + (N_prp−1)·MRT, §7.1). "
+        "Отличается от SL — используется в TTFT и Th_pf.",
+    )
+    SL_pf_eff_after_cache: Optional[float] = Field(
+        default=None,
+        description="SL_pf после учёта prefix-cache: SL_pf · (1 − η_cache). "
+        "При η_cache = 0 равно SL_pf.",
+    )
     ttft_analyt: Optional[float] = Field(None, description="Расчётный TTFT (сек)")
     generation_time_analyt: Optional[float] = Field(
         None, description="Расчётное время генерации (сек)"

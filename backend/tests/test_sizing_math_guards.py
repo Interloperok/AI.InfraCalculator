@@ -62,7 +62,7 @@ def test_calc_cmodel_returns_zero_when_time_per_request_non_positive() -> None:
 
 
 def test_calc_ttft_returns_inf_for_non_positive_prefill_throughput() -> None:
-    assert math.isinf(calc_ttft(SL=100.0, th_pf=0.0, th_dec=10.0))
+    assert math.isinf(calc_ttft(sl_pf_eff=100.0, th_pf=0.0, th_dec=10.0))
 
 
 def test_calc_generation_time_returns_inf_for_non_positive_decode_throughput() -> None:
@@ -168,3 +168,52 @@ class TestSelectThDecode:
         value, mode = select_th_decode(th_compute=0.0, th_mem=0.0)
         assert value == 0.0
         assert mode == "none"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# §7.1: SL_pf and TTFT corrections (P2)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestCalcSLPf:
+    """calc_sl_pf — input-only sequence length used for prefill / TTFT."""
+
+    def test_no_reasoning_tokens(self) -> None:
+        # SP=800, Prp=150, MRT=0, n_prp=4 → 800 + 4·150 + 3·0 = 1400
+        from core.sizing_math import calc_sl_pf
+        assert calc_sl_pf(SP=800, Prp=150, MRT=0, dialog_turns=4) == 1400
+
+    def test_with_reasoning_tokens(self) -> None:
+        # SP=1000, Prp=200, MRT=4096, n_prp=5 → 1000 + 1000 + 4·4096 = 18384
+        from core.sizing_math import calc_sl_pf
+        assert calc_sl_pf(SP=1000, Prp=200, MRT=4096, dialog_turns=5) == 18384
+
+    def test_single_turn(self) -> None:
+        # n_prp=1 → SP + Prp + 0·MRT = SP + Prp (no previous reasoning)
+        from core.sizing_math import calc_sl_pf
+        assert calc_sl_pf(SP=500, Prp=100, MRT=2000, dialog_turns=1) == 600
+
+    def test_sl_pf_smaller_than_full_session(self) -> None:
+        # SL_pf excludes the answer and last-turn reasoning that haven't been
+        # generated yet — so SL_pf < TS for the same inputs.
+        from core.sizing_math import calc_session_context_TS, calc_sl_pf
+        ts = calc_session_context_TS(SP=1000, Prp=200, MRT=400, A=400, dialog_turns=5)
+        sl_pf = calc_sl_pf(SP=1000, Prp=200, MRT=400, dialog_turns=5)
+        assert sl_pf < ts
+
+
+class TestTtftWithOverhead:
+    """calc_ttft — P2 signature with T_overhead."""
+
+    def test_overhead_adds_to_ttft(self) -> None:
+        from core.sizing_math import calc_ttft
+        without = calc_ttft(sl_pf_eff=1000.0, th_pf=2000.0, th_dec=1000.0, t_overhead=0.0)
+        with_overhead = calc_ttft(
+            sl_pf_eff=1000.0, th_pf=2000.0, th_dec=1000.0, t_overhead=0.026
+        )
+        assert with_overhead == without + 0.026
+
+    def test_default_overhead_is_zero_for_backwards_compat(self) -> None:
+        # calc_ttft(sl_pf_eff, th_pf, th_dec) without t_overhead defaults to 0
+        from core.sizing_math import calc_ttft
+        assert calc_ttft(sl_pf_eff=100.0, th_pf=1000.0, th_dec=500.0) == 100.0 / 1000.0 + 1.0 / 500.0
