@@ -7,16 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### v1.3.0 — Methodology v3 parity (P0–P5 of 7)
+### v1.3.0 — Methodology v3 parity (P0–P6, alpha-complete)
 
-Brings the calculator from methodology v2 to v3 across calibration,
-memory-bandwidth-bound decode, TTFT corrections, MoE accounting,
-the iterative servers-by-compute fixed-point loop, and MLA support.
-Stacks under a single semver-bump because default-relying callers
-see numeric shifts (TTFT, decode throughput, server counts) when
-their inputs match the regimes the new formulas correct.
+Brings the calculator from methodology v2 to v3 across all 7 alpha
+phases: calibration, memory-bandwidth-bound decode, TTFT corrections,
+MoE accounting, iterative servers-by-compute fixed-point, MLA
+support, and loaded-latency for SLA validation. Stacks under a
+single semver-bump because default-relying callers see numeric
+shifts when their inputs match the regimes the new formulas correct.
 
-P6 (loaded latency from Little's law) remains ahead.
+#### P6: Loaded latency `e2eLatency_load` (Little's law)
+
+Adds a queueing-aware end-to-end latency form for SLA validation.
+
+**Added:**
+- `core.sizing_math.calc_e2e_latency_load(bs_real, cmodel_rps)`:
+  `e2eLatency_load = BS_real / C_model(BS_real)`. Inf when Cmodel ≤ 0.
+- `SizingOutput`:
+  - `e2e_latency_load` — load-form residence time.
+  - `e2e_latency_for_sla` — `max(e2e_latency_analyt, e2e_latency_load)`,
+    used for `e2e_latency_sla_pass`.
+- 4 unit tests covering basic formula, infinity guards, BS scaling.
+
+**Changed:**
+- `services.sizing_service.run_sizing()`: SLA validation now compares
+  `inp.e2e_latency_sla` against `e2e_latency_for_sla` (the stricter of
+  the two forms) — catches load-induced violations the per-request
+  form might miss.
+
+**Notes:**
+- Implementation caveat: with our current Cmodel definition (already
+  BS-aware after P4's per-session th_dec), `e2e_latency_load` reduces to
+  `time_per_request = SL_pf_eff/Th_pf + Tdec/Th_dec_per_session`, which
+  is always smaller than `e2e_latency_analyt` (= same + `1/Th_dec_per_session
+  + T_overhead`). So `for_sla = analyt` in steady-state convergence —
+  the load field is mostly diagnostic in this release.
+- Methodology may intend `C_model(BS=1)` baseline in the load formula;
+  if so, a future `v1.4.x` revision can reinterpret. For now the field
+  is exposed and consistent with the literal §7.2 expression.
 
 #### P5: Multi-Head Latent Attention (MLA) for DeepSeek V2/V3/R1
 

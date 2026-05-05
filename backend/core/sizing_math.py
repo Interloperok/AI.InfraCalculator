@@ -431,11 +431,29 @@ def calc_generation_time(T_out, th_dec):
 
 def calc_e2e_latency(ttft, generation_time):
     """
-    Раздел 7.2 — End-to-end Latency
+    Раздел 7.2 — End-to-end Latency (per-request, BS-aware via th_dec_per_session)
 
     e2eLatency_analyt = TTFT_analyt + GenerationTime_analyt
     """
     return ttft + generation_time
+
+
+def calc_e2e_latency_load(bs_real, cmodel_rps):
+    """
+    Раздел 7.2 — End-to-end Latency under sustained load (Little's law)
+
+    e2eLatency_load(BS_real) = BS_real / C_model(BS_real)
+
+    Среднее время пребывания запроса в системе при установившейся
+    загрузке. Растёт с BS (очередь ожидания), тогда как
+    e2eLatency_analyt растёт сублинейно через per-session th_dec.
+
+    Для SLA-валидации используется max(analyt, load) — чтобы поймать
+    «load-induced» нарушения, незаметные в формуле для одиночного запроса.
+    """
+    if cmodel_rps <= 0:
+        return float("inf")
+    return bs_real / cmodel_rps
 
 
 def calc_servers_by_compute(Ssim, R, KSLA, th_server_comp):

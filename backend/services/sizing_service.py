@@ -13,6 +13,7 @@ from core.sizing_math import (
     calc_T,
     calc_Tdec,
     calc_e2e_latency,
+    calc_e2e_latency_load,
     calc_generation_time,
     calc_gpus_per_instance,
     calc_instances_per_server,
@@ -318,10 +319,15 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     th_server = state["th_server_comp"]
     servers_comp = state["servers_comp"]
 
-    # ── Section 7 (P2): TTFT + e2eLatency at converged BS_real ──
+    # ── Section 7 (P2 + P6): TTFT, e2eLatency at converged BS_real ──
     ttft_analyt = calc_ttft(SL_pf_eff, th_pf, th_dec, inp.t_overhead)
     gen_time_analyt = calc_generation_time(Tdec, th_dec)
     e2e_latency_analyt = calc_e2e_latency(ttft_analyt, gen_time_analyt)
+
+    # P6: Loaded-latency form via Little's law. Captures queueing time
+    # at sustained BS_real load; SLA validation uses max(analyt, load).
+    e2e_latency_load = calc_e2e_latency_load(BS_real, Cmodel)
+    e2e_latency_for_sla = max(e2e_latency_analyt, e2e_latency_load)
 
     ttft_sla_pass = None
     e2e_latency_sla_pass = None
@@ -330,7 +336,8 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     if inp.ttft_sla is not None:
         ttft_sla_pass = inp.ttft_sla >= ttft_analyt
     if inp.e2e_latency_sla is not None:
-        e2e_latency_sla_pass = inp.e2e_latency_sla >= e2e_latency_analyt
+        # P6: validate against the stricter form (analyt or load, whichever larger)
+        e2e_latency_sla_pass = inp.e2e_latency_sla >= e2e_latency_for_sla
 
     checks = [value for value in (ttft_sla_pass, e2e_latency_sla_pass) if value is not None]
     if checks:
@@ -446,6 +453,12 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         else None,
         e2e_latency_analyt=round(e2e_latency_analyt, 4)
         if e2e_latency_analyt != float("inf")
+        else None,
+        e2e_latency_load=round(e2e_latency_load, 4)
+        if e2e_latency_load != float("inf")
+        else None,
+        e2e_latency_for_sla=round(e2e_latency_for_sla, 4)
+        if e2e_latency_for_sla != float("inf")
         else None,
         ttft_sla_target=inp.ttft_sla,
         e2e_latency_sla_target=inp.e2e_latency_sla,

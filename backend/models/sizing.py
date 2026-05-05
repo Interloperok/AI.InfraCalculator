@@ -399,7 +399,21 @@ class SizingOutput(BaseModel):
     generation_time_analyt: Optional[float] = Field(
         None, description="Расчётное время генерации (сек)"
     )
-    e2e_latency_analyt: Optional[float] = Field(None, description="Расчётный e2eLatency (сек)")
+    e2e_latency_analyt: Optional[float] = Field(
+        None,
+        description="Расчётный e2eLatency для одного запроса (сек, §7.2). "
+        "Per-request форма: TTFT + GenerationTime, аккаунтит BS_real через per-session Th_dec.",
+    )
+    e2e_latency_load: Optional[float] = Field(
+        default=None,
+        description="e2eLatency под установившейся нагрузкой (сек, §7.2). "
+        "По закону Литтла: BS_real / C_model(BS_real). Захватывает queueing-эффект.",
+    )
+    e2e_latency_for_sla: Optional[float] = Field(
+        default=None,
+        description="Эффективный e2eLatency для SLA-валидации (сек). "
+        "= max(e2e_latency_analyt, e2e_latency_load). Используется в e2e_latency_sla_pass.",
+    )
     ttft_sla_target: Optional[float] = Field(None, description="Целевой TTFT по SLA (сек)")
     e2e_latency_sla_target: Optional[float] = Field(
         None, description="Целевой e2eLatency по SLA (сек)"

@@ -376,3 +376,30 @@ class TestCalcKVMLA:
         with_pad = calc_kv_mla(L=61, SL=1000, kv_lora_rank=512, qk_rope_head_dim=64,
                                 bytes_state=2, emp_kv=1.2)
         assert abs(with_pad - base * 1.2) < 1e-9
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# §7.2: Loaded latency from Little's law (P6)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestCalcE2eLatencyLoad:
+    """calc_e2e_latency_load — BS_real / Cmodel residence time."""
+
+    def test_basic_division(self) -> None:
+        from core.sizing_math import calc_e2e_latency_load
+        assert calc_e2e_latency_load(bs_real=10, cmodel_rps=2.0) == 5.0
+
+    def test_returns_inf_when_cmodel_zero(self) -> None:
+        from core.sizing_math import calc_e2e_latency_load
+        assert math.isinf(calc_e2e_latency_load(bs_real=10, cmodel_rps=0.0))
+
+    def test_returns_inf_when_cmodel_negative(self) -> None:
+        from core.sizing_math import calc_e2e_latency_load
+        assert math.isinf(calc_e2e_latency_load(bs_real=1, cmodel_rps=-1.0))
+
+    def test_grows_with_bs_real(self) -> None:
+        from core.sizing_math import calc_e2e_latency_load
+        bs1 = calc_e2e_latency_load(bs_real=1, cmodel_rps=10.0)
+        bs10 = calc_e2e_latency_load(bs_real=10, cmodel_rps=10.0)
+        assert bs10 == bs1 * 10

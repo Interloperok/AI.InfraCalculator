@@ -17,6 +17,8 @@
     "bw_gpu_gbs_used": null,
     "cost_estimate_usd": null,
     "e2e_latency_analyt": 29.0125,
+    "e2e_latency_for_sla": 29.0125,
+    "e2e_latency_load": 28.9656,
     "e2e_latency_sla_pass": null,
     "e2e_latency_sla_target": null,
     "generation_time_analyt": 27.2518,
