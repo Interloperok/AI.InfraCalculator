@@ -157,6 +157,20 @@ class SizingInput(BaseModel):
     gpu_flops_Fcount: Optional[confloat(gt=0)] = Field(
         None, description="Пиковые TFLOPS одного GPU (напр. 312 для A100)"
     )
+    engine_mode: Optional[str] = Field(
+        default="continuous",
+        description="Inference engine batching mode (§6.1). "
+        "'continuous' (vLLM, SGLang, TGI, Triton+inflight): prefill chunked into "
+        "decode steps, K_batch=1, mem-bound branch via C_pf. "
+        "'static' (offline-скрипты, Triton без inflight): legacy v2 K_batch формула. "
+        "По умолчанию 'continuous' — соответствует современным движкам.",
+    )
+    c_pf: Optional[conint(gt=0)] = Field(
+        default=256,
+        description="Chunked-prefill step budget (tokens/forward, §6.1). "
+        "vLLM: max_num_batched_tokens минус decode-доля. Типично 32-512. "
+        "Используется только в continuous engine_mode.",
+    )
     eta_prefill: confloat(gt=0.0, le=1.0) = Field(
         default=ETA_PF_DEFAULT,
         description="Эффективность prefill (η_pf, 0.15-0.30). "
@@ -358,7 +372,23 @@ class SizingOutput(BaseModel):
         "при сошедшемся BS_real. Используется для select_th_decode при v3 итерации.",
     )
     Tdec_tokens: float = Field(..., description="Токены decode фазы (Tdec = A + MRT)")
-    th_prefill: float = Field(..., description="Throughput prefill (tokens/sec)")
+    th_prefill: float = Field(..., description="Throughput prefill (tokens/sec) — итоговый")
+    th_pf_compute: Optional[float] = Field(
+        default=None,
+        description="Compute-bound предел prefill (§6.1). В continuous mode — Th_pf^cb,compute "
+        "(K_batch=1); в static mode — Th_pf^analyt с K_batch.",
+    )
+    th_pf_mem: Optional[float] = Field(
+        default=None,
+        description="Memory-bandwidth-bound предел prefill (§6.1). Только для continuous mode "
+        "при наличии bw_gpu_gbs. None в static mode или без bw.",
+    )
+    mode_prefill_bound: Optional[str] = Field(
+        default=None,
+        description="Что лимитирует prefill: 'static' (legacy K_batch формула, без mem-ветви), "
+        "'compute' / 'memory' / 'compute_only' / 'memory_only' / 'empirical' (использован "
+        "inp.th_prefill_empir) / 'none'.",
+    )
     th_decode: float = Field(..., description="Throughput decode (tokens/sec) — итоговый, после min(compute, mem)")
     th_dec_compute: Optional[float] = Field(
         default=None,

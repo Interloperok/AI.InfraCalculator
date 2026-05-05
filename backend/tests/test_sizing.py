@@ -117,19 +117,17 @@ EXCEL_EXPECTED = dict(
     FPS=64_000_000_000.0,  # 2 × 32 × 10⁹
     Tdec=400.0,  # A + MRT = 400 + 0
     Fcount_model_tflops=312.0,  # 1 × 312
-    th_prefill=8563.064721739373,  # аналитический расчёт
-    # P4: th_decode is now per-session at converged BS_real (was instance-level).
-    # th_dec_compute_instance / BS_real = 6402.66 / 57 = 112.33 (BS capped at S_TP_z)
-    th_decode=112.32733209665739,
+    # P7: engine_mode='continuous' default (vLLM/SGLang/TGI), no K_batch boost on prefill.
+    # th_pf_continuous = 944.06 vs th_pf_static_with_kbatch = 8563.06 (9.36× ratio).
+    th_prefill=944.0648819483175,
     th_dec_compute_instance=6402.657929509471,  # raw analytical compute branch (instance-level)
+    th_decode=112.32733209665739,  # per-session at converged BS=57
     BS_real=57,  # min(S_TP_z=57, ceil(2500/(2*22))=57) — memory-tight
     iteration_count=2,
-    # P4: Cmodel = BS_real / (SL_pf_eff/Th_pf + Tdec/Th_dec_per_session) — was 1/(...) at BS=1
-    Cmodel=15.021416029121713,
-    # NcountTP × Cmodel = 2 × 15.021 = 30.04 (was 3.776)
-    th_server_comp=30.042832058243427,
-    # ceil(2500 × 0.02 × 1.25 / 30.04) = ceil(2.08) = 3 (was 17 in v2 single-shot)
-    Servers_comp=3,
+    # P4+P7: Cmodel shifts because Th_pf dropped (less compute headroom for prefill in cb mode)
+    Cmodel=10.036060155414875,
+    th_server_comp=20.07212031082975,  # NcountTP=2 × Cmodel
+    Servers_comp=4,  # ceil(2500 × 0.02 × 1.25 / 20.07) = ceil(3.11) = 4
     # Section 8
     Servers_final=22,
 )
@@ -245,11 +243,16 @@ class TestSection6Compute:
         assert result == EXCEL_EXPECTED["Tdec"]
 
     def test_th_prefill_analyt(self):
+        # calc_th_prefill_analyt is the static-batching form (with K_batch).
+        # With engine_mode='continuous' (default in the pipeline), this isn't used.
+        # Tests that the formula itself produces the expected v2 value (8563.06).
         Fcount_flops = 312 * 1e12 * 1  # 312 TFLOPS × 1 GPU
         result = calc_th_prefill_analyt(
             Fcount_flops, 0.20, EXCEL_EXPECTED["Kbatch"], 64e9, 64, 4096, 4000
         )
-        assert result == pytest.approx(EXCEL_EXPECTED["th_prefill"], rel=1e-4)
+        # Pre-P7 EXCEL_EXPECTED["th_prefill"] used to be 8563; now it's 944 (continuous).
+        # The static formula independently still gives 8563.06.
+        assert result == pytest.approx(8563.064721739373, rel=1e-4)
 
     def test_th_decode_analyt(self):
         # calc_th_decode_analyt is the instance-level compute branch (raw).

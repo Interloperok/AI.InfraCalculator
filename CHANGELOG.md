@@ -7,14 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### v1.3.0 — Methodology v3 parity (P0–P6, alpha-complete)
+### v1.3.0 — Methodology v3 parity (P0–P7)
 
-Brings the calculator from methodology v2 to v3 across all 7 alpha
-phases: calibration, memory-bandwidth-bound decode, TTFT corrections,
-MoE accounting, iterative servers-by-compute fixed-point, MLA
-support, and loaded-latency for SLA validation. Stacks under a
-single semver-bump because default-relying callers see numeric
-shifts when their inputs match the regimes the new formulas correct.
+Brings the calculator from methodology v2 to v3 across calibration,
+memory-bandwidth-bound decode, TTFT corrections, MoE accounting,
+iterative servers-by-compute fixed-point, MLA support, loaded-latency
+SLA, and continuous-batching prefill. Stacks under a single
+semver-bump because default-relying callers see numeric shifts when
+their inputs match the regimes the new formulas correct.
+
+#### P7: Continuous-batching prefill (`engine_mode`, `C_pf`)
+
+Implements §6.1 prefill-side selector for modern inference engines.
+v2 unconditionally applied K_batch to prefill, which is correct for
+static batching but wrong for vLLM/SGLang/TGI continuous-batching —
+where prefill chunks share memory bandwidth with active decoders.
+
+**Added:**
+- `core.sizing_math.calc_th_prefill_cb_compute`: same form as the
+  static branch with K_batch=1, uses `SL_pf_eff` (post-prefix-cache).
+- `core.sizing_math.calc_th_prefill_cb_mem`:
+  `Th_pf^cb,mem = (C_pf · BW · 1e9 · η_mem) / (P_eff(BS+1)·1e9·B_quant
+  + BS·MKV·1024³ + O_fixed·1024³)`. Returns 0 when `bw_gpu_gbs <= 0`
+  or `c_pf <= 0`.
+- `core.sizing_math.select_th_prefill`: min selector with mode
+  signal, analogous to `select_th_decode`.
+- `SizingInput.engine_mode` (default `"continuous"`), `c_pf` (default 256).
+- `SizingOutput.th_pf_compute`, `th_pf_mem`, `mode_prefill_bound`.
+- 8 unit tests: cb_compute = static-with-K_batch=1; cb_mem grows with
+  C_pf and shrinks with BS_real; selector mode reporting.
+
+**Changed:**
+- Default `engine_mode = "continuous"` — matches modern inference
+  engines (vLLM/SGLang/TGI/Triton+inflight). For legacy / offline
+  workloads, set `engine_mode = "static"` explicitly.
+- `services.sizing_service.run_sizing()`:
+  - Computes the BS-independent prefill compute branch once outside
+    the iteration loop.
+  - Inside the iteration loop, computes the BS-dependent prefill mem
+    branch (using `P_effective(BS_real + 1)` for the new prefill
+    request joining BS_real decoders) and selects min(compute, mem).
+  - Empirical override (`th_prefill_empir`) still takes top priority.
+- Goldens regenerated. With fixture-gpu (no bw resolution → mem branch
+  empty), all 3 fixtures get `mode_prefill_bound = "compute_only"` and
+  `th_pf` drops by the K_batch factor:
+  - `baseline_small`: th_pf 2664 → 2299 (K_batch=1.19; small impact).
+  - `high_load_enterprise`: th_pf 8563 → **944** (K_batch=9.36; ~9× drop
+    drives Cmodel down 33%, servers_by_compute 3 → 4. Memory still
+    dominates at 22.).
+  - `long_context_compute_bound`: th_pf 3559 → 2826 (K_batch=1.36).
+- `test_sizing.py::EXCEL_EXPECTED` updated for new pipeline values.
+- `test_sizing.py::TestSection6Compute::test_th_prefill_analyt` now
+  asserts the **static-form** value directly (8563.06) rather than
+  matching `EXCEL_EXPECTED["th_prefill"]`, since the pipeline default
+  is continuous and the values differ.
+
+**Notes:**
+- Static-batching callers (offline scripts, Triton w/o inflight) get
+  the v2 K_batch behavior by setting `engine_mode = "static"`.
+- The cb mem branch only fires when `bw_gpu_gbs` is resolvable (real
+  `gpu_id` from catalog or explicit input). For fixture / fake gpu_ids
+  the prefill stays compute-only by design.
+- For MoE workloads in continuous mode, prefill is doubly batch-aware:
+  via `P_effective(BS_real+1)` (more experts covered as batch grows)
+  and via `BS_real · MKV` denominator term.
 
 #### P6: Loaded latency `e2eLatency_load` (Little's law)
 

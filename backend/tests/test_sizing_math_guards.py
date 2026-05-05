@@ -403,3 +403,83 @@ class TestCalcE2eLatencyLoad:
         bs1 = calc_e2e_latency_load(bs_real=1, cmodel_rps=10.0)
         bs10 = calc_e2e_latency_load(bs_real=10, cmodel_rps=10.0)
         assert bs10 == bs1 * 10
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# §6.1: Continuous-batching prefill (P7)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestThPrefillCB:
+    """calc_th_prefill_cb_compute / calc_th_prefill_cb_mem / select_th_prefill."""
+
+    def test_cb_compute_equals_static_with_kbatch_one(self) -> None:
+        from core.sizing_math import calc_th_prefill_analyt, calc_th_prefill_cb_compute
+        cb = calc_th_prefill_cb_compute(
+            Fcount_model_flops=312e12, eta_pf=0.2, FPS=14e9, L=32, H=4096, sl_pf_eff=2000,
+        )
+        static_kb1 = calc_th_prefill_analyt(
+            Fcount_model_flops=312e12, eta_pf=0.2, Kbatch=1.0, FPS=14e9, L=32, H=4096, SL=2000,
+        )
+        assert cb == static_kb1
+
+    def test_cb_mem_returns_zero_when_no_bandwidth(self) -> None:
+        from core.sizing_math import calc_th_prefill_cb_mem
+        assert calc_th_prefill_cb_mem(
+            c_pf=256, bw_gpu_gbs=None, eta_mem=0.36, p_effective_at_bs_plus_1=37,
+            b_quant=1, mkv_gb=2, bs_real=4, o_fixed_gb=0,
+        ) == 0.0
+
+    def test_cb_mem_returns_zero_when_c_pf_zero(self) -> None:
+        from core.sizing_math import calc_th_prefill_cb_mem
+        assert calc_th_prefill_cb_mem(
+            c_pf=0, bw_gpu_gbs=2039, eta_mem=0.36, p_effective_at_bs_plus_1=37,
+            b_quant=1, mkv_gb=2, bs_real=4, o_fixed_gb=0,
+        ) == 0.0
+
+    def test_cb_mem_grows_with_c_pf(self) -> None:
+        from core.sizing_math import calc_th_prefill_cb_mem
+        small = calc_th_prefill_cb_mem(
+            c_pf=64, bw_gpu_gbs=2039, eta_mem=0.36, p_effective_at_bs_plus_1=37,
+            b_quant=1, mkv_gb=2, bs_real=4, o_fixed_gb=0,
+        )
+        large = calc_th_prefill_cb_mem(
+            c_pf=512, bw_gpu_gbs=2039, eta_mem=0.36, p_effective_at_bs_plus_1=37,
+            b_quant=1, mkv_gb=2, bs_real=4, o_fixed_gb=0,
+        )
+        assert large == small * 8
+
+    def test_cb_mem_drops_with_bs_real(self) -> None:
+        # More decoders in the batch → more KV memory traffic → less prefill bandwidth
+        from core.sizing_math import calc_th_prefill_cb_mem
+        bs1 = calc_th_prefill_cb_mem(
+            c_pf=256, bw_gpu_gbs=2039, eta_mem=0.36, p_effective_at_bs_plus_1=37,
+            b_quant=1, mkv_gb=2, bs_real=1, o_fixed_gb=0,
+        )
+        bs16 = calc_th_prefill_cb_mem(
+            c_pf=256, bw_gpu_gbs=2039, eta_mem=0.36, p_effective_at_bs_plus_1=37,
+            b_quant=1, mkv_gb=2, bs_real=16, o_fixed_gb=0,
+        )
+        assert bs16 < bs1
+
+
+class TestSelectThPrefill:
+    """select_th_prefill — analogous to select_th_decode for prefill branches."""
+
+    def test_compute_only_when_mem_zero(self) -> None:
+        from core.sizing_math import select_th_prefill
+        v, m = select_th_prefill(th_compute=2000.0, th_mem=0.0)
+        assert v == 2000.0
+        assert m == "compute_only"
+
+    def test_picks_memory_when_smaller(self) -> None:
+        from core.sizing_math import select_th_prefill
+        v, m = select_th_prefill(th_compute=2000.0, th_mem=300.0)
+        assert v == 300.0
+        assert m == "memory"
+
+    def test_picks_compute_when_smaller(self) -> None:
+        from core.sizing_math import select_th_prefill
+        v, m = select_th_prefill(th_compute=200.0, th_mem=2000.0)
+        assert v == 200.0
+        assert m == "compute"

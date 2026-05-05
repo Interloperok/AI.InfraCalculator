@@ -27,9 +27,12 @@ from .sizing_math import (
     calc_th_decode_analyt,
     calc_th_decode_mem,
     calc_th_prefill_analyt,
+    calc_th_prefill_cb_compute,
+    calc_th_prefill_cb_mem,
     calc_th_server_comp,
     calc_ttft,
     select_th_decode,
+    select_th_prefill,
 )
 
 __all__ = [
@@ -61,7 +64,10 @@ __all__ = [
     "calc_th_decode_analyt",
     "calc_th_decode_mem",
     "calc_th_prefill_analyt",
+    "calc_th_prefill_cb_compute",
+    "calc_th_prefill_cb_mem",
     "calc_th_server_comp",
     "calc_ttft",
     "select_th_decode",
+    "select_th_prefill",
 ]

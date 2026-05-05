@@ -268,14 +268,96 @@ def calc_Tdec(A, MRT):
 
 def calc_th_prefill_analyt(Fcount_model_flops, eta_pf, Kbatch, FPS, L, H, SL):
     """
-    Раздел 6.1 — Аналитический throughput фазы prefill (tokens/sec)
+    Раздел 6.1 — Аналитический throughput фазы prefill для static batching (tokens/sec)
 
     Th_pf_analyt ≈ (Fcount_model × η_pf × Kbatch) / (FPS + 4 × L × H × SL)
+
+    Применяется для движков со статическим батчингом (offline-скрипты,
+    Triton без inflight, исследовательские harness): все запросы batch
+    стартуют одновременно, prefill параллелится по batch — отсюда
+    усиление K_batch.
+
+    Для continuous batching (vLLM, SGLang, TGI, Triton+inflight) —
+    использовать ``calc_th_prefill_cb_compute`` (без K_batch) и
+    ``calc_th_prefill_cb_mem``, выбирая ``min(compute, mem)``.
     """
     denominator = FPS + 4 * L * H * SL
     if denominator <= 0 or Fcount_model_flops <= 0:
         return 0.0
     return (Fcount_model_flops * eta_pf * Kbatch) / denominator
+
+
+def calc_th_prefill_cb_compute(Fcount_model_flops, eta_pf, FPS, L, H, sl_pf_eff):
+    """
+    Раздел 6.1 — Compute-bound предел prefill в continuous batching (tokens/sec)
+
+    Th_pf^cb,compute(SL_pf) = F_count × η_pf / (FPS + 4 × L × H × SL_pf)
+
+    Совпадает по форме с ``calc_th_prefill_analyt`` при K_batch = 1 — в
+    continuous batching все prefill-токены идут одной порцией без
+    усиления статическим батчем.
+    """
+    denominator = FPS + 4 * L * H * sl_pf_eff
+    if denominator <= 0 or Fcount_model_flops <= 0:
+        return 0.0
+    return Fcount_model_flops * eta_pf / denominator
+
+
+def calc_th_prefill_cb_mem(
+    c_pf,
+    bw_gpu_gbs,
+    eta_mem,
+    p_effective_at_bs_plus_1,
+    b_quant,
+    mkv_gb,
+    bs_real,
+    o_fixed_gb=0.0,
+):
+    """
+    Раздел 6.1 — Memory-bandwidth-bound предел prefill в continuous batching (tokens/sec)
+
+    Th_pf^cb,mem = (C_pf × BW_GPU × 10⁹ × η_mem)
+                 / (P_eff(BS_real + 1) × 10⁹ × B_quant
+                    + BS_real × M_KV × 1024³
+                    + O_fixed × 1024³)
+
+    C_pf — chunked-prefill step budget (vLLM max_num_batched_tokens минус
+    decode-доля). Типично 32-512 токенов. Доминирует при BS_real ≥ 4 для
+    MoE и типичных C_pf.
+
+    Возвращает 0.0 если bw_gpu_gbs <= 0 или c_pf <= 0.
+    """
+    if bw_gpu_gbs is None or bw_gpu_gbs <= 0 or c_pf <= 0:
+        return 0.0
+    numerator = c_pf * bw_gpu_gbs * 1e9 * eta_mem
+    denominator = (
+        p_effective_at_bs_plus_1 * 1e9 * b_quant
+        + bs_real * mkv_gb * (1024**3)
+        + o_fixed_gb * (1024**3)
+    )
+    if denominator <= 0:
+        return 0.0
+    return numerator / denominator
+
+
+def select_th_prefill(th_compute, th_mem):
+    """
+    Раздел 6.1 — выбор итоговой пропускной способности prefill в continuous batching.
+
+    Th_pf^cb = min(Th_pf^cb,compute, Th_pf^cb,mem)
+
+    Возвращает (value, mode), где mode ∈ {"compute", "memory", "compute_only",
+    "memory_only", "none"} — аналогично ``select_th_decode``.
+    """
+    if th_compute <= 0 and th_mem <= 0:
+        return 0.0, "none"
+    if th_mem <= 0:
+        return th_compute, "compute_only"
+    if th_compute <= 0:
+        return th_mem, "memory_only"
+    if th_mem < th_compute:
+        return th_mem, "memory"
+    return th_compute, "compute"
 
 
 def calc_th_decode_analyt(Fcount_model_flops, eta_dec, Kbatch, FPS, L, H, SL, Tdec):
