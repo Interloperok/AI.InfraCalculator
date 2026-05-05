@@ -1,0 +1,55 @@
+AI Infrastructure Calculator deployed as release: {{ .Release.Name }}
+
+Backend service:  {{ include "ai-infra-calculator.backendFullname" . }} (port {{ .Values.backend.service.port }})
+Frontend service: {{ include "ai-infra-calculator.frontendFullname" . }} (port {{ .Values.frontend.service.port }})
+
+{{- if .Values.ingress.enabled }}
+
+────────────────────────────────────────────────────────────────
+INGRESS MODE — single host
+────────────────────────────────────────────────────────────────
+Host: {{ .Values.ingress.host }}
+
+Add to /etc/hosts (kind extra port mapping required):
+  127.0.0.1   {{ .Values.ingress.host }}
+
+Open: http://{{ .Values.ingress.host }}/
+API docs: http://{{ .Values.ingress.host }}/docs
+
+{{- else }}
+
+────────────────────────────────────────────────────────────────
+PORT-FORWARD MODE
+────────────────────────────────────────────────────────────────
+Backend (terminal 1):
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "ai-infra-calculator.backendFullname" . }} 8000:{{ .Values.backend.service.port }}
+
+Frontend (terminal 2):
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "ai-infra-calculator.frontendFullname" . }} 3000:{{ .Values.frontend.service.port }}
+
+Open: http://localhost:3000
+API docs: http://localhost:8000/docs
+
+NOTE: For the frontend to call the backend, the frontend image must be built
+with REACT_APP_API_URL=http://localhost:8000 (build-arg). See chart README.md.
+{{- end }}
+
+────────────────────────────────────────────────────────────────
+SMOKE TEST (after port-forward / ingress is up)
+────────────────────────────────────────────────────────────────
+{{- if .Values.ingress.enabled }}
+  curl -X POST http://{{ .Values.ingress.host }}/v1/size \
+{{- else }}
+  curl -X POST http://localhost:8000/v1/size \
+{{- end }}
+       -H "Content-Type: application/json" \
+       -d @backend/tests/payload.json | jq .servers_final
+
+  # Verify v3 calibration default surfaced in OpenAPI:
+{{- if .Values.ingress.enabled }}
+  curl -s http://{{ .Values.ingress.host }}/openapi.json \
+{{- else }}
+  curl -s http://localhost:8000/openapi.json \
+{{- end }}
+       | jq '.components.schemas.SizingInput.properties.eta_prefill.default'
+  # Expected: 0.167

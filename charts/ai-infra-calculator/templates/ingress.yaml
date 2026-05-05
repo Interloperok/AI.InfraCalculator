@@ -1,0 +1,59 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ai-infra-calculator.fullname" . }}
+  labels:
+    {{- include "ai-infra-calculator.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          # Backend API endpoints
+          - path: /v1
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "ai-infra-calculator.backendFullname" . }}
+                port:
+                  number: {{ .Values.backend.service.port }}
+          - path: /healthz
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "ai-infra-calculator.backendFullname" . }}
+                port:
+                  number: {{ .Values.backend.service.port }}
+          - path: /openapi.json
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "ai-infra-calculator.backendFullname" . }}
+                port:
+                  number: {{ .Values.backend.service.port }}
+          - path: /docs
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "ai-infra-calculator.backendFullname" . }}
+                port:
+                  number: {{ .Values.backend.service.port }}
+          # Frontend (catch-all)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "ai-infra-calculator.frontendFullname" . }}
+                port:
+                  number: {{ .Values.frontend.service.port }}
+{{- end }}

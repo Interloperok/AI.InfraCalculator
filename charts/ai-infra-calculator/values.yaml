@@ -1,0 +1,118 @@
+# Default values for ai-infra-calculator chart.
+# Tuned for local kind cluster testing.
+# For production: copy and override image.repository/tag, ingress.host, resources.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# ── Backend ──────────────────────────────────────────────────
+backend:
+  image:
+    repository: ai-infra-calculator/backend
+    tag: dev
+    pullPolicy: IfNotPresent  # IfNotPresent works with `kind load docker-image`
+  replicaCount: 1
+  service:
+    type: ClusterIP
+    port: 8000
+  # Methodology calibration overrides (env vars). Empty string = use methodology default.
+  # See backend/core/methodology_constants.py for paper-aligned defaults.
+  env:
+    AI_SC_ENV: "k8s"
+    AI_SC_LOG_LEVEL: "INFO"
+    AI_SC_DISABLE_SCHEDULER: "1"  # default: disable hourly GPU scrape in local k8s
+    # Calibration overrides (uncomment to override methodology defaults):
+    # AI_SC_ETA_PF: "0.167"
+    # AI_SC_ETA_DEC: "0.20"
+    # AI_SC_ETA_MEM: "0.36"
+    # AI_SC_C_SAT: "6.0"
+    # AI_SC_T_OVERHEAD: "0.026"
+    # AI_SC_ETA_CACHE: "0.0"
+    # AI_SC_K_SPEC: "1.0"
+    # AI_SC_O_FIXED: "0.0"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: 8000
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ── Frontend ─────────────────────────────────────────────────
+# IMPORTANT: REACT_APP_API_URL is a BUILD-time variable for CRA, not runtime.
+# To change the backend URL, rebuild the frontend image with a different
+# `--build-arg REACT_APP_API_URL=...` value. See README.md for kind workflow.
+frontend:
+  image:
+    repository: ai-infra-calculator/frontend
+    tag: dev
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 80
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    timeoutSeconds: 5
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 80
+    initialDelaySeconds: 3
+    periodSeconds: 10
+    timeoutSeconds: 3
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ── Ingress ──────────────────────────────────────────────────
+# Disabled by default. Use port-forward workflow first; enable when comfortable.
+# Requires nginx-ingress controller on kind:
+#   helm install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+  host: calc.localhost
+  # Path-based routing: /v1/*, /healthz, /openapi.json, /docs → backend; / → frontend
+  tls: []
+  # tls:
+  #   - secretName: calc-tls
+  #     hosts:
+  #       - calc.localhost
+
+# ── Pod-level config shared by both deployments ──────────────
+podSecurityContext: {}
+securityContext: {}
+imagePullSecrets: []

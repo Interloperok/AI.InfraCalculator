@@ -1,0 +1,17 @@
+# Patterns to ignore when building packages.
+# Borrowed from .gitignore semantics.
+.DS_Store
+.git/
+.gitignore
+.idea/
+.vscode/
+*.tmproj
+*.swp
+*.bak
+*.tgz
+*.tmp
+*~
+# OWNERS files for k8s contributors
+OWNERS
+# Helm release scratch
+charts/
