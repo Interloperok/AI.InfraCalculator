@@ -93,12 +93,38 @@ def calc_SL(TS, TSmax):
 
 def calc_kv_per_session_gb(L, H, SL, bytes_state, emp_kv, num_kv_heads=32, num_attention_heads=32):
     """
-    Раздел 3.2 — KV-кэш на 1 сессию (GiB)
+    Раздел 3.2 — KV-кэш на 1 сессию для MHA/GQA/MQA (GiB)
 
     MKV_s1 = 2 × L × H × SL × Bstate × EMPkv × (Nkv / Nattention) / 1024³
+
+    Применяется для стандартных трансформеров: K и V хранятся отдельно
+    (отсюда множитель 2), размер каждой головы H/Nattention. Для MLA
+    архитектур (DeepSeek V2/V3/R1) используйте ``calc_kv_mla``.
     """
     kv_ratio = num_kv_heads / num_attention_heads if num_attention_heads > 0 else 1.0
     return (2 * L * H * SL * bytes_state * emp_kv * kv_ratio) / (1024**3)
+
+
+def calc_kv_mla(L, SL, kv_lora_rank, qk_rope_head_dim, bytes_state, emp_kv):
+    """
+    Раздел 3.2 (MLA-ветвь) — KV-кэш для Multi-Head Latent Attention (GiB)
+
+    MKV_MLA_s1 = L × SL × (kv_lora_rank + qk_rope_head_dim) × Bstate × EMPkv / 1024³
+
+    Multi-Head Latent Attention (MLA, DeepSeek V2/V3/R1) сжимает K и V в
+    общее латентное представление + небольшая RoPE-часть, и хранит один
+    вектор на токен на слой (не два). Отсюда отсутствие множителя 2.
+
+    Параметры архитектуры:
+      DeepSeek-V3 / R1:  kv_lora_rank=512, qk_rope_head_dim=64
+      DeepSeek-V2:       kv_lora_rank=512, qk_rope_head_dim=64
+
+    Возвращает 0.0 если оба параметра <= 0 (недоступно — fallback на
+    стандартную формулу должен делать вызывающий).
+    """
+    if kv_lora_rank <= 0 and qk_rope_head_dim <= 0:
+        return 0.0
+    return L * SL * (kv_lora_rank + qk_rope_head_dim) * bytes_state * emp_kv / (1024**3)
 
 
 # ═══════════════════════════════════════════════════════════

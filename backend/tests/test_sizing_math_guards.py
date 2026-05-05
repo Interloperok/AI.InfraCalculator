@@ -324,3 +324,55 @@ class TestCmodelV3Form:
         result_bs1 = calc_Cmodel(sl_pf_eff=2000, th_pf=8563.06, Tdec=400, th_dec_per_session=6402.66, bs_real=1)
         result_bs57 = calc_Cmodel(sl_pf_eff=2000, th_pf=8563.06, Tdec=400, th_dec_per_session=112.33, bs_real=57)
         assert result_bs57 > result_bs1
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# §3.2 (MLA branch): KV cache for Multi-Head Latent Attention (P5)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestCalcKVMLA:
+    """calc_kv_mla — MLA cache formula (DeepSeek V2/V3/R1)."""
+
+    def test_deepseek_v3_at_4k_context(self) -> None:
+        # L=61, SL=4000, kv_lora=512, qk_rope=64, B_state=2 (FP16), EMP=1.0
+        # MKV_MLA = 61 * 4000 * (512+64) * 2 * 1.0 / 1024^3
+        from core.sizing_math import calc_kv_mla
+        result = calc_kv_mla(L=61, SL=4000, kv_lora_rank=512, qk_rope_head_dim=64,
+                             bytes_state=2, emp_kv=1.0)
+        expected = 61 * 4000 * 576 * 2 / (1024**3)
+        assert result == expected
+
+    def test_returns_zero_when_both_dims_zero(self) -> None:
+        from core.sizing_math import calc_kv_mla
+        assert calc_kv_mla(L=61, SL=4000, kv_lora_rank=0, qk_rope_head_dim=0,
+                            bytes_state=2, emp_kv=1.0) == 0.0
+
+    def test_mla_substantially_smaller_than_standard(self) -> None:
+        """MLA cache should be much smaller than the H-form for DeepSeek-V3 dims."""
+        from core.sizing_math import calc_kv_mla, calc_kv_per_session_gb
+        mla = calc_kv_mla(L=61, SL=4000, kv_lora_rank=512, qk_rope_head_dim=64,
+                          bytes_state=2, emp_kv=1.0)
+        # Standard form using H=7168 for DeepSeek-V3 with N_kv=N_attn=128
+        std = calc_kv_per_session_gb(L=61, H=7168, SL=4000, bytes_state=2, emp_kv=1.0,
+                                       num_kv_heads=128, num_attention_heads=128)
+        assert mla < std
+        # The exact ratio depends on architecture; should be ≥ 10× for DeepSeek-style
+        assert std / mla >= 10
+
+    def test_no_factor_of_two_for_k_and_v(self) -> None:
+        """MLA stores a single latent per token (not 2x for K and V)."""
+        from core.sizing_math import calc_kv_mla
+        # With kv_lora=576, qk_rope=0, equivalent to single head_dim of 576
+        result = calc_kv_mla(L=1, SL=1, kv_lora_rank=576, qk_rope_head_dim=0,
+                             bytes_state=1, emp_kv=1.0)
+        # Per-token per-layer: 576 bytes (no doubling). 1 layer * 1 token * 576 bytes / 1024^3
+        assert result == 576 / (1024**3)
+
+    def test_emp_kv_scales_linearly(self) -> None:
+        from core.sizing_math import calc_kv_mla
+        base = calc_kv_mla(L=61, SL=1000, kv_lora_rank=512, qk_rope_head_dim=64,
+                            bytes_state=2, emp_kv=1.0)
+        with_pad = calc_kv_mla(L=61, SL=1000, kv_lora_rank=512, qk_rope_head_dim=64,
+                                bytes_state=2, emp_kv=1.2)
+        assert abs(with_pad - base * 1.2) < 1e-9

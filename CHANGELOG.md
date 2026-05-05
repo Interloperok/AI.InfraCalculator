@@ -7,16 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### v1.3.0 — Methodology v3 parity (P0–P4 of 7)
+### v1.3.0 — Methodology v3 parity (P0–P5 of 7)
 
 Brings the calculator from methodology v2 to v3 across calibration,
-memory-bandwidth-bound decode, TTFT corrections, MoE accounting, and
-the iterative servers-by-compute fixed-point loop. Stacks under a
-single semver-bump because default-relying callers see numeric shifts
-(TTFT, decode throughput, server counts) when their inputs match the
-regimes the new formulas correct.
+memory-bandwidth-bound decode, TTFT corrections, MoE accounting,
+the iterative servers-by-compute fixed-point loop, and MLA support.
+Stacks under a single semver-bump because default-relying callers
+see numeric shifts (TTFT, decode throughput, server counts) when
+their inputs match the regimes the new formulas correct.
 
-Phases P5–P6 (MLA branch, loaded latency) remain ahead.
+P6 (loaded latency from Little's law) remains ahead.
+
+#### P5: Multi-Head Latent Attention (MLA) for DeepSeek V2/V3/R1
+
+Implements the §3.2 MLA branch of KV-cache sizing. v2 over-estimated
+KV memory by ~10-50× for DeepSeek-style architectures because it
+applied the standard `2·L·H·SL·B` formula even when models actually
+cache a single low-rank latent + small RoPE part per token per layer.
+
+**Added:**
+- `core.sizing_math.calc_kv_mla(L, SL, kv_lora_rank, qk_rope_head_dim,
+  bytes_state, emp_kv)`:
+  `MKV_MLA = L · SL · (kv_lora_rank + qk_rope_head_dim) · B_state · EMP_kv / 1024³`.
+  No factor of 2 — MLA caches one latent vector per token (not separate K and V).
+- `SizingInput`:
+  - `kv_lora_rank: Optional[int]` — DeepSeek-V3: 512.
+  - `qk_rope_head_dim: Optional[int]` — DeepSeek-V3: 64.
+- `SizingOutput.kv_arch_mode`: `'mla'` / `'mha'` / `'gqa'` / `'mqa'`,
+  auto-detected from input fields (`kv_lora_rank > 0` → mla; otherwise
+  from `num_kv_heads` vs `num_attention_heads` ratio).
+- 5 unit tests for `calc_kv_mla` covering DeepSeek-V3 numerics,
+  no-2× invariant, ratio vs standard form, EMP_kv linearity.
+
+**Changed:**
+- `services.sizing_service.run_sizing()`: branches on `is_mla =
+  kv_lora_rank > 0` to choose between `calc_kv_mla` and `calc_kv_per_session_gb`.
+  Auto-detects `kv_arch_mode` for diagnostic output.
+- Goldens regenerated with `kv_arch_mode` field (mha/mha/gqa for the 3
+  existing fixtures — none use MLA so no other numerics shift).
+
+**Notes:**
+- For DeepSeek-V3 at 4k context: MLA cache ≈ 0.26 GiB/session vs
+  standard form's ~6.99 GiB/session (≈27× reduction). Translates
+  directly into ~27× more sessions per GPU at the same memory budget.
+- `qk_rope_head_dim` is optional; defaults to 0 if unspecified — useful
+  for the case where you only know the LoRA rank.
+- Backwards compatible: callers without `kv_lora_rank` continue to use
+  the standard formula. No existing fixture changes.
 
 #### P4: Iterative servers-by-compute (§6.4 fixed-point)
 

@@ -18,6 +18,7 @@ from core.sizing_math import (
     calc_instances_per_server,
     calc_instances_per_server_tp,
     calc_kv_free_per_instance_gb,
+    calc_kv_mla,
     calc_kv_per_session_gb,
     calc_model_mem_gb,
     calc_p_effective,
@@ -90,15 +91,37 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     SL = calc_SL(TS, inp.max_context_window_TSmax)
 
     # ── Section 3.2: KV-кэш на 1 сессию ──
-    MKV = calc_kv_per_session_gb(
-        inp.layers_L,
-        inp.hidden_size_H,
-        SL,
-        inp.bytes_per_kv_state,
-        inp.emp_kv,
-        inp.num_kv_heads,
-        inp.num_attention_heads,
-    )
+    # P5: branch on Multi-Head Latent Attention (MLA, DeepSeek-V2/V3/R1).
+    # When kv_lora_rank > 0, the model uses MLA — different formula. For
+    # standard MHA/GQA/MQA, fall back to the v2 formula and detect arch
+    # from N_kv vs N_attention ratio.
+    is_mla = bool(inp.kv_lora_rank and inp.kv_lora_rank > 0)
+    if is_mla:
+        MKV = calc_kv_mla(
+            L=inp.layers_L,
+            SL=SL,
+            kv_lora_rank=int(inp.kv_lora_rank),
+            qk_rope_head_dim=int(inp.qk_rope_head_dim or 0),
+            bytes_state=inp.bytes_per_kv_state,
+            emp_kv=inp.emp_kv,
+        )
+        kv_arch_mode = "mla"
+    else:
+        MKV = calc_kv_per_session_gb(
+            inp.layers_L,
+            inp.hidden_size_H,
+            SL,
+            inp.bytes_per_kv_state,
+            inp.emp_kv,
+            inp.num_kv_heads,
+            inp.num_attention_heads,
+        )
+        if inp.num_kv_heads == 1:
+            kv_arch_mode = "mqa"
+        elif inp.num_kv_heads < inp.num_attention_heads:
+            kv_arch_mode = "gqa"
+        else:
+            kv_arch_mode = "mha"
 
     # ── Section 4.1: GPU на 1 экземпляр модели ──
     GPUcount_model = calc_gpus_per_instance(Mmodel, inp.gpu_mem_gb, inp.kavail)
@@ -378,6 +401,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         TS_session_context=TS,
         SL_sequence_length=SL,
         kv_per_session_gb=MKV,
+        kv_arch_mode=kv_arch_mode,
         # Section 4
         gpus_per_instance=GPUcount_model,
         instances_per_server=Ncount_model,

@@ -117,6 +117,19 @@ class SizingInput(BaseModel):
     max_context_window_TSmax: conint(gt=0) = Field(
         ..., description="Макс. контекстное окно модели (TSmax)"
     )
+    kv_lora_rank: Optional[conint(ge=0)] = Field(
+        default=None,
+        description="Латентная размерность KV для Multi-Head Latent Attention (MLA, "
+        "DeepSeek-V2/V3/R1). Когда задано (>0), KV-кэш считается по MLA-формуле "
+        "(§3.2): MKV = L·SL·(kv_lora_rank + qk_rope_head_dim)·B_state·EMP_kv. "
+        "DeepSeek-V3: 512. None или 0 для стандартных MHA/GQA/MQA — используется "
+        "формула с N_kv·H.",
+    )
+    qk_rope_head_dim: Optional[conint(ge=0)] = Field(
+        default=None,
+        description="Размерность RoPE-ключа MLA. DeepSeek-V3: 64. "
+        "Используется только если kv_lora_rank > 0. None для не-MLA.",
+    )
 
     # ── Section 4: Hardware & TP ──
     gpu_mem_gb: confloat(gt=0) = Field(..., description="Память GPU в GiB (GPUmemory)")
@@ -269,6 +282,13 @@ class SizingOutput(BaseModel):
         ..., description="Длина последовательности (SL = min(TS, TSmax))"
     )
     kv_per_session_gb: float = Field(..., description="KV-кэш на 1 сессию (MKV_s1, GiB)")
+    kv_arch_mode: Optional[str] = Field(
+        default=None,
+        description="Архитектура KV-кэша: 'mla' (Multi-Head Latent Attention — DeepSeek-V2/V3/R1, "
+        "вычислено по kv_lora_rank+qk_rope), 'mqa' (multi-query, N_kv=1), "
+        "'gqa' (grouped-query, N_kv < N_attention), 'mha' (full multi-head, N_kv = N_attention). "
+        "Определяется автоматически из входных параметров модели.",
+    )
 
     # ── Section 4: GPU & TP ──
     gpus_per_instance: int = Field(..., description="GPU на 1 экземпляр модели (GPUcount_model)")

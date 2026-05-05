@@ -30,6 +30,7 @@
     "instances_per_server_tp": 4,
     "is_moe_detailed": false,
     "iteration_count": 2,
+    "kv_arch_mode": "mha",
     "kv_free_per_instance_gb": 42.78561305999756,
     "kv_free_per_instance_tp_gb": 114.7856,
     "kv_per_session_gb": 1.8310546875,
