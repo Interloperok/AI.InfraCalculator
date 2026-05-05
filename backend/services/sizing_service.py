@@ -34,6 +34,8 @@ from core.sizing_math import (
     calc_th_prefill_cb_compute,
     calc_th_prefill_cb_mem,
     calc_th_server_comp,
+    calc_th_server_dec,
+    calc_th_server_pf,
     calc_ttft,
     select_th_decode,
     select_th_prefill,
@@ -476,8 +478,97 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
             "7. Пересмотреть целевые значения SLA, если техническая стоимость несоразмерна бизнес-ценности"
         )
 
+    # ── Section Ж (P10): PD-disaggregation pool sizing ──
+    # Methodology Ж.2: Servers_total = Servers_pf + Servers_dec, where each
+    # pool is sized independently per §6 with its own dominant coefficient.
+    # Per-pool eta overrides (pd_eta_pf_pool, pd_eta_mem_pool) reflect that
+    # a phase-specialized pool may have different calibration coefficients
+    # than a co-located deployment (§E.1.1 decode-heavy / §E.1.2 prefill-heavy).
+    eta_pf_pool_used = (
+        float(inp.pd_eta_pf_pool) if inp.pd_eta_pf_pool is not None else float(inp.eta_prefill)
+    )
+    eta_mem_pool_used = (
+        float(inp.pd_eta_mem_pool) if inp.pd_eta_mem_pool is not None else float(inp.eta_mem)
+    )
+
+    # Pool-specific prefill throughput. Compute branch is linear in η_pf;
+    # mem branch is independent of η_pf. Empirical override (when set) is a
+    # measured value that bypasses analytical scaling.
+    if inp.th_prefill_empir:
+        th_pf_pool = float(inp.th_prefill_empir)
+    else:
+        pf_scale = (
+            eta_pf_pool_used / inp.eta_prefill if inp.eta_prefill > 0 else 1.0
+        )
+        th_pf_compute_scaled = th_pf_compute * pf_scale if th_pf_compute > 0 else 0.0
+        if engine_mode == "continuous" and th_pf_mem > 0 and th_pf_compute_scaled > 0:
+            th_pf_pool = min(th_pf_compute_scaled, th_pf_mem)
+        elif th_pf_compute_scaled > 0:
+            th_pf_pool = th_pf_compute_scaled
+        else:
+            th_pf_pool = th_pf_mem if engine_mode == "continuous" else 0.0
+
+    # Pool-specific decode per-session throughput. Mem branch is linear in
+    # η_mem; compute branch (per session) is independent of η_mem.
+    if inp.th_decode_empir:
+        th_dec_session_pool = float(th_dec)
+    else:
+        mem_scale = eta_mem_pool_used / inp.eta_mem if inp.eta_mem > 0 else 1.0
+        th_dec_mem_scaled = th_dec_mem * mem_scale if th_dec_mem > 0 else 0.0
+        if th_dec_mem_scaled > 0 and th_dec_compute_per_session > 0:
+            sel = min(th_dec_compute_per_session, th_dec_mem_scaled)
+        elif th_dec_mem_scaled > 0:
+            sel = th_dec_mem_scaled
+        elif th_dec_compute_per_session > 0:
+            sel = th_dec_compute_per_session
+        else:
+            sel = 0.0
+        th_dec_session_pool = sel * inp.k_spec
+
+    # Per-server pool throughput (req/sec).
+    th_server_pf_val = calc_th_server_pf(NcountTP, th_pf_pool, SL_pf_eff)
+    th_server_dec_val = calc_th_server_dec(NcountTP, th_dec_session_pool, BS_real, Tdec)
+
+    # Per-pool server counts. Reuse §6.4 K_SLA framework with effective_R
+    # (P8 amplification by K_calls).
+    effective_R = inp.rps_per_session_R * k_calls
+    servers_pf_count = calc_servers_by_compute(
+        Ssim, effective_R, inp.sla_reserve_KSLA, th_server_pf_val
+    )
+    servers_dec_count = calc_servers_by_compute(
+        Ssim, effective_R, inp.sla_reserve_KSLA, th_server_dec_val
+    )
+
+    if servers_pf_count is math.inf or servers_dec_count is math.inf:
+        servers_pf_int = None
+        servers_dec_int = None
+        servers_pd_total = None
+    else:
+        servers_pf_int = int(servers_pf_count)
+        servers_dec_int = int(servers_dec_count)
+        servers_pd_total = servers_pf_int + servers_dec_int
+
+    # Recommendation surface: when classical co-located sizing wastes >30%,
+    # tell the operator that PD-disaggregation could save servers.
+    pd_recommendation = None
+    if (
+        not inp.use_pd_disagg
+        and servers_pd_total is not None
+        and servers_comp not in (0, math.inf)
+        and servers_pd_total < 0.7 * servers_comp
+    ):
+        savings_pct = round((1 - servers_pd_total / servers_comp) * 100)
+        pd_recommendation = (
+            f"PD-дизагрегация (Приложение Ж) могла бы сократить compute-серверы "
+            f"на ~{savings_pct}% ({servers_comp} → {servers_pd_total}). "
+            f"Установите use_pd_disagg=true для расчёта с раздельными пулами."
+        )
+
     # ── Section 8: Итоговое количество серверов ──
-    servers_final = max(servers_mem, servers_comp)
+    if inp.use_pd_disagg and servers_pd_total is not None:
+        servers_final = max(servers_mem, servers_pd_total)
+    else:
+        servers_final = max(servers_mem, servers_comp)
 
     # ── Cost estimate (from GPU catalog price: custom catalog или gpu_data.json) ──
     custom_catalog_list = None
@@ -548,6 +639,16 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         Cmodel_rps=Cmodel,
         th_server_comp=th_server,
         servers_by_compute=servers_comp,
+        # Section Ж (P10): PD-disaggregation
+        pd_disagg_used=bool(inp.use_pd_disagg),
+        th_server_pf=round(th_server_pf_val, 4) if th_server_pf_val > 0 else None,
+        th_server_dec=round(th_server_dec_val, 4) if th_server_dec_val > 0 else None,
+        servers_pf=servers_pf_int,
+        servers_dec=servers_dec_int,
+        servers_pd_total=servers_pd_total,
+        pd_eta_pf_pool_used=round(eta_pf_pool_used, 4),
+        pd_eta_mem_pool_used=round(eta_mem_pool_used, 4),
+        pd_recommendation=pd_recommendation,
         # Section 7: SLA validation
         SL_pf_input_length=SL_pf,
         SL_pf_eff_after_cache=round(SL_pf_eff, 4),

@@ -608,3 +608,41 @@ def calc_servers_by_compute(Ssim, R, KSLA, th_server_comp):
     if th_server_comp <= 0:
         return math.inf
     return math.ceil((Ssim * R * KSLA) / th_server_comp)
+
+
+# ═══════════════════════════════════════════════════════════
+# Section Ж: PD-disaggregation (split prefill / decode pools)
+# ═══════════════════════════════════════════════════════════
+
+
+def calc_th_server_pf(NcountTP, th_pf, sl_pf_eff):
+    """
+    Приложение Ж.2 — Throughput сервера в prefill-пуле (req/sec).
+
+    Th_pf^server = NcountTP × Th_pf / SL_pf^eff
+
+    В PD-дизагрегированной топологии prefill-пул выполняет только prefill-фазу
+    (TTFT-bounded), и время на запрос на инстанс = SL_pf^eff / Th_pf. Отсюда
+    C_model_pf = Th_pf / SL_pf^eff (req/sec на инстанс), а сервер с NcountTP
+    инстансами выдаёт NcountTP × C_model_pf req/sec.
+    """
+    if sl_pf_eff <= 0 or th_pf <= 0 or NcountTP <= 0:
+        return 0.0
+    return NcountTP * th_pf / sl_pf_eff
+
+
+def calc_th_server_dec(NcountTP, th_dec_per_session, bs_real, Tdec):
+    """
+    Приложение Ж.2 — Throughput сервера в decode-пуле (req/sec).
+
+    Th_dec^server = NcountTP × BS_real × Th_dec_per_session / T_dec
+
+    В PD-дизагрегированной топологии decode-пул обслуживает BS_real
+    одновременных decode-сессий на инстанс; каждая сессия даёт
+    Th_dec_per_session токенов/сек, на запрос нужно T_dec токенов. Отсюда
+    C_model_dec = BS_real × Th_dec_per_session / T_dec (req/sec на инстанс),
+    Th_dec^server = NcountTP × C_model_dec.
+    """
+    if Tdec <= 0 or th_dec_per_session <= 0 or bs_real <= 0 or NcountTP <= 0:
+        return 0.0
+    return NcountTP * bs_real * th_dec_per_session / Tdec

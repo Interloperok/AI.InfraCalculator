@@ -611,3 +611,62 @@ class TestParallelismExtensions:
         pcie_eff = nominal * 0.7
         assert pcie_eff < nominal
         assert abs(pcie_eff - nominal * 0.7) < 1e-9
+
+
+class TestPDDisaggregationMath:
+    """P10 — pure functions for split prefill/decode pool sizing (Appendix Ж)."""
+
+    def test_th_server_pf_basic_formula(self) -> None:
+        # Th_pf^server = NcountTP × Th_pf / SL_pf_eff
+        from core.sizing_math import calc_th_server_pf
+        # Ncount=2, Th_pf=1000 tok/s, SL_pf=2000 tok → 2 × 1000/2000 = 1.0 req/s
+        assert calc_th_server_pf(NcountTP=2, th_pf=1000.0, sl_pf_eff=2000.0) == 1.0
+
+    def test_th_server_pf_returns_zero_on_invalid_inputs(self) -> None:
+        from core.sizing_math import calc_th_server_pf
+        assert calc_th_server_pf(NcountTP=2, th_pf=1000.0, sl_pf_eff=0.0) == 0.0
+        assert calc_th_server_pf(NcountTP=2, th_pf=0.0, sl_pf_eff=2000.0) == 0.0
+        assert calc_th_server_pf(NcountTP=0, th_pf=1000.0, sl_pf_eff=2000.0) == 0.0
+
+    def test_th_server_pf_grows_with_throughput(self) -> None:
+        from core.sizing_math import calc_th_server_pf
+        a = calc_th_server_pf(NcountTP=4, th_pf=2000.0, sl_pf_eff=1000.0)
+        b = calc_th_server_pf(NcountTP=4, th_pf=4000.0, sl_pf_eff=1000.0)
+        assert b > a
+        assert abs(b - 2 * a) < 1e-9
+
+    def test_th_server_pf_drops_with_longer_context(self) -> None:
+        from core.sizing_math import calc_th_server_pf
+        short_ctx = calc_th_server_pf(NcountTP=2, th_pf=1000.0, sl_pf_eff=1000.0)
+        long_ctx = calc_th_server_pf(NcountTP=2, th_pf=1000.0, sl_pf_eff=4000.0)
+        assert long_ctx < short_ctx
+        assert abs(long_ctx - short_ctx / 4) < 1e-9
+
+    def test_th_server_dec_basic_formula(self) -> None:
+        # Th_dec^server = NcountTP × BS_real × Th_dec_per_session / Tdec
+        from core.sizing_math import calc_th_server_dec
+        # Ncount=2, BS=8, Th_dec_per_session=100 tok/s, Tdec=400 → 2·8·100/400 = 4.0
+        assert calc_th_server_dec(
+            NcountTP=2, th_dec_per_session=100.0, bs_real=8, Tdec=400.0
+        ) == 4.0
+
+    def test_th_server_dec_returns_zero_on_invalid_inputs(self) -> None:
+        from core.sizing_math import calc_th_server_dec
+        assert calc_th_server_dec(2, 100.0, 8, 0.0) == 0.0
+        assert calc_th_server_dec(2, 0.0, 8, 400.0) == 0.0
+        assert calc_th_server_dec(2, 100.0, 0, 400.0) == 0.0
+        assert calc_th_server_dec(0, 100.0, 8, 400.0) == 0.0
+
+    def test_th_server_dec_grows_with_bs_real(self) -> None:
+        from core.sizing_math import calc_th_server_dec
+        small = calc_th_server_dec(NcountTP=2, th_dec_per_session=100.0, bs_real=4, Tdec=400.0)
+        large = calc_th_server_dec(NcountTP=2, th_dec_per_session=100.0, bs_real=16, Tdec=400.0)
+        assert large > small
+        assert abs(large - 4 * small) < 1e-9
+
+    def test_th_server_dec_drops_with_longer_generation(self) -> None:
+        from core.sizing_math import calc_th_server_dec
+        short_gen = calc_th_server_dec(2, 100.0, 8, 400.0)
+        long_gen = calc_th_server_dec(2, 100.0, 8, 1600.0)
+        assert long_gen < short_gen
+        assert abs(long_gen - short_gen / 4) < 1e-9

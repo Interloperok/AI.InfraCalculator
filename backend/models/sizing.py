@@ -208,6 +208,34 @@ class SizingInput(BaseModel):
         "'roce'. Используется только для документирования конфигурации; "
         "для влияния на расчёт задайте eta_tp напрямую.",
     )
+
+    # ── Section Ж (P10): PD-disaggregation (split prefill/decode pools) ──
+    use_pd_disagg: Optional[bool] = Field(
+        default=False,
+        description="Включить PD-дизагрегацию (Приложение Ж). "
+        "При True расчёт возвращает раздельные пулы: Servers_pf "
+        "(prefill, под TTFT SLO) + Servers_dec (decode, под BW_GPU·η_mem·BS_real). "
+        "Servers_total = Servers_pf + Servers_dec. "
+        "При False (по умолчанию) — классическая совмещённая топология; "
+        "если PD-дизагрегация дала бы экономию >30%, выводится pd_recommendation. "
+        "Применимо к движкам NVIDIA Dynamo, vLLM 0.8+, SGLang, DistServe.",
+    )
+    pd_eta_pf_pool: Optional[confloat(gt=0.0, le=1.0)] = Field(
+        default=None,
+        description="η_pf для prefill-пула (Приложение Ж.2). "
+        "Калибруется по prefill-heavy прогону §Е.1.2. "
+        "При None используется inp.eta_prefill (общий калибровочный коэффициент). "
+        "В реальных развёртываниях prefill-пул может иметь иную эффективность "
+        "из-за специализации hardware (FLOPS-tuned).",
+    )
+    pd_eta_mem_pool: Optional[confloat(gt=0.0, le=1.0)] = Field(
+        default=None,
+        description="η_mem для decode-пула (Приложение Ж.2). "
+        "Калибруется по decode-heavy прогону §Е.1.1. "
+        "При None используется inp.eta_mem. "
+        "Decode-пул может быть hardware-специализированным под высокую "
+        "пропускную способность памяти (HBM-tuned).",
+    )
     saturation_coeff_C: confloat(gt=0) = Field(
         default=C_SAT_DEFAULT,
         description="Коэф. насыщения от батча (C = tfix/tlin, прикидка 4-16). "
@@ -493,6 +521,56 @@ class SizingOutput(BaseModel):
     Cmodel_rps: float = Field(..., description="Запросов/сек на 1 экземпляр модели (Cmodel)")
     th_server_comp: float = Field(..., description="Пропускная способность сервера (req/sec)")
     servers_by_compute: int = Field(..., description="Серверов по вычислениям (Servers_comp)")
+
+    # ── Section Ж (P10): PD-disaggregation outputs ──
+    pd_disagg_used: Optional[bool] = Field(
+        default=None,
+        description="Применён ли расчёт PD-дизагрегации (Приложение Ж). "
+        "При True servers_final учитывает Servers_pf + Servers_dec; "
+        "при False классическая совмещённая топология.",
+    )
+    th_server_pf: Optional[float] = Field(
+        default=None,
+        description="Throughput сервера в prefill-пуле (req/sec, Приложение Ж.2). "
+        "Th_pf^server = NcountTP × Th_pf / SL_pf^eff. "
+        "Вычисляется всегда для what-if сравнения.",
+    )
+    th_server_dec: Optional[float] = Field(
+        default=None,
+        description="Throughput сервера в decode-пуле (req/sec, Приложение Ж.2). "
+        "Th_dec^server = NcountTP × BS_real × Th_dec_per_session / T_dec. "
+        "Вычисляется всегда для what-if сравнения.",
+    )
+    servers_pf: Optional[int] = Field(
+        default=None,
+        description="Серверы в prefill-пуле (Приложение Ж.2). "
+        "Servers_pf = ⌈(Ssim · R_eff · K_SLA) / Th_pf^server⌉.",
+    )
+    servers_dec: Optional[int] = Field(
+        default=None,
+        description="Серверы в decode-пуле (Приложение Ж.2). "
+        "Servers_dec = ⌈(Ssim · R_eff · K_SLA) / Th_dec^server⌉.",
+    )
+    servers_pd_total: Optional[int] = Field(
+        default=None,
+        description="Сумма обоих пулов (Приложение Ж.2): Servers_pf + Servers_dec. "
+        "Сравнивается с servers_by_compute для оценки экономии.",
+    )
+    pd_eta_pf_pool_used: Optional[float] = Field(
+        default=None,
+        description="Применённый η_pf для prefill-пула (echo). "
+        "Из inp.pd_eta_pf_pool или fallback к inp.eta_prefill.",
+    )
+    pd_eta_mem_pool_used: Optional[float] = Field(
+        default=None,
+        description="Применённый η_mem для decode-пула (echo). "
+        "Из inp.pd_eta_mem_pool или fallback к inp.eta_mem.",
+    )
+    pd_recommendation: Optional[str] = Field(
+        default=None,
+        description="Рекомендация перейти на PD-дизагрегацию, если совмещённая топология "
+        "тратит >30% compute. Заполняется только при use_pd_disagg=False.",
+    )
 
     # ── Section 7: SLA validation ──
     SL_pf_input_length: Optional[float] = Field(

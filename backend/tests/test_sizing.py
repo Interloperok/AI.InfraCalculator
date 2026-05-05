@@ -436,3 +436,100 @@ class TestEdgeCases:
         result = run_sizing(inp)
         assert result.Ssim_concurrent_sessions == 0
         assert result.servers_final == 0
+
+
+# ═══════════════════════════════════════════════════════════
+# P10: PD-disaggregation (Приложение Ж) — service-level wiring
+# ═══════════════════════════════════════════════════════════
+
+
+class TestPDDisaggregationService:
+    """Integration tests for the use_pd_disagg branch in run_sizing."""
+
+    def test_default_off_does_not_change_servers_final(self):
+        """use_pd_disagg defaults to False; servers_final matches classical max(mem, comp)."""
+        inp = SizingInput(**EXCEL_INPUT)
+        result = run_sizing(inp)
+        assert result.pd_disagg_used is False
+        assert result.servers_final == max(result.servers_by_memory, result.servers_by_compute)
+
+    def test_pd_fields_populated_even_when_off(self):
+        """What-if pool sizing is always computed for diagnostics."""
+        inp = SizingInput(**EXCEL_INPUT)
+        result = run_sizing(inp)
+        assert result.servers_pf is not None and result.servers_pf > 0
+        assert result.servers_dec is not None and result.servers_dec > 0
+        assert result.servers_pd_total == result.servers_pf + result.servers_dec
+        assert result.th_server_pf is not None and result.th_server_pf > 0
+        assert result.th_server_dec is not None and result.th_server_dec > 0
+
+    def test_pd_disagg_on_uses_pool_total_for_servers_final(self):
+        """When use_pd_disagg=True, servers_final = max(servers_mem, servers_pf + servers_dec)."""
+        data = {**EXCEL_INPUT, "use_pd_disagg": True}
+        inp = SizingInput(**data)
+        result = run_sizing(inp)
+        assert result.pd_disagg_used is True
+        assert result.servers_final == max(result.servers_by_memory, result.servers_pd_total)
+
+    def test_eta_pf_pool_override_echo(self):
+        """pd_eta_pf_pool flows into pd_eta_pf_pool_used echo field."""
+        data = {**EXCEL_INPUT, "pd_eta_pf_pool": 0.40}
+        inp = SizingInput(**data)
+        result = run_sizing(inp)
+        assert result.pd_eta_pf_pool_used == pytest.approx(0.40, rel=1e-6)
+
+    def test_eta_pf_pool_override_increases_pf_throughput(self):
+        """Doubling η_pf_pool ~doubles th_server_pf (compute branch is linear in η_pf)."""
+        baseline = run_sizing(SizingInput(**EXCEL_INPUT))
+        data = {**EXCEL_INPUT, "pd_eta_pf_pool": EXCEL_INPUT["eta_prefill"] * 2}
+        boosted = run_sizing(SizingInput(**data))
+        # Th_server_pf scales linearly with η_pf when compute-bound (default
+        # config has bw_gpu unset → no mem branch competing).
+        assert boosted.th_server_pf > baseline.th_server_pf
+        ratio = boosted.th_server_pf / baseline.th_server_pf
+        assert 1.5 < ratio <= 2.0  # ≤ 2 because mem branch may clamp
+
+    def test_eta_mem_pool_override_echo(self):
+        """pd_eta_mem_pool flows into pd_eta_mem_pool_used echo field."""
+        data = {**EXCEL_INPUT, "pd_eta_mem_pool": 0.50}
+        inp = SizingInput(**data)
+        result = run_sizing(inp)
+        assert result.pd_eta_mem_pool_used == pytest.approx(0.50, rel=1e-6)
+
+    def test_pd_eta_defaults_fall_back_to_global(self):
+        """When pool overrides not set, used values match global etas."""
+        inp = SizingInput(**EXCEL_INPUT)
+        result = run_sizing(inp)
+        assert result.pd_eta_pf_pool_used == pytest.approx(EXCEL_INPUT["eta_prefill"], rel=1e-6)
+        # eta_mem default comes from methodology constants (not in EXCEL_INPUT).
+        assert result.pd_eta_mem_pool_used is not None
+        assert result.pd_eta_mem_pool_used > 0
+
+    def test_pd_recommendation_only_when_off(self):
+        """pd_recommendation must be None when use_pd_disagg=True (not redundant)."""
+        data = {**EXCEL_INPUT, "use_pd_disagg": True}
+        inp = SizingInput(**data)
+        result = run_sizing(inp)
+        assert result.pd_recommendation is None
+
+    def test_pd_recommendation_format_when_savings_significant(self):
+        """When PD would save >30% compute, recommendation surfaces with %."""
+        # Construct a workload where prefill dominates: long context, short
+        # generation, low MRT — co-located pool is forced to scale for prefill
+        # but most compute time goes there. The split-pool sizing will be
+        # smaller because each phase scales independently.
+        data = {
+            **EXCEL_INPUT,
+            "user_prompt_tokens_Prp": 4000,  # long input
+            "answer_tokens_A": 50,            # short output
+            "reasoning_tokens_MRT": 0,
+            "dialog_turns": 1,
+        }
+        inp = SizingInput(**data)
+        result = run_sizing(inp)
+        # If recommendation triggers, it should reference PD-дизагрегация and
+        # include a % savings number.
+        if result.pd_recommendation is not None:
+            assert "PD-дизагрегация" in result.pd_recommendation
+            assert "%" in result.pd_recommendation
+            assert result.servers_pd_total < result.servers_by_compute

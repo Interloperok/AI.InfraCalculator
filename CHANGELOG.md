@@ -7,18 +7,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### v1.3.0 — Methodology v3 parity (P0–P8 + P11)
+### v1.3.0 — Methodology v3 parity (P0–P8 + P10 + P11)
 
 Brings the calculator from methodology v2 to v3 across calibration,
 memory-bandwidth-bound decode, TTFT corrections, MoE accounting,
 iterative servers-by-compute fixed-point, MLA support, loaded-latency
-SLA, continuous-batching prefill, agentic K_calls, and parallelism
-beyond TP. Stacks under a single semver-bump because default-relying
-callers see numeric shifts when their inputs match the regimes the
-new formulas correct.
+SLA, continuous-batching prefill, agentic K_calls, parallelism
+beyond TP, and prefill/decode pool disaggregation. Stacks under a
+single semver-bump because default-relying callers see numeric shifts
+when their inputs match the regimes the new formulas correct.
 
-P9 (OCR/VLM endpoint) and P10 (PD-disaggregation) remain as future
-extensions — separate endpoints / sizing modes, can ship as v1.4.x.
+P9 (OCR/VLM endpoint) remains as a future extension — separate
+endpoint and sizing model, can ship as v1.4.x.
+
+#### P10: PD-disaggregation — split prefill/decode pools (Appendix Ж)
+
+Implements the §Ж.2 split-pool sizing model `Servers_total =
+Servers_pf + Servers_dec`. v2 modeled a single co-located pool where
+both phases share each instance's time slice — for prefill-heavy or
+decode-heavy workloads this over-provisions because both phases must
+scale together even when only one saturates the hardware. PD-disagg
+sizes each pool independently against its dominant coefficient
+(η_pf for prefill, BW_GPU·η_mem·BS_real for decode), matching modern
+deployments on NVIDIA Dynamo, vLLM 0.8+ disaggregated prefill, SGLang,
+and DistServe.
+
+**Added:**
+- `core.sizing_math.calc_th_server_pf(NcountTP, th_pf, sl_pf_eff)`:
+  prefill-pool server throughput `Th_pf^server = NcountTP · Th_pf / SL_pf^eff`
+  (req/sec).
+- `core.sizing_math.calc_th_server_dec(NcountTP, th_dec_per_session, bs_real, Tdec)`:
+  decode-pool server throughput `Th_dec^server = NcountTP · BS_real · Th_dec_per_session / T_dec`
+  (req/sec).
+- `SizingInput` optional fields:
+  - `use_pd_disagg` (default `False`) — when `True`, `servers_final`
+    is sized as `max(servers_mem, servers_pf + servers_dec)`.
+  - `pd_eta_pf_pool` — per-pool η_pf override (Ж.2 / §Е.1.2). Defaults
+    to `inp.eta_prefill` when not set.
+  - `pd_eta_mem_pool` — per-pool η_mem override (Ж.2 / §Е.1.1). Defaults
+    to `inp.eta_mem` when not set.
+- `SizingOutput` optional fields:
+  - `pd_disagg_used` — bool echo of the input flag.
+  - `th_server_pf`, `th_server_dec` — per-server pool throughput
+    diagnostics, always populated.
+  - `servers_pf`, `servers_dec`, `servers_pd_total` — per-pool counts
+    + sum, always populated for what-if comparison.
+  - `pd_eta_pf_pool_used`, `pd_eta_mem_pool_used` — applied eta echoes.
+  - `pd_recommendation` — surfaced when `use_pd_disagg=False` and
+    PD-disagg would save >30% of compute servers; references
+    Приложение Ж and quotes the % savings.
+- 8 unit tests for the pure pool-throughput functions and 9 service-
+  level integration tests for the `use_pd_disagg` branch (regression,
+  on/off behavior, eta override flow, recommendation format).
+
+**Changed:**
+- `services.sizing_service.run_sizing()`: after the §6.4 iteration
+  converges on `BS_real`, computes pool-specific `Th_pf` and
+  `Th_dec_per_session` by linearly scaling the relevant compute/mem
+  branch with `eta_pf_pool_used / eta_prefill` and
+  `eta_mem_pool_used / eta_mem` respectively. Empirical overrides
+  bypass scaling. Pool counts use the existing `calc_servers_by_compute`
+  with `effective_R = R · K_calls`.
+- Goldens regenerated with the 9 new output fields. Numeric values
+  unchanged for existing fixtures (`use_pd_disagg=False` and pool eta
+  overrides default to global etas).
+
+**Notes:**
+- Memory sizing is shared across pools in this implementation —
+  `servers_mem` acts as a floor on `servers_final`. Methodology Ж.2
+  describes per-pool memory budgets but in practice the decode pool
+  dominates KV memory; first-pass split-pool sizing maps directly onto
+  the existing `servers_mem` calculation.
+- Eta overrides scope to the dominant coefficient per pool. Per the
+  methodology, prefill pool throughput is dominated by η_pf and decode
+  pool by η_mem. `eta_decode` (compute branch) is not split because
+  the per-session compute branch is independent of η_mem and the §6.4
+  iteration has already converged.
+- The 30% threshold for `pd_recommendation` is a heuristic. For
+  exact savings, set `use_pd_disagg=True` and compare `servers_final`
+  before/after.
+- Off by default — existing API callers see no behavior change other
+  than the new optional output fields.
 
 #### P11: Parallelism beyond TP — DP/PP/EP/η_TP (Appendix Г)
 
