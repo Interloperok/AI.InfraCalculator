@@ -215,7 +215,7 @@ def calc_th_prefill_analyt(Fcount_model_flops, eta_pf, Kbatch, FPS, L, H, SL):
 
 def calc_th_decode_analyt(Fcount_model_flops, eta_dec, Kbatch, FPS, L, H, SL, Tdec):
     """
-    Раздел 6.1 — Аналитический throughput фазы decode (tokens/sec)
+    Раздел 6.1 — Аналитический compute-bound throughput фазы decode (tokens/sec)
 
     Th_dec_analyt ≈ (Fcount_model × η_dec × Kbatch) / (FPS + 4 × L × H × (SL + (Tdec−1)/2))
     """
@@ -223,6 +223,68 @@ def calc_th_decode_analyt(Fcount_model_flops, eta_dec, Kbatch, FPS, L, H, SL, Td
     if denominator <= 0 or Fcount_model_flops <= 0:
         return 0.0
     return (Fcount_model_flops * eta_dec * Kbatch) / denominator
+
+
+def calc_th_decode_mem(
+    bw_gpu_gbs,
+    eta_mem,
+    params_billions,
+    b_quant,
+    mkv_gb,
+    bs_real=1,
+    o_fixed_gb=0.0,
+):
+    """
+    Раздел 6.1 (H-7) — Memory-bandwidth-bound throughput фазы decode (tokens/sec).
+
+    Th_dec_mem(BS_real) = (BW_GPU × 10⁹ × η_mem)
+                        / (P_eff(BS_real) × 10⁹ × B_quant
+                           + BS_real × M_KV × 1024³
+                           + O_fixed × 1024³)
+
+    Для P1: P_eff = params_billions (treated as P_active until P3 adds MoE
+    accounting); BS_real = 1 (until P4 adds iterative coupling).
+
+    Возвращает 0.0 если bw_gpu_gbs не задан — в таком случае mem-branch
+    не вычисляется и th_dec остаётся compute-bound.
+    """
+    if bw_gpu_gbs is None or bw_gpu_gbs <= 0:
+        return 0.0
+    numerator = bw_gpu_gbs * 1e9 * eta_mem
+    denominator = (
+        params_billions * 1e9 * b_quant
+        + bs_real * mkv_gb * (1024**3)
+        + o_fixed_gb * (1024**3)
+    )
+    if denominator <= 0:
+        return 0.0
+    return numerator / denominator
+
+
+def select_th_decode(th_compute, th_mem):
+    """
+    Раздел 6.1 — выбор итоговой пропускной способности decode.
+
+    Th_dec = min(Th_dec^compute, Th_dec^mem) когда оба определены;
+    иначе единственное доступное значение.
+
+    Возвращает (value, mode), где mode ∈ {"compute", "memory", "compute_only",
+    "memory_only", "none"}:
+      - "compute"      — оба ветви посчитаны, compute < mem (compute-bound)
+      - "memory"       — оба ветви посчитаны, mem < compute (memory-bound)
+      - "compute_only" — bw_gpu не задан, считаем только compute
+      - "memory_only"  — compute = 0 (вырожденный случай)
+      - "none"         — оба = 0 (ошибка/невалидный ввод)
+    """
+    if th_compute <= 0 and th_mem <= 0:
+        return 0.0, "none"
+    if th_mem <= 0:
+        return th_compute, "compute_only"
+    if th_compute <= 0:
+        return th_mem, "memory_only"
+    if th_mem < th_compute:
+        return th_mem, "memory"
+    return th_compute, "compute"
 
 
 def calc_Cmodel(TS, th_pf, Tdec, th_dec):

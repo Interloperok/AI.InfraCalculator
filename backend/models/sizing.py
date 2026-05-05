@@ -281,7 +281,26 @@ class SizingOutput(BaseModel):
     FPS_flops_per_token: float = Field(..., description="FLOP на 1 токен (FPS = 2·P·10⁹)")
     Tdec_tokens: float = Field(..., description="Токены decode фазы (Tdec = A + MRT)")
     th_prefill: float = Field(..., description="Throughput prefill (tokens/sec)")
-    th_decode: float = Field(..., description="Throughput decode (tokens/sec)")
+    th_decode: float = Field(..., description="Throughput decode (tokens/sec) — итоговый, после min(compute, mem)")
+    th_dec_compute: Optional[float] = Field(
+        default=None,
+        description="Compute-bound предел throughput decode (tokens/sec, §6.1).",
+    )
+    th_dec_mem: Optional[float] = Field(
+        default=None,
+        description="Memory-bandwidth-bound предел throughput decode (tokens/sec, §6.1 H-7). "
+        "None если bw_gpu не известен (см. mode_decode_bound).",
+    )
+    mode_decode_bound: Optional[str] = Field(
+        default=None,
+        description="Что лимитирует decode: 'compute' / 'memory' / 'compute_only' "
+        "(bw_gpu не задан — расчёт только compute) / 'memory_only' / 'empirical' (использован inp.th_decode_empir) / 'none'.",
+    )
+    bw_gpu_gbs_used: Optional[float] = Field(
+        default=None,
+        description="Использованная пропускная способность памяти GPU (GB/s). "
+        "Из inp.bw_gpu_gbs или из каталога по gpu_id; None если недоступна.",
+    )
     Cmodel_rps: float = Field(..., description="Запросов/сек на 1 экземпляр модели (Cmodel)")
     th_server_comp: float = Field(..., description="Пропускная способность сервера (req/sec)")
     servers_by_compute: int = Field(..., description="Серверов по вычислениям (Servers_comp)")

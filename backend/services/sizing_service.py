@@ -24,13 +24,19 @@ from core.sizing_math import (
     calc_session_context_TS,
     calc_sessions_per_server,
     calc_th_decode_analyt,
+    calc_th_decode_mem,
     calc_th_prefill_analyt,
     calc_th_server_comp,
     calc_ttft,
+    select_th_decode,
 )
 from errors import ValidationAppError
 from models import SizingInput, SizingOutput
-from services.gpu_catalog_service import lookup_gpu_price_usd, lookup_gpu_tflops
+from services.gpu_catalog_service import (
+    lookup_gpu_bandwidth_gbs,
+    lookup_gpu_price_usd,
+    lookup_gpu_tflops,
+)
 
 
 def run_sizing(inp: SizingInput) -> SizingOutput:
@@ -164,9 +170,32 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         Tdec,
     )
 
-    # Приоритет: эмпирические значения > аналитические
+    # ── §6.1 H-7: Memory-bandwidth-bound decode (P1) ──
+    # Resolve GPU memory bandwidth: input takes priority, fall back to catalog
+    # by exact gpu_id (no memory-fallback to avoid spurious matches).
+    bw_gpu = inp.bw_gpu_gbs
+    if bw_gpu is None and inp.gpu_id:
+        catalog_bw = lookup_gpu_bandwidth_gbs(inp.gpu_id)
+        bw_gpu = catalog_bw if catalog_bw > 0 else None
+
+    th_dec_mem = calc_th_decode_mem(
+        bw_gpu_gbs=bw_gpu if bw_gpu is not None else 0.0,
+        eta_mem=inp.eta_mem,
+        params_billions=inp.params_billions,
+        b_quant=inp.bytes_per_param,
+        mkv_gb=MKV,
+        bs_real=1,
+        o_fixed_gb=inp.o_fixed,
+    )
+
+    # Приоритет: эмпирические значения > min(compute, mem)
     th_pf = inp.th_prefill_empir if inp.th_prefill_empir else th_pf_analyt
-    th_dec = inp.th_decode_empir if inp.th_decode_empir else th_dec_analyt
+
+    if inp.th_decode_empir:
+        th_dec = inp.th_decode_empir
+        mode_decode_bound = "empirical"
+    else:
+        th_dec, mode_decode_bound = select_th_decode(th_dec_analyt, th_dec_mem)
 
     # ── Section 6.2: Cmodel — req/sec на 1 экземпляр ──
     # Используем SL (= min(TS, TSmax)), а не TS: prefill обрабатывает
@@ -295,6 +324,10 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         Tdec_tokens=Tdec,
         th_prefill=th_pf,
         th_decode=th_dec,
+        th_dec_compute=round(th_dec_analyt, 4) if th_dec_analyt > 0 else None,
+        th_dec_mem=round(th_dec_mem, 4) if th_dec_mem > 0 else None,
+        mode_decode_bound=mode_decode_bound,
+        bw_gpu_gbs_used=round(bw_gpu, 2) if bw_gpu else None,
         Cmodel_rps=Cmodel,
         th_server_comp=th_server,
         servers_by_compute=servers_comp,

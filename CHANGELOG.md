@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v3.0.0-alpha — P1: Memory-bandwidth-bound decode
+
+Implements §6.1 H-7 from methodology v3:
+`Th_dec = min(Th_dec^compute, Th_dec^mem)`.
+
+#### Added
+- `core.sizing_math.calc_th_decode_mem()` — memory-bandwidth-bound decode formula:
+  `Th_dec_mem = (BW_GPU·1e9·η_mem) / (P·1e9·B_quant + BS·M_KV·1024³ + O_fixed·1024³)`.
+  Returns 0.0 if `bw_gpu_gbs` is None/0 (mem branch silently skipped).
+- `core.sizing_math.select_th_decode()` — selector returning
+  `(value, mode)` where mode ∈ `{compute, memory, compute_only, memory_only, none}`.
+- `services.gpu_catalog_service.lookup_gpu_bandwidth_gbs()` — strict `gpu_id`-only
+  lookup for `memory_bandwidth_gbs` field (no memory-fallback to avoid spurious
+  matches with fixture/fake gpu_ids).
+- `SizingOutput` new fields: `th_dec_compute`, `th_dec_mem`, `mode_decode_bound`,
+  `bw_gpu_gbs_used`. All optional — `None` when not applicable.
+- 10 unit tests covering mem-bound formula behavior and selector cases.
+
+#### Changed
+- `services.sizing_service.run_sizing()` — decode throughput now resolves from
+  `min(compute, mem)`. Empirical override (`th_decode_empir`) still takes
+  highest priority. `mode_decode_bound` records which branch dominated.
+- Golden fixtures updated with new output fields. All 3 fixtures use
+  `gpu_id="fixture-gpu"` which resolves to no bandwidth → `compute_only` →
+  `th_decode` numeric value preserved (regression-safe).
+
+#### Notes
+- For BS_real, P1 uses **BS=1**. Iterative coupling between `Servers_count`
+  and `BS_real` lands in P4 (§6.4 fixed-point loop).
+- `params_billions` is treated as `P_active` for now. P3 will add
+  `P_active`/`P_dense`/`P_moe` distinction with `P_effective(BS_real)`.
+- Existing API callers without `gpu_id` (or with fake gpu_id) keep their
+  current compute-bound numeric output unchanged. Real-world callers with
+  catalog-resolvable `gpu_id` automatically get the v3 min(compute,mem)
+  behavior — for typical decode workloads this means lower `th_decode`
+  and higher `servers_by_compute`.
+
 ### v3.0.0-alpha — Methodology v3 calibration baseline (P0)
 
 Aligns calculator defaults with the v3-calibrated coefficients from the published methodology

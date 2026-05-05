@@ -44,6 +44,34 @@ def extract_gpu_tflops(gpu_info: dict[str, Any]) -> float:
     return 0.0
 
 
+def lookup_gpu_bandwidth_gbs(gpu_id: Optional[str]) -> float:
+    """Поиск пропускной способности памяти GPU (BW_GPU, GB/s) из каталога.
+
+    Строгий поиск только по ``gpu_id`` — без fallback по объёму памяти,
+    чтобы фейковые ``gpu_id`` (используемые в тестовых фикстурах) не
+    приводили к спонтанным совпадениям с реальными GPU из каталога.
+    Возвращает 0.0 если bw недоступен — в этом случае memory-bandwidth-bound
+    decode-ветвь не вычисляется (см. ``calc_th_decode_mem``).
+    """
+    if not gpu_id:
+        return 0.0
+    try:
+        gpu_data = load_gpu_catalog()
+    except (FileNotFoundError, json.JSONDecodeError):
+        return 0.0
+
+    for gpu in gpu_data:
+        if gpu.get("id") == gpu_id:
+            bw = gpu.get("memory_bandwidth_gbs")
+            if bw is not None:
+                try:
+                    return float(bw)
+                except (TypeError, ValueError):
+                    return 0.0
+            return 0.0
+    return 0.0
+
+
 def lookup_gpu_tflops(gpu_id: Optional[str], gpu_mem_gb: float) -> float:
     """Поиск TFLOPS GPU из каталога по id или объёму памяти."""
     try:
