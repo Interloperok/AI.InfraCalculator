@@ -170,8 +170,15 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
 
     Kbatch = calc_Kbatch(S_TP_z, S_TP_base, inp.saturation_coeff_C)
 
-    # ── Section 5.1: Пропускная способность сервера по памяти ──
-    NcountTP = calc_instances_per_server_tp(inp.gpus_per_server, GPUcount_model, Z)
+    # ── Section 5.1 (P11): Pipeline / Expert parallelism extends footprint ──
+    # Total per-instance GPU count = TP × PP × EP (Appendix Г.7).
+    # PP/EP > 1 reduces instances_per_server proportionally because each
+    # instance now occupies more GPUs.
+    pp_deg = int(inp.pp_degree or 1)
+    ep_deg = int(inp.ep_degree or 1)
+    eta_tp_used = float(inp.eta_tp if inp.eta_tp is not None else 1.0)
+    Z_combined = Z * pp_deg * ep_deg
+    NcountTP = calc_instances_per_server_tp(inp.gpus_per_server, GPUcount_model, Z_combined)
     Sserver = calc_sessions_per_server(NcountTP, S_TP_z)
 
     # ── Section 5.2: Серверы по памяти ──
@@ -224,6 +231,14 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         Tdec,
     )
 
+    # ── §Г (P11): Apply η_TP to nominal compute throughput branches ──
+    # Communication overhead reduces effective throughput at TP > 1.
+    # Default eta_tp_used=1.0 → no scaling. Scales the per-instance
+    # compute branch for decode (th_dec_analyt). Prefill compute branch
+    # (th_pf_compute_branch) is scaled later, after engine_mode resolves
+    # the compute formula in §6.1 H-8/H-9.
+    th_dec_analyt = th_dec_analyt * eta_tp_used
+
     # ── §6.1 H-7: Memory-bandwidth-bound decode (P1) — resolve bw_gpu ──
     bw_gpu = inp.bw_gpu_gbs
     if bw_gpu is None and inp.gpu_id:
@@ -260,6 +275,8 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
             Fcount_model_flops, inp.eta_prefill, FPS,
             inp.layers_L, inp.hidden_size_H, SL_pf_eff,
         )
+    # P11: η_TP scaling on prefill compute branch
+    th_pf_compute_branch = th_pf_compute_branch * eta_tp_used
 
     # ── §6.4 (P4): Iterative servers-by-compute fixed-point ──
     # Couples BS_real ↔ Servers_count. As servers grow, BS_real shrinks,
@@ -496,6 +513,11 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         S_TP_z=S_TP_z,
         Kbatch=Kbatch,
         instance_total_mem_gb=round(GPUcount_z * inp.gpu_mem_gb, 2),
+        total_gpu_per_instance=GPUcount_model * Z_combined,
+        total_gpu_count=servers_final * inp.gpus_per_server,
+        eta_tp_used=eta_tp_used,
+        pp_degree_used=pp_deg,
+        ep_degree_used=ep_deg,
         kv_free_per_instance_tp_gb=round(kv_free_z, 4),
         # Section 5
         instances_per_server_tp=NcountTP,

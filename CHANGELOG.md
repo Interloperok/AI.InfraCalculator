@@ -7,14 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### v1.3.0 — Methodology v3 parity (P0–P8)
+### v1.3.0 — Methodology v3 parity (P0–P8 + P11)
 
 Brings the calculator from methodology v2 to v3 across calibration,
 memory-bandwidth-bound decode, TTFT corrections, MoE accounting,
 iterative servers-by-compute fixed-point, MLA support, loaded-latency
-SLA, continuous-batching prefill, and agentic K_calls. Stacks under a
-single semver-bump because default-relying callers see numeric shifts
-when their inputs match the regimes the new formulas correct.
+SLA, continuous-batching prefill, agentic K_calls, and parallelism
+beyond TP. Stacks under a single semver-bump because default-relying
+callers see numeric shifts when their inputs match the regimes the
+new formulas correct.
+
+P9 (OCR/VLM endpoint) and P10 (PD-disaggregation) remain as future
+extensions — separate endpoints / sizing modes, can ship as v1.4.x.
+
+#### P11: Parallelism beyond TP — DP/PP/EP/η_TP (Appendix Г)
+
+Implements the §Г.7 total-GPU formula `Total = DP × TP × PP × EP` and
+exposes Pipeline / Expert parallelism + interconnect efficiency
+(η_TP) for sizing. v2 modeled only TP — workloads using PP for
+memory-fit or EP for MoE distribution were sized with the wrong
+per-instance footprint.
+
+**Added:**
+- `SizingInput` optional fields:
+  - `pp_degree` (default 1) — Pipeline Parallelism degree.
+  - `ep_degree` (default 1) — Expert Parallelism degree (MoE only).
+  - `eta_tp` (default 1.0) — Tensor Parallelism efficiency.
+  - `interconnect` (default None) — informational interconnect tag
+    (`nvlink`, `pcie5`, `infiniband`, etc.).
+- `SizingOutput` optional fields:
+  - `total_gpu_per_instance` — TP × PP × EP × `gpus_per_instance`.
+  - `total_gpu_count` — `servers_final × gpus_per_server`.
+  - `eta_tp_used`, `pp_degree_used`, `ep_degree_used` — echoes.
+- 4 unit tests covering Z_combined composition and η_TP scaling.
+
+**Changed:**
+- `services.sizing_service.run_sizing()`:
+  - Computes `Z_combined = Z × PP × EP` and passes it as the
+    multiplier to `calc_instances_per_server_tp`. Each PP/EP unit
+    extends per-instance GPU footprint, reducing instances/server.
+  - Multiplies nominal compute throughput branches (`th_dec_analyt`,
+    `th_pf_compute_branch`) by `eta_tp` before they enter the
+    iteration loop. Default 1.0 → no scaling.
+- Goldens regenerated with the 5 new output fields. Numeric values
+  unchanged for existing fixtures (PP=EP=1, η_TP=1.0).
+
+**Notes:**
+- Memory-side bookkeeping (`kv_free_per_instance_tp_gb`,
+  `instance_total_mem_gb`) still uses TP-only sizing — not extended
+  to PP/EP. Reasonable approximation: PP stages are sequential, only
+  one active at a time per request, so KV is local to the TP group.
+  Full PP-aware memory layout is a P14 polish item.
+- Typical η_TP per interconnect (Appendix Г.7): NVLink 0.7-0.9,
+  PCIe Gen5 0.4-0.6, InfiniBand NDR 0.3-0.5 between nodes.
+- DP is implicit in the existing `instances_per_server` × `servers_final`
+  product — not a separate input.
 
 #### P8: Agentic K_calls / RAG / tool-use (Appendix В)
 

@@ -180,6 +180,34 @@ class SizingInput(BaseModel):
     tp_multiplier_Z: conint(ge=1) = Field(
         default=1, description="Множитель Tensor Parallelism (Z): 1,2,4…"
     )
+    pp_degree: Optional[conint(ge=1)] = Field(
+        default=1,
+        description="Pipeline Parallelism degree (Appendix Г.4). "
+        "Модель разрезается по глубине; PP стадий выполняются последовательно. "
+        "1 = no PP. PP > 1 расширяет per-instance footprint в PP раз; "
+        "не снижает per-request latency (только инструмент memory-fit).",
+    )
+    ep_degree: Optional[conint(ge=1)] = Field(
+        default=1,
+        description="Expert Parallelism degree (Appendix Г.6). "
+        "Только для MoE: распределение экспертов по GPU. "
+        "1 = no EP (все эксперты на каждом GPU). "
+        "Расширяет per-instance footprint в EP раз.",
+    )
+    eta_tp: Optional[confloat(gt=0.0, le=1.0)] = Field(
+        default=1.0,
+        description="Tensor Parallelism efficiency (η_TP, Appendix Г). "
+        "Множитель на эффективный compute throughput из-за communication overhead. "
+        "Типичные значения: NVLink 0.7-0.9, PCIe 0.4-0.6, "
+        "InfiniBand 0.3-0.5. 1.0 = идеальная эффективность (по умолчанию).",
+    )
+    interconnect: Optional[str] = Field(
+        default=None,
+        description="GPU interconnect (informational, Appendix Г.7). "
+        "Значения: 'nvlink', 'nvlink_sxm', 'pcie4', 'pcie5', 'infiniband', "
+        "'roce'. Используется только для документирования конфигурации; "
+        "для влияния на расчёт задайте eta_tp напрямую.",
+    )
     saturation_coeff_C: confloat(gt=0) = Field(
         default=C_SAT_DEFAULT,
         description="Коэф. насыщения от батча (C = tfix/tlin, прикидка 4-16). "
@@ -352,6 +380,26 @@ class SizingOutput(BaseModel):
     Kbatch: float = Field(..., description="Коэф. повышения пропускной способности (Kbatch)")
     instance_total_mem_gb: float = Field(
         ..., description="Полная GPU-память на инстанс с TP (Z×GPUcount_model×GPUmem, GiB)"
+    )
+    total_gpu_per_instance: Optional[int] = Field(
+        default=None,
+        description="Общее число GPU на инстанс с учётом всех видов параллелизма "
+        "(Appendix Г.7): TP_min × Z × PP × EP.",
+    )
+    total_gpu_count: Optional[int] = Field(
+        default=None,
+        description="Общее число GPU в развёртывании (servers_final × GPUcount_server).",
+    )
+    eta_tp_used: Optional[float] = Field(
+        default=None,
+        description="Применённый множитель η_TP. При Z=1 не имеет эффекта; "
+        "при Z>1 снижает effective compute throughput.",
+    )
+    pp_degree_used: Optional[int] = Field(
+        default=None, description="Использованный pp_degree (echo, для подтверждения)."
+    )
+    ep_degree_used: Optional[int] = Field(
+        default=None, description="Использованный ep_degree (echo)."
     )
     kv_free_per_instance_tp_gb: float = Field(
         ..., description="Свободная память для KV на инстанс с TP (GiB)"

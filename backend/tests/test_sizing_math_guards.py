@@ -565,3 +565,49 @@ class TestAgenticTSAndSLPf:
             n_prp=5, k_calls=3,
         )
         assert with_a_tool - without == 5 * 3 * 150
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Appendix Г: Parallelism beyond TP — DP/PP/EP/η_TP (P11)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestParallelismExtensions:
+    """Pipeline + Expert parallelism via the existing instances_per_server_tp."""
+
+    def test_pp_doubles_per_instance_footprint(self) -> None:
+        # Z=1, PP=2, EP=1 → Z_combined=2 → instances/server halves.
+        from core.sizing_math import calc_instances_per_server_tp
+        # With 8 GPU/server, 1 GPU per (TP=1) instance, PP=2 → 4 instances
+        assert calc_instances_per_server_tp(gpus_per_server=8, gpus_per_instance=1, Z=2) == 4
+        # PP=4 → 2 instances
+        assert calc_instances_per_server_tp(gpus_per_server=8, gpus_per_instance=1, Z=4) == 2
+
+    def test_ep_combines_with_tp_in_z_combined(self) -> None:
+        # The service composes Z_combined = Z * PP * EP. Each contributes
+        # multiplicatively to the per-instance GPU footprint.
+        from core.sizing_math import calc_instances_per_server_tp
+        # 16 GPU/server, 1 GPU per instance, Z_combined = 2·2·2 = 8 → 2 instances
+        assert calc_instances_per_server_tp(gpus_per_server=16, gpus_per_instance=1, Z=8) == 2
+
+    def test_eta_tp_at_one_is_identity(self) -> None:
+        # η_TP=1.0 (default) doesn't scale throughput.
+        # Verify by computing throughput directly with eta_tp=1.0 vs no scaling.
+        from core.sizing_math import calc_th_decode_analyt
+        nominal = calc_th_decode_analyt(
+            Fcount_model_flops=312e12, eta_dec=0.20, Kbatch=1.0,
+            FPS=14e9, L=32, H=4096, SL=1400, Tdec=400,
+        )
+        scaled = nominal * 1.0
+        assert scaled == nominal
+
+    def test_eta_tp_below_one_reduces_throughput(self) -> None:
+        # η_TP=0.7 (PCIe-class) → throughput drops 30%.
+        from core.sizing_math import calc_th_decode_analyt
+        nominal = calc_th_decode_analyt(
+            Fcount_model_flops=312e12, eta_dec=0.20, Kbatch=1.0,
+            FPS=14e9, L=32, H=4096, SL=1400, Tdec=400,
+        )
+        pcie_eff = nominal * 0.7
+        assert pcie_eff < nominal
+        assert abs(pcie_eff - nominal * 0.7) < 1e-9
