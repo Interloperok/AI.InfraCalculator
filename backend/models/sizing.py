@@ -3,6 +3,16 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
+from core.methodology_constants import (
+    C_SAT_DEFAULT,
+    ETA_CACHE_DEFAULT,
+    ETA_DEC_DEFAULT,
+    ETA_MEM_DEFAULT,
+    ETA_PF_DEFAULT,
+    K_SPEC_DEFAULT,
+    O_FIXED_DEFAULT,
+    T_OVERHEAD_DEFAULT,
+)
 from pydantic import BaseModel, ConfigDict, Field, confloat, conint
 
 
@@ -84,6 +94,12 @@ class SizingInput(BaseModel):
     # ── Section 4: Hardware & TP ──
     gpu_mem_gb: confloat(gt=0) = Field(..., description="Память GPU в GiB (GPUmemory)")
     gpu_id: Optional[str] = Field(None, description="ID выбранной GPU из каталога")
+    bw_gpu_gbs: Optional[confloat(gt=0)] = Field(
+        default=None,
+        description="Пропускная способность памяти GPU (BW_GPU, GB/s). "
+        "Если не задано — берётся из каталога. Используется в memory-bandwidth-bound "
+        "decode (§6.1).",
+    )
     gpus_per_server: conint(gt=0) = Field(..., description="GPU на сервере (GPUcount_server)")
     kavail: confloat(gt=0.0, le=1.0) = Field(
         default=0.9, description="Коэф. доступной памяти GPU (Kavail, рек. 0.9)"
@@ -92,7 +108,9 @@ class SizingInput(BaseModel):
         default=1, description="Множитель Tensor Parallelism (Z): 1,2,4…"
     )
     saturation_coeff_C: confloat(gt=0) = Field(
-        default=8.0, description="Коэф. насыщения от батча (C = tfix/tlin, прикидка 4-16)"
+        default=C_SAT_DEFAULT,
+        description="Коэф. насыщения от батча (C = tfix/tlin, прикидка 4-16). "
+        "Дефолт калиброван по методологии §А.",
     )
 
     # ── Section 6: Compute ──
@@ -100,10 +118,34 @@ class SizingInput(BaseModel):
         None, description="Пиковые TFLOPS одного GPU (напр. 312 для A100)"
     )
     eta_prefill: confloat(gt=0.0, le=1.0) = Field(
-        default=0.20, description="Эффективность prefill (η_pf, 0.15-0.30)"
+        default=ETA_PF_DEFAULT,
+        description="Эффективность prefill (η_pf, 0.15-0.30). "
+        "Дефолт калиброван по методологии §Е.5.",
     )
     eta_decode: confloat(gt=0.0, le=1.0) = Field(
-        default=0.15, description="Эффективность decode (η_dec, 0.10-0.25)"
+        default=ETA_DEC_DEFAULT,
+        description="Эффективность decode (η_dec, 0.10-0.25). "
+        "Дефолт калиброван по методологии §Е.5.",
+    )
+    eta_mem: confloat(gt=0.0, le=1.0) = Field(
+        default=ETA_MEM_DEFAULT,
+        description="Эффективность memory-bandwidth decode (η_mem, 0.25-0.60). "
+        "Используется в memory-bandwidth-bound decode (§6.1).",
+    )
+    o_fixed: confloat(ge=0.0) = Field(
+        default=O_FIXED_DEFAULT,
+        description="Per-forward memory overhead (GB). Dense BF16=0; "
+        "MoE+FP8 на H100/H200 ≈ 8-10 GB. Используется в decode mem-bound (§6.2).",
+    )
+    eta_cache: confloat(ge=0.0, le=1.0) = Field(
+        default=ETA_CACHE_DEFAULT,
+        description="Доля prefill из prefix-cache (§3.1 H-5). "
+        "Чат: 0.3-0.5; RAG: 0.1-0.3; агент: 0.5-0.8.",
+    )
+    k_spec: confloat(ge=1.0) = Field(
+        default=K_SPEC_DEFAULT,
+        description="Speculative decoding multiplier (§3.1 H-5). "
+        "1.0 = выкл; EAGLE-3: 1.8-2.5; MTP: 1.5-1.8.",
     )
     th_prefill_empir: Optional[confloat(gt=0)] = Field(
         None, description="Эмпирич. throughput prefill (tokens/sec)"
@@ -127,6 +169,12 @@ class SizingInput(BaseModel):
     e2e_latency_sla: Optional[confloat(gt=0)] = Field(
         default=None,
         description="Целевой e2eLatency по SLA (сек). Если задан — выполняется проверка",
+    )
+    t_overhead: confloat(ge=0.0) = Field(
+        default=T_OVERHEAD_DEFAULT,
+        description="TTFT per-request overhead (сек, §7.1) — tokenization + proxy + admission. "
+        "vLLM+LiteLLM: 0.015-0.040; in-process: 0.005-0.015. "
+        "Дефолт калиброван по методологии §Е.5.",
     )
 
     # ── Optional: пользовательский каталог GPU (для расчёта Cost Estimate по ценам из каталога) ──
