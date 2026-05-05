@@ -19,6 +19,7 @@ from core.sizing_math import (
     calc_kv_free_per_instance_gb,
     calc_kv_per_session_gb,
     calc_model_mem_gb,
+    calc_p_effective,
     calc_servers_by_compute,
     calc_servers_by_memory,
     calc_session_context_TS,
@@ -141,7 +142,31 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         )
 
     # ── Section 6.1: Throughput per instance ──
-    FPS = calc_FPS(inp.params_billions)
+    # P3 — MoE accounting: resolve P_active (for FPS) and P_effective(BS=1)
+    # for memory-bandwidth formula. Dense models (no MoE fields) keep
+    # P_active = P_total → behavior identical to pre-P3.
+    p_active = float(inp.params_active) if inp.params_active else float(inp.params_billions)
+    is_moe_detailed = (
+        inp.params_dense is not None
+        and inp.params_moe is not None
+        and inp.params_moe > 0
+        and inp.n_experts is not None
+        and inp.n_experts > 0
+        and inp.k_experts is not None
+        and inp.k_experts > 0
+    )
+    if is_moe_detailed:
+        p_effective = calc_p_effective(
+            p_dense=float(inp.params_dense),
+            p_moe=float(inp.params_moe),
+            n_experts=int(inp.n_experts),
+            k_experts=int(inp.k_experts),
+            bs_real=1,
+        )
+    else:
+        p_effective = p_active
+
+    FPS = calc_FPS(p_active)
     Tdec = calc_Tdec(inp.answer_tokens_A, inp.reasoning_tokens_MRT)
 
     # Определяем Fcount_model (FLOPS для GPU, выделенных под 1 экземпляр модели)
@@ -182,7 +207,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     th_dec_mem = calc_th_decode_mem(
         bw_gpu_gbs=bw_gpu if bw_gpu is not None else 0.0,
         eta_mem=inp.eta_mem,
-        params_billions=inp.params_billions,
+        params_billions=p_effective,
         b_quant=inp.bytes_per_param,
         mkv_gb=MKV,
         bs_real=1,
@@ -336,6 +361,9 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         gpu_tflops_used=gpu_tflops,
         Fcount_model_tflops=gpu_tflops * GPUcount_model if gpu_tflops > 0 else 0.0,
         FPS_flops_per_token=FPS,
+        p_active_used=p_active,
+        p_effective_used=round(p_effective, 4),
+        is_moe_detailed=is_moe_detailed,
         Tdec_tokens=Tdec,
         th_prefill=th_pf,
         th_decode=th_dec,

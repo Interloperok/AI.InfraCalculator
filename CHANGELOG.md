@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v3.0.0-alpha — P3: MoE accounting (P_active / P_effective)
+
+Implements §6.1 MoE expansion from methodology v3 — fixes a v2 bug
+where `FPS = 2·P_total·10⁹` overcounted FLOPs for MoE models (where
+only `P_active` weights actually participate in a forward pass).
+
+#### Added
+- `core.sizing_math.calc_p_effective(p_dense, p_moe, n_experts, k_experts, bs_real)`:
+  `P_eff(BS) = P_dense + P_moe · [1 − (1 − k/N)^BS]`. For dense
+  models (P_moe=0) returns P_dense.
+- `SizingInput` new optional MoE fields (Section 3.1):
+  - `params_active` — activated parameters (B). DeepSeek-V3: 37.
+  - `params_dense` — dense part (B).
+  - `params_moe` — sum of all experts (B).
+  - `n_experts` — total experts in MoE layer.
+  - `k_experts` — top-k activated per token.
+- `SizingOutput`:
+  - `p_active_used` — what was used in FPS.
+  - `p_effective_used` — what was used in mem-bound formula at BS=1.
+  - `is_moe_detailed` — true when full MoE config supplied.
+- 6 unit tests covering dense fallback, Mixtral, DeepSeek-V3, coverage
+  growth with batch.
+
+#### Changed
+- `services.sizing_service.run_sizing()`:
+  - Resolves `p_active = inp.params_active or inp.params_billions`.
+  - When all 4 MoE fields supplied (params_dense, params_moe, n_experts,
+    k_experts > 0), computes `p_effective(BS=1)`. Otherwise
+    `p_effective = p_active`.
+  - `FPS = 2·p_active·1e9` (was 2·params_billions).
+  - `calc_th_decode_mem` uses `p_effective` (was params_billions).
+- Goldens add the 3 new dense-default output fields:
+  `p_active_used = params_billions`, `p_effective_used = p_active_used`,
+  `is_moe_detailed = false`. No numeric shifts in existing fixtures.
+
+#### Notes
+- Dense path (no MoE fields supplied) is fully unchanged — golden
+  numerics preserved.
+- Real MoE configs see large compute-throughput increases (smaller FPS)
+  and proportionally lower mem-traffic per decode step. Net effect
+  depends on the regime: for typical decode-heavy MoE workloads on
+  H100/H200, mem-bound dominates → effective `Th_decode` rises along
+  with `Th_dec_mem`.
+- `BS_real = 1` for now. P4 will couple `BS_real` to `Servers_count`
+  via fixed-point iteration → `P_eff(BS_real)` grows with batch.
+
 ### v3.0.0-alpha — P2: TTFT corrections + SL_pf separation
 
 Implements §7.1 from methodology v3 — fixes the long-standing v2 bug

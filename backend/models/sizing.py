@@ -60,7 +60,34 @@ class SizingInput(BaseModel):
     )
 
     # ── Section 3.1: Model ──
-    params_billions: confloat(gt=0) = Field(..., description="Параметры модели в миллиардах (P)")
+    params_billions: confloat(gt=0) = Field(..., description="Параметры модели в миллиардах (P_total)")
+    params_active: Optional[confloat(gt=0)] = Field(
+        default=None,
+        description="Активные параметры (B) — для MoE моделей. "
+        "Dense: оставить None (= params_billions). "
+        "DeepSeek-V3: 37; Qwen3-30B-A3B: 3; Mixtral 8x7B: 13. "
+        "Используется в FPS = 2·P_active·1e9 (§6.1).",
+    )
+    params_dense: Optional[confloat(ge=0)] = Field(
+        default=None,
+        description="Плотная часть MoE модели (attention + embeddings + не-MoE слои), B. "
+        "Только для MoE с детальной конфигурацией. P_total = P_dense + P_moe.",
+    )
+    params_moe: Optional[confloat(ge=0)] = Field(
+        default=None,
+        description="Сумма всех экспертов MoE модели, B. = P_total − P_dense. "
+        "0 для dense.",
+    )
+    n_experts: Optional[conint(ge=1)] = Field(
+        default=None,
+        description="Общее число экспертов в MoE-слое. "
+        "DeepSeek-V3: 256; Qwen3-MoE: 128; Mixtral: 8. None для dense.",
+    )
+    k_experts: Optional[conint(ge=1)] = Field(
+        default=None,
+        description="Число активируемых экспертов на токен (top-k). "
+        "DeepSeek-V3: 8; Mixtral: 2. None для dense.",
+    )
     bytes_per_param: confloat(gt=0) = Field(
         ..., description="Байт на параметр (Bquant): FP8→1, FP16→2, FP32→4"
     )
@@ -278,7 +305,22 @@ class SizingOutput(BaseModel):
     Fcount_model_tflops: float = Field(
         ..., description="Суммарные TFLOPS на 1 экземпляр модели (gpu_tflops × GPUcount_model)"
     )
-    FPS_flops_per_token: float = Field(..., description="FLOP на 1 токен (FPS = 2·P·10⁹)")
+    FPS_flops_per_token: float = Field(..., description="FLOP на 1 токен (FPS = 2·P_active·10⁹)")
+    p_active_used: Optional[float] = Field(
+        default=None,
+        description="Использованное число активных параметров (B). Из inp.params_active "
+        "или fallback к params_billions. Используется в FPS.",
+    )
+    p_effective_used: Optional[float] = Field(
+        default=None,
+        description="P_effective(BS_real=1) — эффективное число параметров для memory traffic "
+        "(§6.1 H-7). Для MoE: P_dense + P_moe·k/N. Для dense: = p_active_used.",
+    )
+    is_moe_detailed: bool = Field(
+        default=False,
+        description="True если все MoE-поля заданы (params_dense, params_moe, n_experts, k_experts) "
+        "и применена формула P_effective(BS_real). False для dense / неполной MoE-конфигурации.",
+    )
     Tdec_tokens: float = Field(..., description="Токены decode фазы (Tdec = A + MRT)")
     th_prefill: float = Field(..., description="Throughput prefill (tokens/sec)")
     th_decode: float = Field(..., description="Throughput decode (tokens/sec) — итоговый, после min(compute, mem)")

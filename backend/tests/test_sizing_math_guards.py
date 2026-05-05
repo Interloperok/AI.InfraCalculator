@@ -217,3 +217,51 @@ class TestTtftWithOverhead:
         # calc_ttft(sl_pf_eff, th_pf, th_dec) without t_overhead defaults to 0
         from core.sizing_math import calc_ttft
         assert calc_ttft(sl_pf_eff=100.0, th_pf=1000.0, th_dec=500.0) == 100.0 / 1000.0 + 1.0 / 500.0
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# §6.1: P_effective for MoE accounting (P3)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestCalcPEffective:
+    """calc_p_effective — MoE expansion via expert coverage formula."""
+
+    def test_dense_fallback_when_p_moe_zero(self) -> None:
+        # P_moe = 0 → returns P_dense regardless of n_experts/k_experts
+        from core.sizing_math import calc_p_effective
+        assert calc_p_effective(p_dense=7, p_moe=0, n_experts=1, k_experts=1, bs_real=1) == 7
+
+    def test_dense_fallback_when_n_experts_zero(self) -> None:
+        from core.sizing_math import calc_p_effective
+        assert calc_p_effective(p_dense=13, p_moe=100, n_experts=0, k_experts=1) == 13
+
+    def test_mixtral_8x7b_at_bs_1(self) -> None:
+        # Mixtral 8x7B: P_dense ≈ 5, P_moe ≈ 51, k=2, N=8
+        # P_eff(1) = 5 + 51 · (2/8) = 5 + 12.75 = 17.75
+        from core.sizing_math import calc_p_effective
+        result = calc_p_effective(p_dense=5, p_moe=51, n_experts=8, k_experts=2, bs_real=1)
+        assert result == 5 + 51 * (1 - (1 - 2 / 8) ** 1)
+
+    def test_deepseek_v3_at_bs_1(self) -> None:
+        # DeepSeek-V3: P_dense=14, P_moe=657, k=8, N=256
+        # Coverage(1) = 1 - (1 - 8/256)^1 = 8/256 = 0.03125
+        # P_eff(1) = 14 + 657 · 0.03125 = 14 + 20.53 = 34.53
+        from core.sizing_math import calc_p_effective
+        result = calc_p_effective(p_dense=14, p_moe=657, n_experts=256, k_experts=8, bs_real=1)
+        assert abs(result - (14 + 657 * 8 / 256)) < 1e-9
+
+    def test_coverage_grows_with_batch(self) -> None:
+        # As BS_real grows, coverage approaches 1 (all experts covered)
+        from core.sizing_math import calc_p_effective
+        bs1 = calc_p_effective(p_dense=5, p_moe=100, n_experts=8, k_experts=2, bs_real=1)
+        bs8 = calc_p_effective(p_dense=5, p_moe=100, n_experts=8, k_experts=2, bs_real=8)
+        bs64 = calc_p_effective(p_dense=5, p_moe=100, n_experts=8, k_experts=2, bs_real=64)
+        assert bs1 < bs8 < bs64
+        # At very large BS, P_eff → P_dense + P_moe (full coverage)
+        assert bs64 < 5 + 100  # never exceeds the upper bound
+
+    def test_pure_moe_no_dense_layer(self) -> None:
+        # Hypothetical: P_dense=0, all in experts.
+        from core.sizing_math import calc_p_effective
+        assert calc_p_effective(p_dense=0, p_moe=100, n_experts=8, k_experts=1, bs_real=1) == 100 / 8

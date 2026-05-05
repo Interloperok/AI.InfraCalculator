@@ -204,8 +204,31 @@ def calc_FPS(params_billions):
     Раздел 6.1 — Число FLOP на 1 токен (базовая оценка)
 
     FPS = 2 × P × 10⁹
+
+    Принимает либо P_total (для dense), либо P_active (для MoE — только
+    активные параметры участвуют в forward pass на токен).
     """
     return 2 * params_billions * 1e9
+
+
+def calc_p_effective(p_dense, p_moe, n_experts, k_experts, bs_real=1):
+    """
+    Раздел 6.1 — Эффективное число параметров, читаемых из HBM за decode-шаг.
+
+    P_effective(BS_real) = P_dense + P_moe × [1 − (1 − k/N_experts)^BS_real]
+
+    Для dense-моделей (P_moe = 0) формула вырождается в P_dense.
+    Для MoE при BS = 1 покрывается ≈ k/N_experts экспертов; при больших
+    BS статистическое покрытие приближается к полному (P_dense + P_moe).
+
+    Используется в memory-bandwidth-bound decode-формуле (§6.1 H-7) —
+    отражает фактический объём весов, читаемых из памяти за один forward
+    pass batch-обработки.
+    """
+    if p_moe <= 0 or n_experts <= 0 or k_experts <= 0:
+        return p_dense
+    coverage = 1.0 - (1.0 - k_experts / n_experts) ** bs_real
+    return p_dense + p_moe * coverage
 
 
 def calc_Tdec(A, MRT):

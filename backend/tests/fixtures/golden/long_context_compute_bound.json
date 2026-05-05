@@ -2,6 +2,9 @@
   "expected": {
     "Cmodel_rps": 0.2990654002054796,
     "FPS_flops_per_token": 68000000000.0,
+    "p_active_used": 34.0,
+    "p_effective_used": 34.0,
+    "is_moe_detailed": false,
     "Fcount_model_tflops": 989.0,
     "Kbatch": 1.3584643848288622,
     "SL_sequence_length": 10200.0,
