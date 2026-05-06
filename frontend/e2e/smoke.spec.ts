@@ -113,7 +113,7 @@ test("smoke: open app and run single sizing calculation", async ({ page }) => {
   await page.locator('[data-tour="calculate-btn"]').click();
 
   await expect(page.getByRole("heading", { name: "Calculation Results" })).toBeVisible();
-  await expect(page.getByText("Servers Required")).toBeVisible();
+  await expect(page.getByText("Infrastructure Required")).toBeVisible();
   await expect(page.getByText(/max\(mem:/)).toContainText("22");
 });
 
