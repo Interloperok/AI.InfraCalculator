@@ -750,3 +750,83 @@ class TestTPageVLM:
         slow = calc_t_page_vlm(2875, 500.0, 1000, 500.0)
         fast = calc_t_page_vlm(2875, 1000.0, 1000, 1000.0)
         assert fast < slow
+
+
+class TestOCRPureFunctions:
+    """P9b — OCR + LLM pure functions (Приложение И.3.2-И.3.4, И.4.2)."""
+
+    def test_t_ocr_gpu_inverse_of_throughput(self) -> None:
+        # t = 1/R; 8 pages/s/GPU → 0.125 s/page
+        from core.sizing_math import calc_t_ocr_gpu
+        assert calc_t_ocr_gpu(r_ocr_gpu=8.0) == 0.125
+
+    def test_t_ocr_gpu_returns_inf_on_invalid(self) -> None:
+        from core.sizing_math import calc_t_ocr_gpu
+        assert calc_t_ocr_gpu(r_ocr_gpu=0.0) == float("inf")
+        assert calc_t_ocr_gpu(r_ocr_gpu=-1.0) == float("inf")
+
+    def test_t_ocr_cpu_uses_total_cores(self) -> None:
+        # t = 1/(R·n); 0.5 pages/s/core × 16 cores = 8 pages/s → 0.125 s/page
+        from core.sizing_math import calc_t_ocr_cpu
+        assert calc_t_ocr_cpu(r_ocr_core=0.5, n_cores=16) == 0.125
+
+    def test_t_ocr_cpu_returns_inf_on_invalid(self) -> None:
+        from core.sizing_math import calc_t_ocr_cpu
+        assert calc_t_ocr_cpu(r_ocr_core=0.0, n_cores=8) == float("inf")
+        assert calc_t_ocr_cpu(r_ocr_core=0.5, n_cores=0) == float("inf")
+
+    def test_l_text_basic_formula(self) -> None:
+        # 3000 chars / 3.5 chars/token = 857.14 tokens
+        from core.sizing_math import calc_l_text
+        result = calc_l_text(chars_page=3000, c_token=3.5)
+        assert abs(result - 857.142857) < 1e-3
+
+    def test_l_text_cyrillic_lower_density(self) -> None:
+        # Cyrillic 2.8 chars/token → more tokens for same chars
+        from core.sizing_math import calc_l_text
+        latin = calc_l_text(chars_page=3000, c_token=4.0)
+        mixed = calc_l_text(chars_page=3000, c_token=3.5)
+        cyrillic = calc_l_text(chars_page=3000, c_token=2.8)
+        assert cyrillic > mixed > latin
+
+    def test_l_text_returns_zero_on_invalid(self) -> None:
+        from core.sizing_math import calc_l_text
+        assert calc_l_text(chars_page=0, c_token=3.5) == 0.0
+        assert calc_l_text(chars_page=3000, c_token=0) == 0.0
+
+    def test_sl_pf_llm_after_ocr_sums(self) -> None:
+        import pytest
+        from core.sizing_math import calc_sl_pf_llm_after_ocr
+        result = calc_sl_pf_llm_after_ocr(l_text=857.14, n_prompt_sys=1000)
+        assert result == pytest.approx(1857.14, abs=1e-6)
+
+    def test_n_gpu_ocr_online_basic_formula(self) -> None:
+        # ⌈4 · 0.125 / 0.85⌉ = ⌈0.588⌉ = 1
+        from core.sizing_math import calc_n_gpu_ocr_online
+        assert calc_n_gpu_ocr_online(c_peak=4, t_ocr_gpu=0.125, eta_ocr=0.85) == 1
+        # ⌈100 · 0.5 / 0.85⌉ = ⌈58.82⌉ = 59
+        assert calc_n_gpu_ocr_online(c_peak=100, t_ocr_gpu=0.5, eta_ocr=0.85) == 59
+
+    def test_n_gpu_ocr_online_grows_with_t_ocr(self) -> None:
+        from core.sizing_math import calc_n_gpu_ocr_online
+        fast = calc_n_gpu_ocr_online(c_peak=100, t_ocr_gpu=0.1, eta_ocr=0.85)
+        slow = calc_n_gpu_ocr_online(c_peak=100, t_ocr_gpu=0.5, eta_ocr=0.85)
+        assert slow > fast
+
+    def test_n_gpu_ocr_online_drops_with_higher_eta(self) -> None:
+        from core.sizing_math import calc_n_gpu_ocr_online
+        loose = calc_n_gpu_ocr_online(c_peak=100, t_ocr_gpu=0.5, eta_ocr=0.7)
+        tight = calc_n_gpu_ocr_online(c_peak=100, t_ocr_gpu=0.5, eta_ocr=0.95)
+        assert tight < loose
+
+    def test_t_llm_target_subtracts_ocr_and_handoff(self) -> None:
+        # 5.0 - 0.125 - 0.05 = 4.825
+        from core.sizing_math import calc_t_llm_target
+        result = calc_t_llm_target(sla_page=5.0, t_ocr=0.125, t_handoff=0.05)
+        assert abs(result - 4.825) < 1e-9
+
+    def test_t_llm_target_can_be_negative(self) -> None:
+        # OCR alone exceeds SLA — caller should detect failure
+        from core.sizing_math import calc_t_llm_target
+        result = calc_t_llm_target(sla_page=0.05, t_ocr=0.5, t_handoff=0.0)
+        assert result < 0

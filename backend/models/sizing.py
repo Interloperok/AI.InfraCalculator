@@ -1086,3 +1086,237 @@ class VLMSizingOutput(BaseModel):
     gpu_id: Optional[str] = Field(None, description="ID GPU")
     gpu_mem_gb: float = Field(..., description="Память GPU (GiB)")
     gpus_per_server: int = Field(..., description="GPU на сервере")
+
+
+# ═══════════════════════════════════════════════════════════
+# Section И (P9b): OCR + LLM two-pass online sizing
+# ═══════════════════════════════════════════════════════════
+
+
+class OCRSizingInput(BaseModel):
+    """Входные параметры для OCR + LLM two-pass online сайзинга (Приложение И.4.2).
+
+    Pipeline режимы:
+      - 'ocr_gpu': OCR на GPU (PaddleOCR-GPU, EasyOCR) + LLM на GPU,
+        двухпуловая модель N_GPU = N_OCR + N_LLM.
+      - 'ocr_cpu': OCR на CPU (Tesseract) + LLM на GPU; OCR не входит в
+        GPU-сайзинг (N_GPU^OCR = 0), LLM-стадия получает уменьшенный
+        latency-бюджет t_LLM^target = SLA_page − t_OCR^CPU.
+    """
+
+    # ── И.1: Workload ──
+    lambda_online: confloat(gt=0) = Field(
+        ..., description="Среднее число страниц в секунду (λ_online), pages/s"
+    )
+    c_peak: conint(gt=0) = Field(..., description="Пиковое число одновременных страниц")
+    sla_page: confloat(gt=0) = Field(
+        ..., description="p95 SLA на одну страницу (SLA_page), сек"
+    )
+
+    # ── И.3.2-И.3.3: Pipeline mode ──
+    pipeline: str = Field(
+        default="ocr_gpu",
+        description="Pipeline OCR-стадии: "
+        "'ocr_gpu' — OCR на GPU (PaddleOCR-GPU, EasyOCR-GPU); "
+        "'ocr_cpu' — OCR на CPU (Tesseract), не входит в GPU-сайзинг.",
+    )
+    r_ocr_gpu: Optional[confloat(gt=0)] = Field(
+        default=None,
+        description="Throughput OCR-движка на GPU (R_OCR^GPU, pages/s/GPU). "
+        "Эмпирическое; калибровка И.7.2. Обязательно для pipeline='ocr_gpu'.",
+    )
+    eta_ocr: confloat(gt=0.0, le=1.0) = Field(
+        default=0.85,
+        description="Утилизация OCR-парка (η_OCR, И.4.2). 0.7-0.85.",
+    )
+    r_ocr_core: Optional[confloat(gt=0)] = Field(
+        default=None,
+        description="Throughput OCR на одно ядро CPU (R_OCR^core, pages/s). "
+        "Обязательно для pipeline='ocr_cpu'.",
+    )
+    n_ocr_cores: Optional[conint(ge=1)] = Field(
+        default=None,
+        description="Количество CPU-ядер для OCR-стадии (n_cores). "
+        "Обязательно для pipeline='ocr_cpu'.",
+    )
+    t_handoff: confloat(ge=0.0) = Field(
+        default=0.0,
+        description="Overhead на передачу OCR-вывода в LLM (T_handoff, И.4.2). "
+        "Типично 0 для in-process; 0.05-0.20 при network/serialization.",
+    )
+
+    # ── И.3.4: OCR output → LLM input ──
+    chars_page: conint(gt=0) = Field(
+        ..., description="Среднее число распознанных символов на страницу"
+    )
+    c_token: confloat(gt=0) = Field(
+        default=3.5,
+        description="Символов на токен (c_token, И.3.4). "
+        "3.5 — смешанный текст; 4.0 — английский; 2.8 — кириллица.",
+    )
+    n_prompt_sys: conint(ge=0) = Field(
+        default=1000,
+        description="Длина системного промпта для LLM-стадии (N_prompt^sys), tokens",
+    )
+
+    # ── LLM output (схоже с VLM) ──
+    n_fields: conint(ge=1) = Field(..., description="Число извлекаемых полей в JSON-ответе")
+    tok_field: conint(ge=1) = Field(default=50, description="Среднее число токенов на поле")
+
+    # ── §3.1: LLM model ──
+    params_billions: confloat(gt=0) = Field(..., description="Параметры LLM модели, B")
+    bytes_per_param: confloat(gt=0) = Field(..., description="Байт на параметр")
+    safe_margin: confloat(ge=0.0) = Field(default=5.0, description="SM, GiB")
+    emp_model: confloat(ge=1.0) = Field(default=1.0, description="EMP_model")
+    layers_L: conint(gt=0) = Field(..., description="Число слоёв (L)")
+    hidden_size_H: conint(gt=0) = Field(..., description="Размер скрытого состояния (H)")
+
+    # ── §3.2: KV-cache ──
+    num_kv_heads: conint(gt=0) = Field(default=32, description="Кол-во KV-голов")
+    num_attention_heads: conint(gt=0) = Field(default=32, description="Кол-во attention-голов")
+    bytes_per_kv_state: confloat(gt=0) = Field(default=2, description="Байт на KV")
+    emp_kv: confloat(ge=1.0) = Field(default=1.0, description="EMP_kv")
+    max_context_window_TSmax: conint(gt=0) = Field(
+        default=32768, description="Макс. контекстное окно"
+    )
+
+    # ── §4: Hardware ──
+    gpu_mem_gb: confloat(gt=0) = Field(..., description="Память GPU (GiB)")
+    gpu_id: Optional[str] = Field(None, description="ID GPU")
+    bw_gpu_gbs: Optional[confloat(gt=0)] = Field(None, description="BW GPU (GB/s)")
+    gpus_per_server: conint(gt=0) = Field(..., description="GPU на сервере")
+    kavail: confloat(gt=0.0, le=1.0) = Field(default=0.9, description="Kavail")
+    tp_multiplier_Z: conint(ge=1) = Field(default=1, description="TP degree (Z)")
+
+    # ── §6.1: Compute (LLM-стадия) ──
+    gpu_flops_Fcount: Optional[confloat(gt=0)] = Field(None, description="TFLOPS GPU")
+    eta_prefill: confloat(gt=0.0, le=1.0) = Field(
+        default=ETA_PF_DEFAULT, description="η_pf для LLM-стадии prefill"
+    )
+    eta_decode: confloat(gt=0.0, le=1.0) = Field(
+        default=ETA_DEC_DEFAULT, description="η_dec для LLM-стадии decode"
+    )
+    eta_mem: confloat(gt=0.0, le=1.0) = Field(
+        default=ETA_MEM_DEFAULT, description="η_mem для memory-bound branches"
+    )
+    saturation_coeff_C: confloat(gt=0) = Field(
+        default=C_SAT_DEFAULT, description="C для K_batch (Z>1)"
+    )
+    eta_cache: confloat(ge=0.0, le=1.0) = Field(
+        default=ETA_CACHE_DEFAULT,
+        description="Доля prefill из prefix-cache (system prompt одинаков → выгода значимая)",
+    )
+    t_overhead_llm: confloat(ge=0.0) = Field(
+        default=T_OVERHEAD_DEFAULT,
+        description="Per-request LLM overhead (T_ovh^LLM)",
+    )
+    o_fixed: confloat(ge=0.0) = Field(
+        default=O_FIXED_DEFAULT, description="Per-forward memory overhead (GB)"
+    )
+    c_pf: Optional[conint(gt=0)] = Field(default=256, description="Chunked-prefill budget")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "lambda_online": 1.0,
+                "c_peak": 4,
+                "sla_page": 5.0,
+                "pipeline": "ocr_gpu",
+                "r_ocr_gpu": 8.0,
+                "eta_ocr": 0.85,
+                "chars_page": 3000,
+                "c_token": 3.5,
+                "n_prompt_sys": 1000,
+                "n_fields": 20,
+                "tok_field": 50,
+                "params_billions": 7,
+                "bytes_per_param": 2,
+                "layers_L": 32,
+                "hidden_size_H": 4096,
+                "gpu_mem_gb": 80,
+                "gpus_per_server": 8,
+                "gpu_flops_Fcount": 312,
+            }
+        }
+    )
+
+
+class OCRSizingOutput(BaseModel):
+    """Результат OCR + LLM two-pass online сайзинга (Приложение И.4.2)."""
+
+    pipeline_used: str = Field(..., description="Использованный pipeline: 'ocr_gpu' или 'ocr_cpu'")
+
+    # ── OCR stage ──
+    t_ocr: float = Field(..., description="Время OCR на страницу (сек)")
+    eta_ocr_used: Optional[float] = Field(
+        default=None, description="η_OCR (echo, только для ocr_gpu)"
+    )
+    r_ocr_used: Optional[float] = Field(
+        default=None, description="R_OCR^GPU или R_OCR^core·n_cores (echo)"
+    )
+    n_ocr_cores_used: Optional[int] = Field(
+        default=None, description="CPU-ядра OCR (только для ocr_cpu)"
+    )
+    n_gpu_ocr_online: int = Field(
+        ..., description="GPU в OCR-пуле: ⌈C_peak·t_OCR/η_OCR⌉. 0 для ocr_cpu."
+    )
+
+    # ── LLM stage tokens ──
+    l_text: float = Field(..., description="L_text = chars_page / c_token (tokens)")
+    sl_pf_llm: float = Field(
+        ..., description="SL_pf^LLM = L_text + N_prompt^sys"
+    )
+    sl_pf_llm_eff: float = Field(
+        ..., description="SL_pf^LLM,eff = SL_pf · (1 − η_cache)"
+    )
+    sl_dec_llm: int = Field(..., description="SL_dec^LLM = N_fields · tok_field")
+
+    # ── SLA budget split ──
+    t_llm_target: float = Field(
+        ..., description="t_LLM^target = SLA_page − t_OCR − T_handoff (сек)"
+    )
+    t_handoff_used: float = Field(..., description="T_handoff (echo)")
+
+    # ── LLM memory & throughput ──
+    model_mem_gb: float = Field(..., description="Память LLM модели")
+    kv_per_session_gb: float = Field(..., description="KV-кэш на 1 страницу")
+    gpus_per_instance: int = Field(..., description="GPU на инстанс LLM")
+    s_tp_z: int = Field(..., description="Макс. сессий на инстанс при TP")
+    instance_total_mem_gb: float = Field(..., description="GPU-память на инстанс (GiB)")
+    gpu_tflops_used: float = Field(..., description="TFLOPS GPU")
+    th_pf_llm: float = Field(..., description="Th_pf^LLM при BS_real* (tok/s)")
+    th_dec_llm: float = Field(..., description="Th_dec^LLM при BS_real* (tok/s)")
+
+    # ── Per-page latency ──
+    t_page_llm: float = Field(
+        ..., description="Per-page LLM-stage time при BS_real* (сек)"
+    )
+    bs_real_star: int = Field(
+        ..., description="Макс. BS, удовлетворяющий t_page_llm ≤ t_LLM^target"
+    )
+    sla_pass: bool = Field(..., description="Все условия SLA выполнены")
+    sla_failure_reason: Optional[str] = Field(
+        default=None, description="Причина SLA-fail (для диагностики)"
+    )
+
+    # ── Replicas and totals ──
+    n_repl_llm: int = Field(..., description="Реплики LLM: ⌈C_peak / BS_real*⌉")
+    n_gpu_llm_online: int = Field(..., description="GPU в LLM-пуле")
+    n_servers_llm_online: int = Field(..., description="Серверы для LLM-пула")
+
+    n_gpu_total_online: int = Field(
+        ..., description="Всего GPU: N_OCR + N_LLM"
+    )
+    n_servers_total_online: int = Field(
+        ..., description="Всего серверов: ⌈N_GPU_total / gpus_per_server⌉"
+    )
+
+    # ── Echoes ──
+    sla_page_target: float = Field(..., description="SLA_page (echo)")
+    c_peak_used: int = Field(..., description="C_peak (echo)")
+    lambda_online_used: float = Field(..., description="λ_online (echo)")
+
+    # ── Context ──
+    gpu_id: Optional[str] = Field(None, description="ID GPU")
+    gpu_mem_gb: float = Field(..., description="Память GPU (GiB)")
+    gpus_per_server: int = Field(..., description="GPU на сервере")

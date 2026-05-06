@@ -8,6 +8,8 @@ from errors import AppError, ServiceAppError, ValidationAppError, to_http_except
 from models import (
     AutoOptimizeInput,
     AutoOptimizeResponse,
+    OCRSizingInput,
+    OCRSizingOutput,
     SizingInput,
     SizingOutput,
     VLMSizingInput,
@@ -17,6 +19,7 @@ from models import (
 )
 from services.auto_optimize_service import auto_optimize
 from services.gpu_catalog_service import lookup_gpu_tflops
+from services.ocr_sizing_service import run_ocr_sizing
 from services.report_service import ReportGenerator
 from services.sizing_service import run_sizing
 from services.vlm_sizing_service import run_vlm_sizing
@@ -91,6 +94,18 @@ def vlm_size_endpoint_handler(
     """Выполнить VLM single-pass online sizing (Приложение И.4.1)."""
     try:
         return run_vlm_sizing_fn(inp)
+    except (AppError, ValueError) as exc:
+        error = exc if isinstance(exc, AppError) else ValidationAppError(str(exc))
+        raise to_http_exception(error) from exc
+
+
+def ocr_size_endpoint_handler(
+    inp: OCRSizingInput,
+    run_ocr_sizing_fn: Callable[[OCRSizingInput], OCRSizingOutput] = run_ocr_sizing,
+) -> OCRSizingOutput:
+    """Выполнить OCR + LLM two-pass online sizing (Приложение И.4.2)."""
+    try:
+        return run_ocr_sizing_fn(inp)
     except (AppError, ValueError) as exc:
         error = exc if isinstance(exc, AppError) else ValidationAppError(str(exc))
         raise to_http_exception(error) from exc

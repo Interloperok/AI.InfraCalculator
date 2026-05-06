@@ -717,3 +717,96 @@ def calc_t_page_vlm(sl_pf_vlm_eff, th_pf_vlm, sl_dec_vlm, th_dec_vlm, t_ovh_vlm=
     if th_pf_vlm <= 0 or th_dec_vlm <= 0:
         return float("inf")
     return sl_pf_vlm_eff / th_pf_vlm + sl_dec_vlm / th_dec_vlm + t_ovh_vlm
+
+
+# ── P9b: OCR + LLM two-pass online (Приложение И.3.2-И.3.4, И.4.2) ──
+
+
+def calc_t_ocr_gpu(r_ocr_gpu):
+    """
+    Приложение И.3.2 — Время OCR-обработки страницы на 1 GPU (сек).
+
+    t_OCR^GPU = 1 / R_OCR^GPU(engine, dpi)
+
+    R_OCR^GPU калибруется (см. И.7.2): pages/sec на одной GPU при заданном
+    OCR-движке (PaddleOCR-GPU, EasyOCR, Tesseract-GPU) и DPI документа.
+    Зависимость от DPI приблизительно квадратичная: 300 → 600 DPI → ×4 время.
+    """
+    if r_ocr_gpu <= 0:
+        return float("inf")
+    return 1.0 / r_ocr_gpu
+
+
+def calc_t_ocr_cpu(r_ocr_core, n_cores):
+    """
+    Приложение И.3.3 — Время OCR на CPU (сек).
+
+    t_OCR^CPU = 1 / (R_OCR^core · n_cores)
+
+    Tesseract-class движки. CPU-OCR не входит в GPU-сайзинг (N_GPU^OCR=0):
+    размер CPU-парка определяется отдельно, на GPU переходит только
+    LLM-стадия с уменьшенным latency-бюджетом.
+    """
+    if r_ocr_core <= 0 or n_cores <= 0:
+        return float("inf")
+    return 1.0 / (r_ocr_core * n_cores)
+
+
+def calc_l_text(chars_page, c_token):
+    """
+    Приложение И.3.4 — Длина распознанного текста в токенах.
+
+    L_text = chars_page / c_token
+
+    c_token — символов на токен:
+      3.5 — смешанный русско-английский текст
+      4.0 — чистый английский
+      2.8 — кириллица
+    """
+    if chars_page <= 0 or c_token <= 0:
+        return 0.0
+    return chars_page / c_token
+
+
+def calc_sl_pf_llm_after_ocr(l_text, n_prompt_sys):
+    """
+    Приложение И.3.4 — Длина prefill для LLM-стадии после OCR.
+
+    SL_pf^LLM = L_text + N_prompt^sys
+
+    L_text — токены распознанного текста (см. ``calc_l_text``).
+    N_prompt^sys — системный промпт для извлечения полей.
+    """
+    if l_text < 0 or n_prompt_sys < 0:
+        return 0.0
+    return l_text + n_prompt_sys
+
+
+def calc_n_gpu_ocr_online(c_peak, t_ocr_gpu, eta_ocr):
+    """
+    Приложение И.4.2 — GPU в OCR-пуле для online-нагрузки.
+
+    N_GPU^OCR,online = ⌈C_peak · t_OCR^GPU / η_OCR⌉
+
+    Каждая GPU обрабатывает 1/t_OCR pages/s; для пиковой нагрузки C_peak
+    одновременных страниц нужно C_peak · t_OCR / η_OCR GPU. η_OCR (0.7-0.85,
+    И.4.2) учитывает простой пула на batching и data-loading.
+    """
+    if t_ocr_gpu == float("inf") or t_ocr_gpu <= 0 or eta_ocr <= 0:
+        return math.inf
+    return math.ceil(c_peak * t_ocr_gpu / eta_ocr)
+
+
+def calc_t_llm_target(sla_page, t_ocr, t_handoff=0.0):
+    """
+    Приложение И.4.2 — SLA-бюджет на LLM-стадию после OCR (сек).
+
+    t_LLM^target = SLA_page − t_OCR − T_handoff
+
+    T_handoff — overhead на передачу OCR-вывода в LLM (network, serialization);
+    типично 0 для in-process pipelines.
+
+    Возвращает значение, которое может быть ≤ 0, если OCR + handoff превышают
+    SLA — вызывающий должен распознать невыполнимый сценарий.
+    """
+    return sla_page - t_ocr - t_handoff

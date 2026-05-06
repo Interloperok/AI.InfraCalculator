@@ -10,6 +10,8 @@ Pydantic модели для AI Server Calculator API
 from .sizing import (
     SizingInput,
     SizingOutput,
+    OCRSizingInput,
+    OCRSizingOutput,
     VLMSizingInput,
     VLMSizingOutput,
     WhatIfScenario,
@@ -26,6 +28,8 @@ __all__ = [
     # Sizing models
     "SizingInput",
     "SizingOutput",
+    "OCRSizingInput",
+    "OCRSizingOutput",
     "VLMSizingInput",
     "VLMSizingOutput",
     "WhatIfScenario",

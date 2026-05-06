@@ -17,6 +17,7 @@ from api.gpu_handlers import (
 )
 from api.sizing_handlers import (
     auto_optimize_endpoint_handler,
+    ocr_size_endpoint_handler,
     report_endpoint_handler,
     size_endpoint_handler,
     vlm_size_endpoint_handler,
@@ -29,6 +30,8 @@ from models import (
     GPUListResponse,
     GPURefreshResponse,
     GPUStats,
+    OCRSizingInput,
+    OCRSizingOutput,
     SizingInput,
     SizingOutput,
     VLMSizingInput,
@@ -38,6 +41,7 @@ from models import (
 )
 from settings import get_settings
 from services.gpu_refresh_service import refresh_gpu_data_internal, start_scheduler
+from services.ocr_sizing_service import run_ocr_sizing
 from services.sizing_service import run_sizing
 from services.vlm_sizing_service import run_vlm_sizing
 
@@ -174,6 +178,18 @@ def size_vlm_endpoint(inp: VLMSizingInput) -> VLMSizingOutput:
     удовлетворяющий SLA_page, и рассчитывает N_repl_VLM = ⌈C_peak / BS_real*⌉.
     """
     return vlm_size_endpoint_handler(inp, run_vlm_sizing_fn=run_vlm_sizing)
+
+
+@app.post("/v1/size-ocr", response_model=OCRSizingOutput, tags=["VLM/OCR"])
+def size_ocr_endpoint(inp: OCRSizingInput) -> OCRSizingOutput:
+    """
+    OCR + LLM two-pass online сайзинг (Приложение И.4.2).
+
+    Принимает параметры pipeline (ocr_gpu / ocr_cpu), OCR-throughput и
+    LLM-стадию, возвращает раздельные пулы GPU (N_OCR + N_LLM) и общий счёт
+    серверов. SLA_page разделяется между OCR и LLM с учётом T_handoff.
+    """
+    return ocr_size_endpoint_handler(inp, run_ocr_sizing_fn=run_ocr_sizing)
 
 
 # ═══════════════════════════════════════════════════════════

@@ -18,9 +18,58 @@ online sizing. Stacks under a single semver-bump because default-relying
 callers see numeric shifts when their inputs match the regimes the
 new formulas correct.
 
-P9 ships in phases: P9a (VLM single-pass online) is in this release;
-P9b (OCR+LLM two-pass), P9c (batch mode), and P9d (multi-class
-workloads) follow in v1.4.x.
+P9 ships in phases: P9a (VLM single-pass online) and P9b (OCR+LLM
+two-pass online) are in this release. P9c (batch mode) and P9d
+(multi-class workloads + frontend) follow in v1.4.x.
+
+#### P9b: OCR + LLM two-pass online sizing (Appendix И.3.2-И.3.4, И.4.2)
+
+Adds `POST /v1/size-ocr` for two-pass OCR+LLM document extraction
+pipelines. Supports two architectural variants from Таблица И.1:
+**ocr_gpu** (PaddleOCR-GPU, EasyOCR-GPU + LLM on GPU — two-pool
+sizing `N_GPU = N_OCR + N_LLM`) and **ocr_cpu** (Tesseract-class on
+CPU + LLM on GPU — `N_GPU^OCR = 0`, LLM gets reduced budget
+`t_LLM^target = SLA_page − t_OCR^CPU`).
+
+**Added:**
+- `core.sizing_math.calc_t_ocr_gpu(r_ocr_gpu)`: per-page OCR time
+  `t_OCR^GPU = 1 / R_OCR^GPU` (И.3.2).
+- `core.sizing_math.calc_t_ocr_cpu(r_ocr_core, n_cores)`:
+  `t_OCR^CPU = 1 / (R_OCR^core · n_cores)` (И.3.3).
+- `core.sizing_math.calc_l_text(chars_page, c_token)`:
+  `L_text = chars_page / c_token` (И.3.4). Defaults: c_token=3.5
+  (mixed text), 4.0 (English), 2.8 (Cyrillic).
+- `core.sizing_math.calc_sl_pf_llm_after_ocr(l_text, n_prompt_sys)`:
+  LLM-stage prefill `SL_pf^LLM = L_text + N_prompt^sys` (И.3.4).
+- `core.sizing_math.calc_n_gpu_ocr_online(c_peak, t_ocr_gpu, eta_ocr)`:
+  OCR-pool sizing `N_GPU^OCR,online = ⌈C_peak · t_OCR / η_OCR⌉` (И.4.2).
+- `core.sizing_math.calc_t_llm_target(sla_page, t_ocr, t_handoff)`:
+  SLA-budget split `t_LLM^target = SLA_page − t_OCR − T_handoff` (И.4.2).
+- New Pydantic models `OCRSizingInput` / `OCRSizingOutput` covering
+  workload, pipeline mode, OCR-stage parameters, LLM-stage tokens
+  (`chars_page`, `c_token`, `n_prompt_sys`, `n_fields`, `tok_field`),
+  LLM model and hardware, and SLA budget echoes.
+- `services.ocr_sizing_service.run_ocr_sizing(OCRSizingInput) -> OCRSizingOutput`
+  orchestrator: OCR pool sizing → SLA budget split → L_text → §3 LLM
+  memory → §6.1 throughput → BS_real* search constrained by
+  `t_LLM^target` (rather than `SLA_page` directly) → replicas
+  `N_repl_LLM = ⌈C_peak / BS_real*⌉`, totals `N_GPU = N_OCR + N_LLM`.
+- `POST /v1/size-ocr` FastAPI endpoint (tag: `VLM/OCR`).
+- `sla_failure_reason` field surfaces the specific failure mode
+  (OCR alone exceeds SLA; LLM cannot fit residual budget at any BS).
+- 13 pure-function unit tests + 28 service-level integration tests.
+
+**Notes:**
+- CPU OCR sizing is **out of scope** per И.3.3 — the CPU pool is
+  determined separately. Only the resulting `t_OCR^CPU` flows into
+  the SLA budget calculation; `N_GPU^OCR = 0`.
+- η_OCR (default 0.85) reflects pool utilization including batching
+  and data-loading overhead; calibrate per И.7.2 for production
+  R_OCR^GPU values.
+- Like P9a, MoE / MLA / agentic K_calls remain out of scope for the
+  LLM stage in this phase. Add in P9d alongside multi-class workloads.
+- Both `/v1/size-vlm` and `/v1/size-ocr` are additive — no impact on
+  existing LLM-only `/v1/size`.
 
 #### P9a: VLM single-pass online sizing (Appendix И.3.1, И.4.1)
 
