@@ -19,6 +19,7 @@ from api.sizing_handlers import (
     auto_optimize_endpoint_handler,
     report_endpoint_handler,
     size_endpoint_handler,
+    vlm_size_endpoint_handler,
     whatif_endpoint_handler,
 )
 from models import (
@@ -30,12 +31,15 @@ from models import (
     GPUStats,
     SizingInput,
     SizingOutput,
+    VLMSizingInput,
+    VLMSizingOutput,
     WhatIfRequest,
     WhatIfResponseItem,
 )
 from settings import get_settings
 from services.gpu_refresh_service import refresh_gpu_data_internal, start_scheduler
 from services.sizing_service import run_sizing
+from services.vlm_sizing_service import run_vlm_sizing
 
 # Модуль расчета мощностей для развертывания LLM (Методика v2)
 #
@@ -158,6 +162,18 @@ def size_endpoint(inp: SizingInput) -> SizingOutput:
     возвращает детальный расчет необходимых серверов.
     """
     return size_endpoint_handler(inp, run_sizing_fn=run_sizing)
+
+
+@app.post("/v1/size-vlm", response_model=VLMSizingOutput, tags=["VLM/OCR"])
+def size_vlm_endpoint(inp: VLMSizingInput) -> VLMSizingOutput:
+    """
+    VLM single-pass online сайзинг (Приложение И.4.1).
+
+    Принимает параметры VLM-нагрузки (изображение, поля JSON, SLA на страницу),
+    возвращает реплики, GPU и серверы. Находит максимальный BS_real,
+    удовлетворяющий SLA_page, и рассчитывает N_repl_VLM = ⌈C_peak / BS_real*⌉.
+    """
+    return vlm_size_endpoint_handler(inp, run_vlm_sizing_fn=run_vlm_sizing)
 
 
 # ═══════════════════════════════════════════════════════════

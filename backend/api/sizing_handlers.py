@@ -10,6 +10,8 @@ from models import (
     AutoOptimizeResponse,
     SizingInput,
     SizingOutput,
+    VLMSizingInput,
+    VLMSizingOutput,
     WhatIfRequest,
     WhatIfResponseItem,
 )
@@ -17,6 +19,7 @@ from services.auto_optimize_service import auto_optimize
 from services.gpu_catalog_service import lookup_gpu_tflops
 from services.report_service import ReportGenerator
 from services.sizing_service import run_sizing
+from services.vlm_sizing_service import run_vlm_sizing
 
 report_builder = ReportGenerator(gpu_tflops_lookup=lookup_gpu_tflops)
 
@@ -79,3 +82,15 @@ def auto_optimize_endpoint_handler(inp: AutoOptimizeInput) -> AutoOptimizeRespon
         return auto_optimize(inp)
     except AppError as exc:
         raise to_http_exception(exc) from exc
+
+
+def vlm_size_endpoint_handler(
+    inp: VLMSizingInput,
+    run_vlm_sizing_fn: Callable[[VLMSizingInput], VLMSizingOutput] = run_vlm_sizing,
+) -> VLMSizingOutput:
+    """Выполнить VLM single-pass online sizing (Приложение И.4.1)."""
+    try:
+        return run_vlm_sizing_fn(inp)
+    except (AppError, ValueError) as exc:
+        error = exc if isinstance(exc, AppError) else ValidationAppError(str(exc))
+        raise to_http_exception(error) from exc

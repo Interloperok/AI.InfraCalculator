@@ -7,18 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### v1.3.0 — Methodology v3 parity (P0–P8 + P10 + P11)
+### v1.3.0 — Methodology v3 parity (P0–P11)
 
 Brings the calculator from methodology v2 to v3 across calibration,
 memory-bandwidth-bound decode, TTFT corrections, MoE accounting,
 iterative servers-by-compute fixed-point, MLA support, loaded-latency
 SLA, continuous-batching prefill, agentic K_calls, parallelism
-beyond TP, and prefill/decode pool disaggregation. Stacks under a
-single semver-bump because default-relying callers see numeric shifts
-when their inputs match the regimes the new formulas correct.
+beyond TP, prefill/decode pool disaggregation, and VLM single-pass
+online sizing. Stacks under a single semver-bump because default-relying
+callers see numeric shifts when their inputs match the regimes the
+new formulas correct.
 
-P9 (OCR/VLM endpoint) remains as a future extension — separate
-endpoint and sizing model, can ship as v1.4.x.
+P9 ships in phases: P9a (VLM single-pass online) is in this release;
+P9b (OCR+LLM two-pass), P9c (batch mode), and P9d (multi-class
+workloads) follow in v1.4.x.
+
+#### P9a: VLM single-pass online sizing (Appendix И.3.1, И.4.1)
+
+Adds a dedicated endpoint `POST /v1/size-vlm` for sizing visual-language
+models (Qwen2.5-VL, InternVL-2.5, etc.) running single-pass document
+extraction in online (per-page SLA) mode. v2 had no VLM support — vision
+tokens, per-page latency, and replicas-from-`C_peak` are all new
+concepts that don't fit the LLM `S_sim`/req-sec framing.
+
+**Added:**
+- `core.sizing_math.calc_v_tok(w_px, h_px, patch_eff, n_ch=1)`:
+  visual-token count `V_tok = ⌈(W·H) / patch_eff²⌉ · n_ch` (И.3.1).
+- `core.sizing_math.calc_sl_pf_vlm(v_tok, n_prompt_txt)`:
+  prefill length `SL_pf^VLM = V_tok + N_prompt^txt`.
+- `core.sizing_math.calc_sl_dec_vlm(n_fields, tok_field)`:
+  decode length `SL_dec^VLM = N_fields · tok_field`.
+- `core.sizing_math.calc_t_page_vlm(...)`:
+  per-page latency `t_page^VLM = SL_pf^eff/Th_pf + SL_dec/Th_dec + T_ovh^VLM`
+  (И.4.1).
+- New Pydantic models `VLMSizingInput` and `VLMSizingOutput` covering
+  workload (`λ_online`, `C_peak`, `SLA_page`), image profile
+  (`w_px`, `h_px`, `patch_eff`, `n_ch`, `n_prompt_txt`, `n_fields`,
+  `tok_field`), VLM model parameters, hardware, and calibration
+  coefficients (`η_vlm,pf` default 0.15 per И.7.1, `η_cache_VLM` default 0,
+  `T_ovh^VLM` from methodology constants).
+- `services.vlm_sizing_service.run_vlm_sizing(VLMSizingInput) -> VLMSizingOutput`
+  orchestrator: token profile → §3.1/§3.2 memory → §4.1/§4.4 GPU/TP →
+  §6.1 throughput → И.4.1 BS_real* search (max BS satisfying
+  `t_page ≤ SLA_page`) → replicas `N_repl_VLM = ⌈C_peak / BS_real*⌉`,
+  total GPUs `N_repl · Z · gpus_per_instance`, total servers.
+- `POST /v1/size-vlm` FastAPI endpoint (tag: `VLM/OCR`).
+- 12 pure-function unit tests + 18 service-level integration tests.
+
+**Changed:**
+- `models/__init__.py` re-exports `VLMSizingInput`, `VLMSizingOutput`.
+- `api/sizing_handlers.py` adds `vlm_size_endpoint_handler` reusing the
+  existing error-mapping pattern.
+
+**Notes:**
+- BS_real* search iterates 1..S_TP_z. Compute branch scales linearly
+  with `1/BS` per session; mem branch (when bandwidth provided)
+  recomputes via `calc_th_*_cb_mem` at each BS. Stops at the largest
+  BS satisfying SLA, or at the first BS where SLA fails (search is
+  monotonic in BS for the workloads modeled).
+- Memory budget reuses `calc_kv_per_session_gb` with full session
+  length `min(SL_pf + SL_dec, TSmax)`. MLA architectures (DeepSeek-VL2)
+  out of scope for P9a — add in P9d alongside detailed MoE handling.
+- Empirical OCR throughput, OCR+LLM two-pass, batch mode, and
+  multi-class workloads remain in P9b/P9c/P9d.
+- New endpoint is additive — no impact on existing `/v1/size`,
+  `/v1/whatif`, `/v1/auto-optimize` callers.
 
 #### P10: PD-disaggregation — split prefill/decode pools (Appendix Ж)
 

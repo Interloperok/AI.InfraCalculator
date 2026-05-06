@@ -670,3 +670,83 @@ class TestPDDisaggregationMath:
         long_gen = calc_th_server_dec(2, 100.0, 8, 1600.0)
         assert long_gen < short_gen
         assert abs(long_gen - short_gen / 4) < 1e-9
+
+
+class TestVLMTokenProfile:
+    """P9a — VLM token-profile pure functions (Приложение И.3.1)."""
+
+    def test_v_tok_basic_formula(self) -> None:
+        # V_tok = ⌈(W·H) / patch²⌉ × n_ch
+        from core.sizing_math import calc_v_tok
+        # 1240×1754 / 28² = 2174960/784 = 2774.18 → ⌈⌉ = 2775
+        assert calc_v_tok(w_px=1240, h_px=1754, patch_eff=28, n_ch=1) == 2775
+
+    def test_v_tok_n_ch_multiplies(self) -> None:
+        from core.sizing_math import calc_v_tok
+        single = calc_v_tok(w_px=1024, h_px=1024, patch_eff=32, n_ch=1)
+        triple = calc_v_tok(w_px=1024, h_px=1024, patch_eff=32, n_ch=3)
+        assert triple == 3 * single
+
+    def test_v_tok_returns_zero_on_invalid_input(self) -> None:
+        from core.sizing_math import calc_v_tok
+        assert calc_v_tok(w_px=0, h_px=1024, patch_eff=28) == 0
+        assert calc_v_tok(w_px=1024, h_px=0, patch_eff=28) == 0
+        assert calc_v_tok(w_px=1024, h_px=1024, patch_eff=0) == 0
+        assert calc_v_tok(w_px=1024, h_px=1024, patch_eff=28, n_ch=0) == 0
+
+    def test_v_tok_ceiling_rounds_up(self) -> None:
+        from core.sizing_math import calc_v_tok
+        # 100×100 / 32² = 9.77 → ceil = 10
+        assert calc_v_tok(w_px=100, h_px=100, patch_eff=32) == 10
+
+    def test_sl_pf_vlm_sums_visual_and_text(self) -> None:
+        from core.sizing_math import calc_sl_pf_vlm
+        assert calc_sl_pf_vlm(v_tok=2775, n_prompt_txt=200) == 2975
+
+    def test_sl_pf_vlm_zero_text_prompt(self) -> None:
+        from core.sizing_math import calc_sl_pf_vlm
+        assert calc_sl_pf_vlm(v_tok=1000, n_prompt_txt=0) == 1000
+
+    def test_sl_dec_vlm_basic(self) -> None:
+        from core.sizing_math import calc_sl_dec_vlm
+        # 20 fields × 50 tok/field = 1000
+        assert calc_sl_dec_vlm(n_fields=20, tok_field=50) == 1000
+
+    def test_sl_dec_vlm_returns_zero_on_invalid(self) -> None:
+        from core.sizing_math import calc_sl_dec_vlm
+        assert calc_sl_dec_vlm(n_fields=0, tok_field=50) == 0
+        assert calc_sl_dec_vlm(n_fields=20, tok_field=0) == 0
+
+
+class TestTPageVLM:
+    """P9a — per-page latency formula (Приложение И.4.1)."""
+
+    def test_t_page_basic_formula(self) -> None:
+        # t_page = SL_pf_eff/Th_pf + SL_dec/Th_dec + T_ovh
+        # 2875/1000 + 1000/500 + 0.05 = 2.875 + 2.0 + 0.05 = 4.925
+        from core.sizing_math import calc_t_page_vlm
+        result = calc_t_page_vlm(
+            sl_pf_vlm_eff=2875,
+            th_pf_vlm=1000.0,
+            sl_dec_vlm=1000,
+            th_dec_vlm=500.0,
+            t_ovh_vlm=0.05,
+        )
+        assert abs(result - 4.925) < 1e-9
+
+    def test_t_page_returns_inf_on_zero_throughput(self) -> None:
+        from core.sizing_math import calc_t_page_vlm
+        assert calc_t_page_vlm(2875, 0.0, 1000, 500.0) == float("inf")
+        assert calc_t_page_vlm(2875, 1000.0, 1000, 0.0) == float("inf")
+
+    def test_t_page_grows_with_sl_pf(self) -> None:
+        from core.sizing_math import calc_t_page_vlm
+        short = calc_t_page_vlm(1000, 1000.0, 100, 500.0)
+        long = calc_t_page_vlm(4000, 1000.0, 100, 500.0)
+        assert long > short
+
+    def test_t_page_drops_with_higher_throughput(self) -> None:
+        from core.sizing_math import calc_t_page_vlm
+        slow = calc_t_page_vlm(2875, 500.0, 1000, 500.0)
+        fast = calc_t_page_vlm(2875, 1000.0, 1000, 1000.0)
+        assert fast < slow

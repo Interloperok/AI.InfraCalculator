@@ -646,3 +646,74 @@ def calc_th_server_dec(NcountTP, th_dec_per_session, bs_real, Tdec):
     if Tdec <= 0 or th_dec_per_session <= 0 or bs_real <= 0 or NcountTP <= 0:
         return 0.0
     return NcountTP * bs_real * th_dec_per_session / Tdec
+
+
+# ═══════════════════════════════════════════════════════════
+# Section И: VLM / OCR pipeline (P9a — VLM single-pass online)
+# ═══════════════════════════════════════════════════════════
+
+
+def calc_v_tok(w_px, h_px, patch_eff, n_ch=1):
+    """
+    Приложение И.3.1 — Число визуальных токенов после vision-энкодера.
+
+    V_tok = ⌈(W_px · H_px) / patch_eff²⌉ · n_ch
+
+    Vision-энкодер делит изображение на патчи (после spatial-merge для
+    Qwen2.5-VL / InternVL-2.5 эффективный размер patch_eff ≈ 28). Каждый
+    патч → один эмбеддинг → один визуальный токен в LLM-декодере.
+    Множитель n_ch для grayscale-моделей (1) или multi-stream RGB (редко >1).
+    """
+    if w_px <= 0 or h_px <= 0 or patch_eff <= 0 or n_ch <= 0:
+        return 0
+    return math.ceil((w_px * h_px) / (patch_eff * patch_eff)) * n_ch
+
+
+def calc_sl_pf_vlm(v_tok, n_prompt_txt):
+    """
+    Приложение И.3.1 — Длина prefill для VLM (визуальные + текстовые токены).
+
+    SL_pf^VLM = V_tok + N_prompt^txt
+
+    Все визуальные токены попадают на prefill вместе с текстовой инструкцией
+    (system prompt + task description). Decode-сторона генерирует только
+    выходной JSON (см. ``calc_sl_dec_vlm``).
+    """
+    if v_tok < 0 or n_prompt_txt < 0:
+        return 0
+    return v_tok + n_prompt_txt
+
+
+def calc_sl_dec_vlm(n_fields, tok_field):
+    """
+    Приложение И.3.1 — Число выходных токенов на страницу (decode).
+
+    SL_dec^VLM = N_fields · tok_field
+
+    N_fields — число извлекаемых полей в JSON-ответе.
+    tok_field — среднее число токенов на одно поле (типично 30-100).
+    """
+    if n_fields <= 0 or tok_field <= 0:
+        return 0
+    return n_fields * tok_field
+
+
+def calc_t_page_vlm(sl_pf_vlm_eff, th_pf_vlm, sl_dec_vlm, th_dec_vlm, t_ovh_vlm=0.0):
+    """
+    Приложение И.4.1 — Время обработки страницы VLM single-pass (сек).
+
+    t_page^VLM(BS_real) = SL_pf^VLM,eff / Th_pf^VLM(BS_real)
+                       + SL_dec^VLM / Th_dec^VLM(BS_real)
+                       + T_ovh^VLM
+
+    Где SL_pf^VLM,eff = SL_pf^VLM · (1 − η_cache^VLM); для VLM η_cache ≈ 0
+    (визуальные токены уникальны для каждой страницы, prefix-cache не
+    применим). T_ovh — per-page overhead (preprocessing, postprocessing).
+
+    Throughput Th_pf^VLM и Th_dec^VLM зависят от BS_real (число одновременных
+    страниц на инстанс) — резолвится вызывающим (vlm_sizing_service).
+    Возвращает inf если throughput-значения нулевые.
+    """
+    if th_pf_vlm <= 0 or th_dec_vlm <= 0:
+        return float("inf")
+    return sl_pf_vlm_eff / th_pf_vlm + sl_dec_vlm / th_dec_vlm + t_ovh_vlm
