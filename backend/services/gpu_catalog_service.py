@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Optional
 
@@ -10,17 +11,25 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 GPU_DATA_PATH = BACKEND_DIR / "gpu_data.json"
 
 
-def _read_gpu_catalog(path: Path = GPU_DATA_PATH) -> list[dict[str, Any]]:
-    with path.open("r", encoding="utf-8") as file_obj:
+@lru_cache(maxsize=1)
+def _read_gpu_catalog_cached(path_str: str, mtime_ns: int) -> tuple[dict[str, Any], ...]:
+    """Cached read keyed by (path, mtime). Auto-invalidates when the file
+    is replaced (e.g. after /v1/gpus/refresh)."""
+    with open(path_str, "r", encoding="utf-8") as file_obj:
         data = json.load(file_obj)
 
     if isinstance(data, list):
-        return [item for item in data if isinstance(item, dict)]
+        return tuple(item for item in data if isinstance(item, dict))
 
     if isinstance(data, dict):
-        return [item for item in data.values() if isinstance(item, dict)]
+        return tuple(item for item in data.values() if isinstance(item, dict))
 
-    return []
+    return ()
+
+
+def _read_gpu_catalog(path: Path = GPU_DATA_PATH) -> list[dict[str, Any]]:
+    mtime_ns = path.stat().st_mtime_ns
+    return list(_read_gpu_catalog_cached(str(path), mtime_ns))
 
 
 def load_gpu_catalog() -> list[dict[str, Any]]:

@@ -13,7 +13,21 @@ from core.methodology_constants import (
     O_FIXED_DEFAULT,
     T_OVERHEAD_DEFAULT,
 )
-from pydantic import BaseModel, ConfigDict, Field, confloat, conint
+from pydantic import BaseModel, ConfigDict, Field, confloat, conint, model_validator
+
+
+class EngineMode(str, Enum):
+    """Inference engine batching mode (§6.1)."""
+
+    continuous = "continuous"
+    static = "static"
+
+
+class OCRPipeline(str, Enum):
+    """OCR-стадия pipeline (Приложение И.3.2-И.3.3)."""
+
+    ocr_gpu = "ocr_gpu"
+    ocr_cpu = "ocr_cpu"
 
 
 class SizingInput(BaseModel):
@@ -255,8 +269,8 @@ class SizingInput(BaseModel):
     gpu_flops_Fcount: Optional[confloat(gt=0)] = Field(
         None, description="Пиковые TFLOPS одного GPU (напр. 312 для A100)"
     )
-    engine_mode: Optional[str] = Field(
-        default="continuous",
+    engine_mode: Optional[EngineMode] = Field(
+        default=EngineMode.continuous,
         description="Inference engine batching mode (§6.1). "
         "'continuous' (vLLM, SGLang, TGI, Triton+inflight): prefill chunked into "
         "decode steps, K_batch=1, mem-bound branch via C_pf. "
@@ -334,6 +348,49 @@ class SizingInput(BaseModel):
         default=None,
         description="Пользовательский каталог GPU (массив или объект). Если задан — цена для Cost Estimate берётся из него.",
     )
+
+    @model_validator(mode="after")
+    def _validate_moe_mla_invariants(self) -> "SizingInput":
+        """Cross-field invariants for MoE / MLA configurations.
+
+        Without these, malformed input slips through and produces silently
+        wrong numbers — e.g., k_experts > n_experts makes calc_p_effective
+        compute (1 - k/N)^bs with a negative base, yielding alternating-sign
+        garbage instead of a valid coverage probability.
+        """
+        if self.params_active is not None and self.params_active > self.params_billions:
+            raise ValueError(
+                f"params_active ({self.params_active}) cannot exceed "
+                f"params_billions ({self.params_billions})"
+            )
+        if self.params_dense is not None and self.params_dense > self.params_billions:
+            raise ValueError(
+                f"params_dense ({self.params_dense}) cannot exceed "
+                f"params_billions ({self.params_billions})"
+            )
+        if self.params_moe is not None and self.params_moe > self.params_billions:
+            raise ValueError(
+                f"params_moe ({self.params_moe}) cannot exceed "
+                f"params_billions ({self.params_billions})"
+            )
+        if (
+            self.k_experts is not None
+            and self.n_experts is not None
+            and self.k_experts > self.n_experts
+        ):
+            raise ValueError(
+                f"k_experts ({self.k_experts}) cannot exceed n_experts ({self.n_experts})"
+            )
+        if (
+            self.kv_lora_rank is not None
+            and self.kv_lora_rank > 0
+            and (self.qk_rope_head_dim is None or self.qk_rope_head_dim <= 0)
+        ):
+            raise ValueError(
+                "MLA requires both kv_lora_rank > 0 and qk_rope_head_dim > 0; "
+                f"got kv_lora_rank={self.kv_lora_rank}, qk_rope_head_dim={self.qk_rope_head_dim}"
+            )
+        return self
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -695,7 +752,11 @@ class WhatIfRequest(BaseModel):
     """Запрос для анализа сценариев"""
 
     base: SizingInput = Field(..., description="Базовые параметры")
-    scenarios: List[WhatIfScenario] = Field(..., description="Список сценариев")
+    scenarios: List[WhatIfScenario] = Field(
+        ...,
+        max_length=50,
+        description="Список сценариев (макс. 50 за один запрос)",
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -1283,8 +1344,8 @@ class OCRSizingInput(BaseModel):
     )
 
     # ── И.3.2-И.3.3: Pipeline mode ──
-    pipeline: str = Field(
-        default="ocr_gpu",
+    pipeline: OCRPipeline = Field(
+        default=OCRPipeline.ocr_gpu,
         description="Pipeline OCR-стадии: "
         "'ocr_gpu' — OCR на GPU (PaddleOCR-GPU, EasyOCR-GPU); "
         "'ocr_cpu' — OCR на CPU (Tesseract), не входит в GPU-сайзинг.",

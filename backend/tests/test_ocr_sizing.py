@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from errors import ValidationAppError
 from models import OCRSizingInput
+from pydantic import ValidationError as PydanticValidationError
 from services.ocr_sizing_service import run_ocr_sizing
 
 
@@ -118,9 +119,11 @@ class TestOCRCPUPipeline:
             run_ocr_sizing(OCRSizingInput(**data))
 
     def test_unknown_pipeline_fails(self):
+        # Pipeline is now a Pydantic enum; invalid values are rejected at
+        # input validation rather than reaching the service layer.
         data = {**BASELINE_OCR_GPU, "pipeline": "ocr_alien"}
-        with pytest.raises(ValidationAppError):
-            run_ocr_sizing(OCRSizingInput(**data))
+        with pytest.raises(PydanticValidationError):
+            OCRSizingInput(**data)
 
 
 class TestOCRTokenProfile:

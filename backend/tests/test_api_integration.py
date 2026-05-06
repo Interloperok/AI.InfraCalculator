@@ -95,6 +95,39 @@ def test_size_endpoint_validation_error(client, test_data_dir) -> None:
     assert response.status_code == 422
 
 
+def test_size_endpoint_rejects_invalid_engine_mode(client, test_data_dir) -> None:
+    payload = _load_json(test_data_dir / "payload.json")
+    payload["engine_mode"] = "continuious"  # typo previously silently passed
+
+    response = client.post("/v1/size", json=payload)
+    assert response.status_code == 422
+
+
+def test_size_endpoint_rejects_k_experts_above_n_experts(client, test_data_dir) -> None:
+    payload = _load_json(test_data_dir / "payload.json")
+    payload.update({"n_experts": 8, "k_experts": 16})
+
+    response = client.post("/v1/size", json=payload)
+    assert response.status_code == 422
+    assert "k_experts" in response.json()["detail"][0]["msg"]
+
+
+def test_size_endpoint_rejects_params_active_above_total(client, test_data_dir) -> None:
+    payload = _load_json(test_data_dir / "payload.json")
+    payload.update({"params_active": payload["params_billions"] + 100})
+
+    response = client.post("/v1/size", json=payload)
+    assert response.status_code == 422
+
+
+def test_size_endpoint_rejects_mla_without_qk_rope(client, test_data_dir) -> None:
+    payload = _load_json(test_data_dir / "payload.json")
+    payload["kv_lora_rank"] = 512  # MLA enabled, but qk_rope_head_dim missing
+
+    response = client.post("/v1/size", json=payload)
+    assert response.status_code == 422
+
+
 def test_size_endpoint_returns_memory_fit_error(client, test_data_dir) -> None:
     payload = _load_json(test_data_dir / "payload.json")
     payload.update(

@@ -5,6 +5,7 @@ endpoint. Schema mirrors llm_catalog.schema.json.
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Optional
 
@@ -14,19 +15,26 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 LLM_DATA_PATH = BACKEND_DIR / "llm_data.json"
 
 
+@lru_cache(maxsize=1)
+def _read_llm_catalog_cached(path_str: str, mtime_ns: int) -> tuple[dict[str, Any], ...]:
+    """Cached read keyed by (path, mtime). Auto-invalidates on file change."""
+    with open(path_str, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, dict):
+        return ()
+    if data.get("schema_version") != 1:
+        return ()
+    models = data.get("models", [])
+    if not isinstance(models, list):
+        return ()
+    return tuple(m for m in models if isinstance(m, dict))
+
+
 def _read_llm_catalog(path: Path = LLM_DATA_PATH) -> list[dict[str, Any]]:
     if not path.exists():
         return []
-    with path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-    if not isinstance(data, dict):
-        return []
-    if data.get("schema_version") != 1:
-        return []
-    models = data.get("models", [])
-    if not isinstance(models, list):
-        return []
-    return [m for m in models if isinstance(m, dict)]
+    mtime_ns = path.stat().st_mtime_ns
+    return list(_read_llm_catalog_cached(str(path), mtime_ns))
 
 
 def load_llm_catalog() -> list[dict[str, Any]]:
