@@ -1,6 +1,24 @@
 import React from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+} from "recharts";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Cpu,
+  FileText,
+  Layers,
+  Server,
+  XCircle,
+  Zap,
+} from "lucide-react";
 import MigHintBadge from "./MigHintBadge";
+import { useT } from "../../contexts/I18nContext";
 
 const fmt = (v, digits = 2) => {
   if (v === undefined || v === null || Number.isNaN(v)) return "0";
@@ -10,13 +28,20 @@ const fmt = (v, digits = 2) => {
   return Number(v).toFixed(digits);
 };
 
+const fmtTemplate = (str, params) =>
+  str.replace(/\{(\w+)\}/g, (_, key) =>
+    params[key] === undefined || params[key] === null ? "" : String(params[key]),
+  );
+
 const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
+  const t = useT();
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
-          <p className="text-gray-600">Calculating OCR + LLM sizing…</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-2 border-border border-t-accent mb-4" />
+          <p className="text-muted">{t("ocr.loading")}</p>
         </div>
       </div>
     );
@@ -24,9 +49,15 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
 
   if (error) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-        <h3 className="text-lg font-medium text-yellow-800 mb-2">Warning</h3>
-        <p className="text-yellow-600">{error}</p>
+      <div
+        className="rounded-xl border border-warning/30 bg-warning-soft/60 p-6 text-center"
+        role="alert"
+      >
+        <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-warning-soft text-warning mb-2">
+          <AlertTriangle className="h-5 w-5" strokeWidth={2.25} />
+        </div>
+        <h3 className="text-base font-semibold text-fg mb-1">{t("ocr.warning")}</h3>
+        <p className="text-sm text-muted">{error}</p>
       </div>
     );
   }
@@ -34,18 +65,11 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
   if (!results) {
     return (
       <div className="text-center py-12">
-        <div className="text-gray-400 mb-4">
-          <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-elevated text-subtle mb-4">
+          <FileText className="h-6 w-6" strokeWidth={2} />
         </div>
-        <h3 className="text-lg font-medium text-gray-500">No results yet</h3>
-        <p className="text-gray-400">Submit your OCR + LLM configuration to see the sizing</p>
+        <h3 className="text-base font-semibold text-muted">{t("ocr.empty.title")}</h3>
+        <p className="text-sm text-subtle">{t("ocr.empty.subtitle")}</p>
       </div>
     );
   }
@@ -57,181 +81,202 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
   const overhead = Math.max(0, totalMem - modelMem - kvAtPeak);
 
   const memBreakdown = [
-    { name: "Model Weights", value: Math.round(modelMem * 100) / 100 },
-    { name: "KV-cache (at BS*)", value: Math.round(kvAtPeak * 100) / 100 },
+    { name: t("ocr.memModel"), value: Math.round(modelMem * 100) / 100 },
+    { name: t("ocr.memKv"), value: Math.round(kvAtPeak * 100) / 100 },
     ...(overhead > 0.01
-      ? [{ name: "Reserved", value: Math.round(overhead * 100) / 100 }]
+      ? [{ name: t("ocr.memReserved"), value: Math.round(overhead * 100) / 100 }]
       : []),
   ];
   const DONUT_COLORS = ["#6366f1", "#10b981", "#94a3b8"];
 
   const slaPass = results.sla_pass;
-  const slaCardClass = slaPass
-    ? "bg-gradient-to-br from-emerald-500 to-teal-600"
-    : "bg-gradient-to-br from-red-500 to-rose-600";
-
   const isCpuPipeline = results.pipeline_used === "ocr_cpu";
+
+  // Pool subtitle: "OCR pool: X · LLM pool: Y" + optional " · OCR on CPU"
+  const poolSubtitle = isCpuPipeline
+    ? fmtTemplate(t("ocr.poolSubtitle"), {
+        ocr: results.n_gpu_ocr_online || 0,
+        llm: results.n_gpu_llm_online || 0,
+      }) + " · " + t("ocr.poolSubtitleCpu")
+    : fmtTemplate(t("ocr.poolSubtitle"), {
+        ocr: results.n_gpu_ocr_online || 0,
+        llm: results.n_gpu_llm_online || 0,
+      });
 
   return (
     <div className="gap-6 flex flex-col flex-1">
-      <h2 className="text-lg sm:text-2xl font-semibold text-gray-800">OCR + LLM Sizing Results</h2>
+      <h2 className="text-lg sm:text-2xl font-semibold text-fg">{t("ocr.title")}</h2>
 
-      {/* ── 3 Key Metric Cards ── */}
+      {/* ── 3 Hero Metric Cards ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-tour="ocr-result-cards">
         {/* Card 1 — Infrastructure */}
-        <div className="result-tile bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:min-h-[170px] overflow-hidden">
-          <h3 className="text-xs font-semibold uppercase tracking-wider opacity-70">
-            Infrastructure Required
-          </h3>
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-auto mb-auto">
+        <div className="result-tile rounded-xl border border-border bg-surface p-4 sm:p-5 shadow-card flex flex-col sm:min-h-[170px]">
+          <div className="flex items-center gap-2 text-muted">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-accent-soft text-accent">
+              <Server className="h-3.5 w-3.5" strokeWidth={2.25} />
+            </span>
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider">
+              {t("ocr.infraRequired")}
+            </h3>
+          </div>
+          <div className="flex flex-wrap items-end justify-center gap-x-4 gap-y-1 mt-auto mb-auto pt-2">
             <div className="text-center">
               <p
-                className="text-2xl sm:text-3xl font-extrabold leading-none tabular-nums whitespace-nowrap"
+                className="text-3xl sm:text-4xl font-extrabold leading-none tabular-nums whitespace-nowrap text-fg"
                 title={String(results.n_servers_total_online || 0)}
               >
                 {fmt(results.n_servers_total_online, 0)}
               </p>
-              <p className="text-[10px] sm:text-xs opacity-70 mt-1 uppercase tracking-wide">
-                servers
+              <p className="text-[10px] sm:text-xs text-muted mt-1 uppercase tracking-wide">
+                {t("ocr.servers")}
               </p>
             </div>
-            <div className="text-2xl opacity-30 leading-none -mt-3" aria-hidden="true">
+            <div className="text-2xl text-subtle leading-none -mt-3" aria-hidden="true">
               ·
             </div>
             <div className="text-center">
               <p
-                className="text-2xl sm:text-3xl font-extrabold leading-none tabular-nums whitespace-nowrap"
+                className="text-3xl sm:text-4xl font-extrabold leading-none tabular-nums whitespace-nowrap text-fg"
                 title={String(results.n_gpu_total_online || 0)}
               >
                 {fmt(results.n_gpu_total_online, 0)}
               </p>
-              <p className="text-[10px] sm:text-xs opacity-70 mt-1 uppercase tracking-wide">
-                GPUs
+              <p className="text-[10px] sm:text-xs text-muted mt-1 uppercase tracking-wide">
+                {t("ocr.gpus")}
               </p>
             </div>
           </div>
-          <p className="text-xs sm:text-sm opacity-75 mt-2">
-            OCR pool: {results.n_gpu_ocr_online || 0} · LLM pool: {results.n_gpu_llm_online || 0}
-            {isCpuPipeline ? " · OCR on CPU" : ""}
-          </p>
+          <p className="text-xs sm:text-sm text-muted mt-2">{poolSubtitle}</p>
         </div>
 
         {/* Card 2 — SLA */}
-        <div
-          className={`result-tile ${slaCardClass} rounded-xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:min-h-[170px] overflow-hidden`}
-        >
-          <h3 className="text-xs font-semibold uppercase tracking-wider opacity-70">
-            SLA per page
-          </h3>
-          <p className="text-3xl sm:text-4xl font-extrabold mt-auto mb-auto">
-            {slaPass ? "PASS" : "FAIL"}
+        <div className="result-tile rounded-xl border border-border bg-surface p-4 sm:p-5 shadow-card flex flex-col sm:min-h-[170px]">
+          <div className="flex items-center gap-2 text-muted">
+            <span
+              className={`inline-flex h-7 w-7 items-center justify-center rounded-md ${
+                slaPass
+                  ? "bg-success-soft text-success"
+                  : "bg-danger-soft text-danger"
+              }`}
+            >
+              {slaPass ? (
+                <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.25} />
+              ) : (
+                <XCircle className="h-3.5 w-3.5" strokeWidth={2.25} />
+              )}
+            </span>
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider">
+              {t("ocr.slaPerPage")}
+            </h3>
+          </div>
+          <p
+            className={`text-4xl sm:text-5xl font-extrabold leading-none mt-auto mb-auto tabular-nums ${
+              slaPass ? "text-success" : "text-danger"
+            }`}
+          >
+            {slaPass ? t("ocr.slaPass") : t("ocr.slaFail")}
           </p>
-          <p className="text-xs sm:text-sm opacity-90 mt-2">
-            t_OCR {fmt(results.t_ocr, 2)}s · LLM budget {fmt(results.t_llm_target, 2)}s ·
-            target {fmt(results.sla_page_target, 2)}s
+          <p className="text-xs sm:text-sm text-muted mt-2">
+            {fmtTemplate(t("ocr.slaDetail"), {
+              tOcr: fmt(results.t_ocr, 2),
+              tLlm: fmt(results.t_llm_target, 2),
+              target: fmt(results.sla_page_target, 2),
+            })}
           </p>
         </div>
 
         {/* Card 3 — LLM throughput */}
-        <div className="result-tile bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:min-h-[170px]">
-          <h3 className="text-xs font-semibold uppercase tracking-wider opacity-70">
-            LLM Throughput
-          </h3>
-          <p className="text-3xl sm:text-4xl font-extrabold mt-auto mb-auto">
+        <div className="result-tile rounded-xl border border-border bg-surface p-4 sm:p-5 shadow-card flex flex-col sm:min-h-[170px]">
+          <div className="flex items-center gap-2 text-muted">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-warning-soft text-warning">
+              <Zap className="h-3.5 w-3.5" strokeWidth={2.25} />
+            </span>
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider">
+              {t("ocr.throughput")}
+            </h3>
+          </div>
+          <p className="text-3xl sm:text-4xl font-extrabold mt-auto mb-auto tabular-nums text-fg leading-none">
             {fmt(results.th_pf_llm, 0)}
-            <span className="text-base font-semibold opacity-70 ml-1">tok/s prefill</span>
+            <span className="text-sm font-semibold text-muted ml-1">
+              {t("ocr.throughputUnit")}
+            </span>
           </p>
-          <p className="text-xs sm:text-sm opacity-75 mt-2">
-            decode {fmt(results.th_dec_llm, 0)} tok/s
+          <p className="text-xs sm:text-sm text-muted mt-2">
+            {fmtTemplate(t("ocr.decode"), { value: fmt(results.th_dec_llm, 0) })}
           </p>
         </div>
       </div>
 
       {/* ── Pool breakdown ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-        <div className="bg-gradient-to-br from-rose-400/80 to-pink-500/80 rounded-lg p-3 sm:p-4 text-white shadow">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
-            OCR pool
-          </h3>
-          <p className="text-xl sm:text-2xl font-bold mt-1">
-            {isCpuPipeline ? "CPU" : results.n_gpu_ocr_online || 0}
-          </p>
-          <p className="text-[10px] opacity-70 mt-0.5">
-            {isCpuPipeline ? `${results.n_ocr_cores_used || 0} cores` : "GPUs"}
-          </p>
-        </div>
-        <div className="bg-gradient-to-br from-blue-400/80 to-indigo-500/80 rounded-lg p-3 sm:p-4 text-white shadow">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
-            LLM pool
-          </h3>
-          <p className="text-xl sm:text-2xl font-bold mt-1">{results.n_gpu_llm_online || 0}</p>
-          <p className="text-[10px] opacity-70 mt-0.5">GPUs</p>
-        </div>
-        <div className="bg-gradient-to-br from-emerald-400/80 to-teal-500/80 rounded-lg p-3 sm:p-4 text-white shadow">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
-            BS_real*
-          </h3>
-          <p className="text-xl sm:text-2xl font-bold mt-1">{results.bs_real_star || 0}</p>
-        </div>
-        <div className="bg-gradient-to-br from-violet-400/80 to-purple-500/80 rounded-lg p-3 sm:p-4 text-white shadow">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
-            LLM replicas
-          </h3>
-          <p className="text-xl sm:text-2xl font-bold mt-1">{results.n_repl_llm || 0}</p>
-        </div>
+        <SecondaryTile
+          icon={<FileText className="h-3.5 w-3.5" strokeWidth={2.25} />}
+          tone="danger"
+          label={t("ocr.ocrPool")}
+          value={isCpuPipeline ? t("ocr.cpu") : results.n_gpu_ocr_online || 0}
+          sub={
+            isCpuPipeline
+              ? fmtTemplate(t("ocr.coresLine"), { count: results.n_ocr_cores_used || 0 })
+              : t("ocr.gpus.label")
+          }
+        />
+        <SecondaryTile
+          icon={<Server className="h-3.5 w-3.5" strokeWidth={2.25} />}
+          tone="accent"
+          label={t("ocr.llmPool")}
+          value={results.n_gpu_llm_online || 0}
+          sub={t("ocr.gpus.label")}
+        />
+        <SecondaryTile
+          icon={<Layers className="h-3.5 w-3.5" strokeWidth={2.25} />}
+          tone="success"
+          label={t("ocr.bsRealStar")}
+          value={results.bs_real_star || 0}
+        />
+        <SecondaryTile
+          icon={<Cpu className="h-3.5 w-3.5" strokeWidth={2.25} />}
+          tone="info"
+          label={t("ocr.replicas")}
+          value={results.n_repl_llm || 0}
+        />
       </div>
 
       {/* ── Gateway Quotas (two-pool: OCR + LLM) ── */}
-      <div className="bg-white rounded-lg p-4 shadow border border-gray-200">
+      <div className="rounded-xl border border-border bg-surface p-4 shadow-card">
         <div className="flex items-baseline justify-between mb-3">
-          <h3 className="text-sm font-semibold text-gray-800">Gateway Quotas</h3>
-          <span className="text-[11px] text-gray-500">
-            Rate-limit OCR and LLM pools independently
-          </span>
+          <h3 className="text-sm font-semibold text-fg">{t("ocr.gatewayQuotas")}</h3>
+          <span className="text-[11px] text-muted">{t("ocr.gatewaySubtitle")}</span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-          <div className="bg-rose-50 rounded-md py-2 px-2">
-            <p className="text-[10px] uppercase font-semibold text-rose-700 tracking-wider">
-              OCR Peak RPM
-            </p>
-            <p className="text-lg font-bold text-rose-900 mt-1">
-              {isCpuPipeline ? "—" : fmt(results.ocr_peak_rpm, 0)}
-            </p>
-            <p className="text-[10px] text-rose-600 mt-0.5">
-              {isCpuPipeline ? "CPU pipeline" : "pages/min"}
-            </p>
-          </div>
-          <div className="bg-indigo-50 rounded-md py-2 px-2">
-            <p className="text-[10px] uppercase font-semibold text-indigo-700 tracking-wider">
-              LLM Peak RPM
-            </p>
-            <p className="text-lg font-bold text-indigo-900 mt-1">
-              {fmt(results.llm_peak_rpm, 0)}
-            </p>
-            <p className="text-[10px] text-indigo-600 mt-0.5">
-              sustained {fmt(results.llm_sustained_rpm, 0)}
-            </p>
-          </div>
-          <div className="bg-emerald-50 rounded-md py-2 px-2">
-            <p className="text-[10px] uppercase font-semibold text-emerald-700 tracking-wider">
-              LLM Peak TPM
-            </p>
-            <p className="text-lg font-bold text-emerald-900 mt-1">
-              {fmt(results.llm_peak_tpm, 0)}
-            </p>
-            <p className="text-[10px] text-emerald-600 mt-0.5">
-              in {fmt(results.llm_peak_tpm_input, 0)} · out {fmt(results.llm_peak_tpm_output, 0)}
-            </p>
-          </div>
-          <div className="bg-amber-50 rounded-md py-2 px-2">
-            <p className="text-[10px] uppercase font-semibold text-amber-700 tracking-wider">
-              Max Parallel
-            </p>
-            <p className="text-lg font-bold text-amber-900 mt-1">
-              {fmt(results.max_parallel_requests, 0)}
-            </p>
-            <p className="text-[10px] text-amber-600 mt-0.5">concurrent pages</p>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <QuotaCell
+            tone="danger"
+            label={t("ocr.ocrPeakRpm")}
+            value={isCpuPipeline ? "—" : fmt(results.ocr_peak_rpm, 0)}
+            sub={isCpuPipeline ? t("ocr.ocrPeakRpmCpu") : t("ocr.ocrPeakRpmSub")}
+          />
+          <QuotaCell
+            tone="accent"
+            label={t("ocr.llmPeakRpm")}
+            value={fmt(results.llm_peak_rpm, 0)}
+            sub={fmtTemplate(t("ocr.llmPeakRpmSub"), {
+              value: fmt(results.llm_sustained_rpm, 0),
+            })}
+          />
+          <QuotaCell
+            tone="success"
+            label={t("ocr.llmPeakTpm")}
+            value={fmt(results.llm_peak_tpm, 0)}
+            sub={fmtTemplate(t("ocr.llmPeakTpmSub"), {
+              input: fmt(results.llm_peak_tpm_input, 0),
+              output: fmt(results.llm_peak_tpm_output, 0),
+            })}
+          />
+          <QuotaCell
+            tone="warning"
+            label={t("ocr.maxParallel")}
+            value={fmt(results.max_parallel_requests, 0)}
+            sub={t("ocr.concurrentPages")}
+          />
         </div>
       </div>
 
@@ -247,11 +292,11 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
       />
 
       {/* ── Memory donut (LLM stage) ── */}
-      <div className="bg-gray-50 rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wider">
-          GPU memory per LLM instance
+      <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
+        <h3 className="text-sm font-semibold text-fg mb-4 uppercase tracking-wider">
+          {t("ocr.memoryTitle")}
         </h3>
-        <div className="flex items-center gap-6">
+        <div className="flex flex-col sm:flex-row items-center gap-6">
           <div className="w-32 h-32 flex-shrink-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -262,6 +307,7 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
                   innerRadius="60%"
                   outerRadius="100%"
                   paddingAngle={2}
+                  stroke="none"
                 >
                   {memBreakdown.map((_, i) => (
                     <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
@@ -269,61 +315,114 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
                 </Pie>
                 <RechartsTooltip
                   formatter={(value, name) => [`${value} GB`, name]}
+                  contentStyle={{ borderRadius: "8px", fontSize: "12px" }}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 min-w-0 space-y-2 w-full">
             {memBreakdown.map((entry, i) => (
               <div key={entry.name} className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2">
                   <span
-                    className="w-3 h-3 rounded-sm"
+                    className="w-2.5 h-2.5 rounded-sm"
                     style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }}
                   />
-                  <span className="text-gray-700">{entry.name}</span>
+                  <span className="text-muted">{entry.name}</span>
                 </span>
-                <span className="font-mono text-gray-800">{entry.value} GB</span>
+                <span className="font-mono text-fg">{entry.value} GB</span>
               </div>
             ))}
-            <div className="text-xs text-gray-500 pt-2 border-t border-gray-200">
-              Total per instance: {fmt(totalMem, 1)} GB · KV at BS*: {fmt(kvAtPeak, 1)} GB
+            <div className="text-xs text-subtle pt-2 border-t border-border">
+              {fmtTemplate(t("ocr.memTotalLine"), {
+                total: fmt(totalMem, 1),
+                kv: fmt(kvAtPeak, 1),
+              })}
             </div>
           </div>
         </div>
       </div>
 
       {/* ── Diagnostics ── */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wider">
-          Diagnostics
-        </h3>
+      <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-accent-soft text-accent">
+            <Clock className="h-3.5 w-3.5" strokeWidth={2.25} />
+          </span>
+          <h3 className="text-sm font-semibold text-fg uppercase tracking-wider">
+            {t("ocr.diagnostics")}
+          </h3>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-          <Stat label="Pipeline" value={results.pipeline_used || "—"} />
-          <Stat label="t_OCR / page" value={`${fmt(results.t_ocr, 2)} s`} />
-          <Stat label="LLM SLA budget" value={`${fmt(results.t_llm_target, 2)} s`} />
-          <Stat label="L_text" value={`${fmt(results.l_text, 0)} tok`} />
-          <Stat label="SL_pf (eff)" value={fmt(results.sl_pf_llm_eff, 0)} />
-          <Stat label="SL_dec" value={results.sl_dec_llm} />
-          <Stat label="GPUs / instance" value={results.gpus_per_instance} />
-          <Stat label="Sessions / instance" value={results.s_tp_z} />
+          <Stat label={t("ocr.diag.pipeline")} value={results.pipeline_used || "—"} />
+          <Stat label={t("ocr.diag.tOcr")} value={`${fmt(results.t_ocr, 2)} s`} />
+          <Stat label={t("ocr.diag.llmBudget")} value={`${fmt(results.t_llm_target, 2)} s`} />
+          <Stat label={t("ocr.diag.lText")} value={`${fmt(results.l_text, 0)} tok`} />
+          <Stat label={t("ocr.diag.slPfEff")} value={fmt(results.sl_pf_llm_eff, 0)} />
+          <Stat label={t("ocr.diag.slDec")} value={results.sl_dec_llm} />
+          <Stat label={t("ocr.diag.gpusPerInstance")} value={results.gpus_per_instance} />
+          <Stat label={t("ocr.diag.sessionsPerInstance")} value={results.s_tp_z} />
           <Stat
-            label="KV / session"
+            label={t("ocr.diag.kvPerSession")}
             value={`${fmt(results.kv_per_session_gb, 2)} GB`}
           />
-          <Stat label="Model weights" value={`${fmt(results.model_mem_gb, 1)} GB`} />
-          <Stat label="GPU TFLOPS used" value={results.gpu_tflops_used} />
-          <Stat label="Handoff" value={`${fmt(results.t_handoff_used, 2)} s`} />
+          <Stat
+            label={t("ocr.diag.modelWeights")}
+            value={`${fmt(results.model_mem_gb, 1)} GB`}
+          />
+          <Stat label={t("ocr.diag.gpuTflops")} value={results.gpu_tflops_used} />
+          <Stat label={t("ocr.diag.handoff")} value={`${fmt(results.t_handoff_used, 2)} s`} />
         </div>
       </div>
     </div>
   );
 };
 
+const TONE_CLASSES = {
+  accent: { bg: "bg-accent-soft", text: "text-accent" },
+  success: { bg: "bg-success-soft", text: "text-success" },
+  info: { bg: "bg-info-soft", text: "text-info" },
+  warning: { bg: "bg-warning-soft", text: "text-warning" },
+  danger: { bg: "bg-danger-soft", text: "text-danger" },
+};
+
+const SecondaryTile = ({ icon, tone = "accent", label, value, sub }) => {
+  const tc = TONE_CLASSES[tone] || TONE_CLASSES.accent;
+  return (
+    <div className="rounded-lg border border-border bg-surface p-3 sm:p-4 shadow-card">
+      <div className="flex items-center gap-2">
+        <span
+          className={`inline-flex h-6 w-6 items-center justify-center rounded-md ${tc.bg} ${tc.text}`}
+        >
+          {icon}
+        </span>
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+          {label}
+        </h3>
+      </div>
+      <p className="text-xl sm:text-2xl font-bold mt-2 text-fg tabular-nums">{value}</p>
+      {sub && <p className="text-[10px] text-muted mt-0.5">{sub}</p>}
+    </div>
+  );
+};
+
+const QuotaCell = ({ tone = "accent", label, value, sub }) => {
+  const tc = TONE_CLASSES[tone] || TONE_CLASSES.accent;
+  return (
+    <div className={`rounded-md ${tc.bg} px-3 py-2.5`}>
+      <p className={`text-[10px] uppercase font-semibold tracking-wider ${tc.text}`}>
+        {label}
+      </p>
+      <p className="text-lg font-bold text-fg mt-1 tabular-nums">{value}</p>
+      {sub && <p className={`text-[10px] mt-0.5 ${tc.text} opacity-90`}>{sub}</p>}
+    </div>
+  );
+};
+
 const Stat = ({ label, value }) => (
   <div className="flex flex-col">
-    <span className="text-[10px] uppercase tracking-wider text-gray-500">{label}</span>
-    <span className="text-sm font-mono text-gray-800 mt-0.5">{value ?? "—"}</span>
+    <span className="text-[10px] uppercase tracking-wider text-muted">{label}</span>
+    <span className="text-sm font-mono text-fg mt-0.5 tabular-nums">{value ?? "—"}</span>
   </div>
 );
 
