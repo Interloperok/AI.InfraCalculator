@@ -423,9 +423,16 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
             "servers_comp": sc,
         }
 
+    # Methodology §6.4 step 3: iterate until Servers^(k+1) = Servers^(k);
+    # typical 2-4 iterations, hard cap at MAX_ITER. Pure fixed-point loop —
+    # no |Δ|≤1 looseness, no max-stability stickiness (those were prior web
+    # additions that diverged from the xlsx and reference Python
+    # implementations on 1-cycle-oscillation scenarios). For oscillating
+    # scenarios that never satisfy `==`, the loop runs all 10 iterations
+    # and takes whatever the final iteration produces — same as the
+    # reference's fixed 10-iter loop.
     servers = servers_mem
-    state = _iteration_state(servers)
-    iteration_count = 1
+    iteration_count = 0
     for i in range(MAX_ITER):
         iteration_count = i + 1
         state = _iteration_state(servers)
@@ -435,13 +442,11 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
                 "Проверьте TFLOPS GPU, throughput или кол-во экземпляров на сервер."
             )
         new_servers = max(servers_mem, state["servers_comp"])
-        # Convergence: |Δ| ≤ 1 vs previous iter. Take max for stability —
-        # protects against 1-cycle oscillation near the compute/memory boundary.
-        if i > 0 and abs(new_servers - servers) <= 1:
-            servers = max(servers, new_servers)
-            state = _iteration_state(servers)
+        if i > 0 and new_servers == servers:
             break
         servers = new_servers
+    # Final state at the converged servers count.
+    state = _iteration_state(servers)
 
     BS_real = state["bs_real"]
     p_effective = state["p_effective"]
