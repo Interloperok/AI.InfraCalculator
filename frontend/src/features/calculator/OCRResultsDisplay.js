@@ -181,6 +181,60 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
         </div>
       </div>
 
+      {/* ── Gateway Quotas (two-pool: OCR + LLM) ── */}
+      <div className="bg-white rounded-lg p-4 shadow border border-gray-200">
+        <div className="flex items-baseline justify-between mb-3">
+          <h3 className="text-sm font-semibold text-gray-800">Gateway Quotas</h3>
+          <span className="text-[11px] text-gray-500">
+            Rate-limit OCR and LLM pools independently
+          </span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          <div className="bg-rose-50 rounded-md py-2 px-2">
+            <p className="text-[10px] uppercase font-semibold text-rose-700 tracking-wider">
+              OCR Peak RPM
+            </p>
+            <p className="text-lg font-bold text-rose-900 mt-1">
+              {isCpuPipeline ? "—" : fmt(results.ocr_peak_rpm, 0)}
+            </p>
+            <p className="text-[10px] text-rose-600 mt-0.5">
+              {isCpuPipeline ? "CPU pipeline" : "pages/min"}
+            </p>
+          </div>
+          <div className="bg-indigo-50 rounded-md py-2 px-2">
+            <p className="text-[10px] uppercase font-semibold text-indigo-700 tracking-wider">
+              LLM Peak RPM
+            </p>
+            <p className="text-lg font-bold text-indigo-900 mt-1">
+              {fmt(results.llm_peak_rpm, 0)}
+            </p>
+            <p className="text-[10px] text-indigo-600 mt-0.5">
+              sustained {fmt(results.llm_sustained_rpm, 0)}
+            </p>
+          </div>
+          <div className="bg-emerald-50 rounded-md py-2 px-2">
+            <p className="text-[10px] uppercase font-semibold text-emerald-700 tracking-wider">
+              LLM Peak TPM
+            </p>
+            <p className="text-lg font-bold text-emerald-900 mt-1">
+              {fmt(results.llm_peak_tpm, 0)}
+            </p>
+            <p className="text-[10px] text-emerald-600 mt-0.5">
+              in {fmt(results.llm_peak_tpm_input, 0)} · out {fmt(results.llm_peak_tpm_output, 0)}
+            </p>
+          </div>
+          <div className="bg-amber-50 rounded-md py-2 px-2">
+            <p className="text-[10px] uppercase font-semibold text-amber-700 tracking-wider">
+              Max Parallel
+            </p>
+            <p className="text-lg font-bold text-amber-900 mt-1">
+              {fmt(results.max_parallel_requests, 0)}
+            </p>
+            <p className="text-[10px] text-amber-600 mt-0.5">concurrent pages</p>
+          </div>
+        </div>
+      </div>
+
       {/* ── MIG feasibility hint (LLM stage; advisory) ── */}
       <MigHintBadge
         gpuId={inputData?.gpu_id}
