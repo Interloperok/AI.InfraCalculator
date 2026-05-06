@@ -2,9 +2,14 @@
 Golden-fixture regression tests for sizing behavior.
 
 Fixtures in tests/fixtures/golden encode representative scenarios:
-- valid baseline/load/stress calculations
+- valid baseline/load/stress calculations (LLM, default endpoint)
+- valid VLM single-pass online and multi-class scenarios (endpoint=size-vlm)
+- valid OCR+LLM two-pass scenarios (endpoint=size-ocr)
 - invalid runtime memory-fit scenario
 - invalid input validation scenario
+
+Each fixture may declare an `endpoint` field ("size" | "size-vlm" |
+"size-ocr"). Default is "size" (LLM endpoint) for backward compatibility.
 """
 
 from __future__ import annotations
@@ -21,11 +26,21 @@ from pydantic import ValidationError
 # Сохраняем текущий стиль прямых импортов модулей для backend-тестов
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from models.sizing import OCRSizingInput, SizingInput, VLMSizingInput  # noqa: E402
+from services.ocr_sizing_service import run_ocr_sizing  # noqa: E402
 from services.sizing_service import run_sizing  # noqa: E402
-from models.sizing import SizingInput  # noqa: E402
+from services.vlm_sizing_service import run_vlm_sizing  # noqa: E402
 
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "golden"
+
+
+# Endpoint dispatch table: {endpoint: (InputModel, run_fn)}
+ENDPOINTS = {
+    "size": (SizingInput, run_sizing),
+    "size-vlm": (VLMSizingInput, run_vlm_sizing),
+    "size-ocr": (OCRSizingInput, run_ocr_sizing),
+}
 
 
 def _load_fixtures(kind: str) -> list[object]:
@@ -44,7 +59,11 @@ VALIDATION_ERROR_FIXTURES = _load_fixtures("validation_error")
 
 @pytest.mark.parametrize("fixture", VALID_FIXTURES)
 def test_golden_valid_outputs(fixture):
-    result = run_sizing(SizingInput(**fixture["input"])).model_dump()
+    endpoint = fixture.get("endpoint", "size")
+    if endpoint not in ENDPOINTS:
+        raise ValueError(f"Unknown endpoint in fixture: {endpoint!r}")
+    input_cls, run_fn = ENDPOINTS[endpoint]
+    result = run_fn(input_cls(**fixture["input"])).model_dump()
     expected = fixture["expected"]
 
     assert set(result.keys()) == set(expected.keys())
