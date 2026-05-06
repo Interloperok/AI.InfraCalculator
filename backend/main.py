@@ -284,6 +284,9 @@ def get_gpus(
     )
 
 
+# Static-path routes MUST be declared before the parametric `/v1/gpus/{gpu_id}`
+# route — Starlette matches in declaration order, so a route declared after
+# `{gpu_id}` is shadowed for the matching HTTP method.
 @app.get("/v1/gpus/export", tags=["GPU Catalog"])
 def export_gpu_catalog():
     """
@@ -294,30 +297,6 @@ def export_gpu_catalog():
     через custom_gpu_catalog в auto-optimize запросе.
     """
     return export_gpu_catalog_handler()
-
-
-@app.get("/v1/gpus/{gpu_id}", response_model=GPUInfo, tags=["GPU Catalog"])
-def get_gpu_details(gpu_id: str) -> GPUInfo:
-    """
-    Получить детальную информацию о конкретном GPU.
-
-    Возвращает полную информацию о GPU включая:
-    - Технические характеристики
-    - Рекомендации для калькулятора
-    - Оценки производительности
-    """
-    return get_gpu_details_handler(gpu_id)
-
-
-@app.post("/v1/gpus/refresh", response_model=GPURefreshResponse, tags=["GPU Catalog"])
-def refresh_gpu_data() -> GPURefreshResponse:
-    """
-    Обновить каталог GPU из Wikipedia.
-
-    Запускает скрапинг актуальных данных о GPU с Wikipedia.
-    Процесс может занять несколько минут.
-    """
-    return refresh_gpu_data_handler(refresh_fn=refresh_gpu_data_internal)
 
 
 @app.get("/v1/gpus/stats", response_model=GPUStats, tags=["GPU Catalog"])
@@ -332,6 +311,30 @@ def get_gpu_stats() -> GPUStats:
     - Распределение по годам выпуска
     """
     return get_gpu_stats_handler()
+
+
+@app.post("/v1/gpus/refresh", response_model=GPURefreshResponse, tags=["GPU Catalog"])
+def refresh_gpu_data() -> GPURefreshResponse:
+    """
+    Обновить каталог GPU из Wikipedia.
+
+    Запускает скрапинг актуальных данных о GPU с Wikipedia.
+    Процесс может занять несколько минут.
+    """
+    return refresh_gpu_data_handler(refresh_fn=refresh_gpu_data_internal)
+
+
+@app.get("/v1/gpus/{gpu_id}", response_model=GPUInfo, tags=["GPU Catalog"])
+def get_gpu_details(gpu_id: str) -> GPUInfo:
+    """
+    Получить детальную информацию о конкретном GPU.
+
+    Возвращает полную информацию о GPU включая:
+    - Технические характеристики
+    - Рекомендации для калькулятора
+    - Оценки производительности
+    """
+    return get_gpu_details_handler(gpu_id)
 
 
 # ── Curated LLM catalog (mirrors /llm_catalog.json) ────────────────────────
