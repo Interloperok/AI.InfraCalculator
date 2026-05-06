@@ -17,6 +17,7 @@ This directory contains the current project documentation set.
 - `docs/milestones.md` — execution index of milestones (status + dependencies + verification).
 - `docs/tooling-matrix.md` — tool inventory and where each tool runs.
 - `docs/doc-structure.md` — target documentation structure proposal.
+- `docs/mig-feasibility.md` — NVIDIA MIG profile catalog, sizing constraints, and two-phase rollout (frontend hint → backend MIG-aware sizing).
 - `docs/adr/0001-toolchain-standardization.md` — ADR for Python 3.14 + uv + pyproject standard.
 - `docs/baseline-inventory.md` — baseline repository inventory before refactoring.
 

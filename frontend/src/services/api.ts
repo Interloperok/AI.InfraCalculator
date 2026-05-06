@@ -51,41 +51,58 @@ const formatValidationDetail = (detail: unknown): string => {
     .join("; ");
 };
 
-export const calculateServerRequirements = async (
+const handleSizingError = (error: unknown): ApiError => {
+  if (axios.isAxiosError(error)) {
+    if (error.response) {
+      const status = error.response.status;
+      const detail = getResponseDetail(error.response.data);
+
+      if (status === 422 && detail !== undefined) {
+        return { error: `Validation error: ${formatValidationDetail(detail)}` };
+      }
+      if (status === 400) {
+        const message = stringifyDetail(detail) || error.response.statusText || "Bad request";
+        return { error: `Calculation error: ${message}` };
+      }
+      if (detail !== undefined) {
+        return { error: stringifyDetail(detail) };
+      }
+      return { error: `Server error (${status}): ${error.response.statusText}` };
+    }
+    if (error.request) {
+      return {
+        error: "Network error: Unable to connect to the server. Check that the backend is running.",
+      };
+    }
+  }
+  return { error: `Request error: ${getErrorMessage(error)}` };
+};
+
+const postSizing = async (
+  path: string,
   inputData: ApiPayload,
 ): Promise<ApiResult<ApiPayload>> => {
   try {
-    const response = await axios.post<ApiPayload>(`${API_BASE_URL}/v1/size`, inputData, {
+    const response = await axios.post<ApiPayload>(`${API_BASE_URL}${path}`, inputData, {
       headers: { "Content-Type": "application/json" },
     });
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      if (error.response) {
-        const status = error.response.status;
-        const detail = getResponseDetail(error.response.data);
-
-        if (status === 422 && detail !== undefined) {
-          return { error: `Validation error: ${formatValidationDetail(detail)}` };
-        }
-        if (status === 400) {
-          const message = stringifyDetail(detail) || error.response.statusText || "Bad request";
-          return { error: `Calculation error: ${message}` };
-        }
-        if (detail !== undefined) {
-          return { error: stringifyDetail(detail) };
-        }
-        return { error: `Server error (${status}): ${error.response.statusText}` };
-      }
-      if (error.request) {
-        return {
-          error: "Network error: Unable to connect to the server. Check that the backend is running.",
-        };
-      }
-    }
-    return { error: `Request error: ${getErrorMessage(error)}` };
+    return handleSizingError(error);
   }
 };
+
+export const calculateServerRequirements = (
+  inputData: ApiPayload,
+): Promise<ApiResult<ApiPayload>> => postSizing("/v1/size", inputData);
+
+export const calculateVLMSizing = (
+  inputData: ApiPayload,
+): Promise<ApiResult<ApiPayload>> => postSizing("/v1/size-vlm", inputData);
+
+export const calculateOCRSizing = (
+  inputData: ApiPayload,
+): Promise<ApiResult<ApiPayload>> => postSizing("/v1/size-ocr", inputData);
 
 export const getGPUs = async (
   params: Record<string, string | number | boolean | undefined> = {},

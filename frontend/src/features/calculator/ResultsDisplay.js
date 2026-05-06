@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { downloadReport } from "../../services/api";
+import MigHintBadge from "./MigHintBadge";
 
 const ResultsDisplay = ({ results, loading, error, inputData }) => {
   const [detailTab, setDetailTab] = useState("memory"); // 'memory' | 'compute'
@@ -100,6 +101,21 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
     if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(1) + "M";
     if (Math.abs(v) >= 1e3) return (v / 1e3).toFixed(1) + "K";
     return v.toFixed(digits);
+  };
+
+  // Throughput formatter — keeps sub-1 values readable instead of rounding
+  // small but non-zero throughputs (e.g. 0.02 req/s under heavy ReAct load)
+  // to "0.0" which reads as broken.
+  const fmtThroughput = (v) => {
+    if (v === undefined || v === null || isNaN(v)) return "0";
+    const abs = Math.abs(v);
+    if (abs >= 100) return v.toFixed(0);
+    if (abs >= 10) return v.toFixed(1);
+    if (abs >= 1) return v.toFixed(2);
+    if (abs >= 0.01) return v.toFixed(3);
+    if (abs >= 0.001) return v.toFixed(4);
+    if (abs > 0) return "<0.001";
+    return "0";
   };
 
   return (
@@ -232,14 +248,38 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
 
       {/* ── 3 Key Metric Cards ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-tour="result-cards">
-        {/* Card 1 — Servers Required */}
+        {/* Card 1 — Infrastructure (servers + total GPUs) */}
         <div className="result-tile bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:min-h-[170px] overflow-hidden">
           <h3 className="text-xs font-semibold uppercase tracking-wider opacity-70">
-            Servers Required
+            Infrastructure Required
           </h3>
-          <p className="text-4xl sm:text-5xl font-extrabold mt-auto mb-auto">
-            {results.servers_final || 0}
-          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-auto mb-auto">
+            <div className="text-center">
+              <p
+                className="text-2xl sm:text-3xl font-extrabold leading-none tabular-nums whitespace-nowrap"
+                title={String(results.servers_final || 0)}
+              >
+                {fmt(results.servers_final, 0)}
+              </p>
+              <p className="text-[10px] sm:text-xs opacity-70 mt-1 uppercase tracking-wide">
+                servers
+              </p>
+            </div>
+            <div className="text-2xl opacity-30 leading-none -mt-3" aria-hidden="true">
+              ·
+            </div>
+            <div className="text-center">
+              <p
+                className="text-2xl sm:text-3xl font-extrabold leading-none tabular-nums whitespace-nowrap"
+                title={String(results.total_gpu_count || 0)}
+              >
+                {fmt(results.total_gpu_count, 0)}
+              </p>
+              <p className="text-[10px] sm:text-xs opacity-70 mt-1 uppercase tracking-wide">
+                GPUs
+              </p>
+            </div>
+          </div>
           <p className="text-xs sm:text-sm opacity-75 mt-2">
             max(mem:&thinsp;{results.servers_by_memory || 0}, comp:&thinsp;
             {results.servers_by_compute || 0})
@@ -284,7 +324,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
             </span>
           </h3>
           <p className="text-4xl sm:text-5xl font-extrabold mt-auto mb-auto">
-            {fmt(results.th_server_comp, 1)}
+            {fmtThroughput(results.th_server_comp)}
           </p>
           <p className="text-xs sm:text-sm opacity-75 mt-2">
             prefill {fmt(results.th_prefill, 0)} &middot; decode {fmt(results.th_decode, 0)}
@@ -356,6 +396,17 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
           </p>
         </div>
       </div>
+
+      {/* ── MIG feasibility hint (advisory) ── */}
+      <MigHintBadge
+        gpuId={inputData?.gpu_id}
+        modelMemGb={results.model_mem_gb}
+        kvAtPeakGb={results.kv_per_session_gb}
+        gpusPerInstance={results.gpus_per_instance_tp || results.gpus_per_instance}
+        tpMultiplierZ={inputData?.tp_multiplier_Z}
+        servers={results.servers_final}
+        totalGpus={results.total_gpu_count}
+      />
 
       {/* ── SLA Validation ── */}
       {(results.ttft_analyt != null || results.e2e_latency_analyt != null) && (

@@ -37,6 +37,7 @@ const baseResults = {
   gpus_per_server: 8,
   gpus_per_instance: 1,
   gpus_per_instance_tp: 2,
+  total_gpu_count: 96,
   ttft_analyt: 0.92,
   ttft_sla_target: 1.0,
   ttft_sla_pass: true,
@@ -88,7 +89,8 @@ describe("ResultsDisplay", () => {
     );
 
     expect(screen.getByText("Calculation Results")).toBeInTheDocument();
-    expect(screen.getByText("Servers Required")).toBeInTheDocument();
+    expect(screen.getByText("Infrastructure Required")).toBeInTheDocument();
+    expect(screen.getByText("96")).toBeInTheDocument(); // total_gpu_count
     expect(screen.getByText("SLA Validation")).toBeInTheDocument();
     expect(screen.getByTestId("pie-chart")).toBeInTheDocument();
 

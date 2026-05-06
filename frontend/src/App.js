@@ -73,7 +73,7 @@ const TOUR_STEPS = [
   {
     target: '[data-tour="result-cards"]',
     content:
-      "Key results at a glance: total servers, sessions per server, and throughput capacity.",
+      "Key results at a glance: total servers and GPUs (so you can match against existing capacity), sessions per server, and throughput capacity.",
   },
   {
     target: '[data-tour="donut-chart"]',
@@ -141,6 +141,157 @@ const TOUR_STEPS_MOBILE = [
 ];
 
 const M_PRESETS_STEP = 2;
+
+// ── VLM tour (per-mode tour requested in P12c) ──
+const TOUR_STEPS_VLM = [
+  {
+    target: '[data-tour="github-btn"]',
+    content: "Visit us on GitHub — star the repo to stay updated and learn more about the project.",
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="docs-btn"]',
+    content: "Methodology documentation. Appendix И covers VLM single-pass online sizing.",
+    disableOverlay: true,
+  },
+  {
+    target: '[data-tour="mode-switcher"]',
+    content:
+      "You're in VLM mode — single-pass image-to-JSON sizing. Switch to LLM or OCR+LLM here when needed.",
+  },
+  {
+    target: '[data-tour="vlm-presets"]',
+    content:
+      "Pick a preset to populate workload, image profile, model, and hardware in one click.",
+  },
+  {
+    target: '[data-tour="vlm-workload"]',
+    content:
+      "VLM is sized in pages/sec, not user sessions. Set average pages/sec, peak concurrency, and the per-page SLA target.",
+  },
+  {
+    target: '[data-tour="vlm-hardware"]',
+    content:
+      "Pick a GPU and tensor parallelism degree. VLMs are typically run at TP=1 unless the model is very large.",
+  },
+  {
+    target: '[data-tour="vlm-calculate-btn"]',
+    content: "Click to run the sizing engine and get servers + GPUs needed for your workload.",
+  },
+  {
+    target: '[data-tour="vlm-result-cards"]',
+    content:
+      "Three headline cards: infrastructure (servers + GPUs), SLA pass/fail, and per-instance prefill/decode throughput.",
+  },
+];
+
+const TOUR_STEPS_VLM_MOBILE = [
+  {
+    target: '[data-tour="github-btn"]',
+    content: "Star the repo on GitHub.",
+    disableBeacon: true,
+    placement: "bottom",
+  },
+  {
+    target: '[data-tour="mode-switcher"]',
+    content: "Switch between LLM, VLM, and OCR+LLM modes here.",
+    placement: "bottom",
+  },
+  {
+    target: '[data-tour="vlm-presets"]',
+    content: "Tap a preset to fill all fields.",
+    placement: "bottom",
+  },
+  {
+    target: '[data-tour="vlm-calculate-btn"]',
+    content: "Tap Calculate to run the sizing engine.",
+    placement: "top",
+  },
+];
+
+// ── OCR + LLM tour ──
+const TOUR_STEPS_OCR = [
+  {
+    target: '[data-tour="github-btn"]',
+    content: "Visit us on GitHub — star the repo to stay updated and learn more about the project.",
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="docs-btn"]',
+    content:
+      "Methodology documentation. Appendix И.4.2 covers OCR+LLM two-pass online sizing with two-pool deployments.",
+    disableOverlay: true,
+  },
+  {
+    target: '[data-tour="mode-switcher"]',
+    content:
+      "You're in OCR + LLM mode — two-pass extraction. Switch between LLM, VLM, and OCR+LLM here.",
+  },
+  {
+    target: '[data-tour="ocr-presets"]',
+    content:
+      "Pick a preset to populate workload, OCR pipeline, text profile, model, and hardware.",
+  },
+  {
+    target: '[data-tour="ocr-workload"]',
+    content:
+      "Same workload semantics as VLM: pages/sec, peak concurrency, per-page SLA. The SLA budget is split between OCR and LLM stages.",
+  },
+  {
+    target: '[data-tour="ocr-pipeline"]',
+    content:
+      "Pick OCR-on-GPU (PaddleOCR/EasyOCR) for high-volume cases, or OCR-on-CPU (Tesseract) when the GPU pool should hold only the LLM. The choice changes how the SLA budget is split.",
+  },
+  {
+    target: '[data-tour="ocr-hardware"]',
+    content: "Pick a GPU and tensor parallelism degree for the LLM stage.",
+  },
+  {
+    target: '[data-tour="ocr-calculate-btn"]',
+    content: "Run sizing — backend returns separate GPU pools for OCR and LLM stages.",
+  },
+  {
+    target: '[data-tour="ocr-result-cards"]',
+    content:
+      "Three cards: total infrastructure with the OCR+LLM pool split below, SLA pass/fail with t_OCR breakdown, and LLM-stage throughput.",
+  },
+];
+
+const TOUR_STEPS_OCR_MOBILE = [
+  {
+    target: '[data-tour="github-btn"]',
+    content: "Star the repo on GitHub.",
+    disableBeacon: true,
+    placement: "bottom",
+  },
+  {
+    target: '[data-tour="mode-switcher"]',
+    content: "Switch between LLM, VLM, and OCR+LLM modes here.",
+    placement: "bottom",
+  },
+  {
+    target: '[data-tour="ocr-presets"]',
+    content: "Tap a preset to fill all fields.",
+    placement: "bottom",
+  },
+  {
+    target: '[data-tour="ocr-pipeline"]',
+    content: "Choose OCR on GPU or CPU.",
+    placement: "bottom",
+  },
+  {
+    target: '[data-tour="ocr-calculate-btn"]',
+    content: "Tap Calculate.",
+    placement: "top",
+  },
+];
+
+const TOUR_MODES = ["llm", "vlm", "ocr"];
+const getStoredCalculatorMode = () => {
+  if (typeof window === "undefined") return "llm";
+  const saved = localStorage.getItem("calculatorMode");
+  return TOUR_MODES.includes(saved) ? saved : "llm";
+};
 
 const TOUR_STYLES = {
   options: {
@@ -224,6 +375,8 @@ const TOUR_STYLES_MOBILE = {
 function App() {
   const [runTour, setRunTour] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
+  // Tour mode is set when the tour starts, based on the active calculator mode
+  const [tourMode, setTourMode] = useState("llm");
   const [docsOpen, setDocsOpen] = useState(false);
   const [drawerWidth, setDrawerWidth] = useState(820);
   const [isResizing, setIsResizing] = useState(false);
@@ -297,6 +450,17 @@ function App() {
 
         const nextIndex = action === "prev" ? index - 1 : index + 1;
 
+        // VLM and OCR tours: just walk through anchors with the docs-drawer step.
+        if (tourMode === "vlm" || tourMode === "ocr") {
+          if (!mobile) {
+            if (index === DOCS_STEP_INDEX) setDocsOpen(false);
+            if (nextIndex === DOCS_STEP_INDEX) setDocsOpen(true);
+          }
+          setTourStepIndex(nextIndex);
+          return;
+        }
+
+        // LLM tour: includes auto-click choreography for presets / calculate / auto-optimize.
         if (mobile) {
           if (nextIndex === M_PRESETS_STEP) {
             setTimeout(() => {
@@ -332,7 +496,7 @@ function App() {
         setTourStepIndex(nextIndex);
       }
     },
-    [cleanupTourAuto, toggleAutoOptimize],
+    [cleanupTourAuto, toggleAutoOptimize, tourMode],
   );
 
   // Close docs drawer on Escape key
@@ -381,7 +545,13 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
       <Joyride
-        steps={isMobileTour ? TOUR_STEPS_MOBILE : TOUR_STEPS}
+        steps={(() => {
+          if (tourMode === "vlm")
+            return isMobileTour ? TOUR_STEPS_VLM_MOBILE : TOUR_STEPS_VLM;
+          if (tourMode === "ocr")
+            return isMobileTour ? TOUR_STEPS_OCR_MOBILE : TOUR_STEPS_OCR;
+          return isMobileTour ? TOUR_STEPS_MOBILE : TOUR_STEPS;
+        })()}
         run={runTour}
         stepIndex={tourStepIndex}
         continuous
@@ -424,9 +594,11 @@ function App() {
             Find out how many servers and GPUs you need for your AI models
           </p>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 sm:gap-3 max-w-xs sm:max-w-none mx-auto">
-            {/* 1 — Take a Tour */}
+            {/* 1 — Take a Tour (per-mode tour: LLM by default, VLM in VLM mode) */}
             <button
               onClick={() => {
+                const calcMode = getStoredCalculatorMode();
+                setTourMode(calcMode);
                 setTourStepIndex(0);
                 setRunTour(true);
                 if (isMobileTour) {
