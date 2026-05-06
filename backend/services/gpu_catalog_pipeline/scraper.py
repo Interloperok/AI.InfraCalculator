@@ -320,51 +320,87 @@ def scrape_gpu_catalog_raw(raw_output_path: str | Path | None = None) -> Dict[st
 
     if not frames:
         print("❌ No GPU tables parsed from any vendor. Wiki markup may have changed.")
-        # Создаем минимальный набор данных для тестирования
+        # Data-center fallback: when the wiki scrape fails, ensure the calculator
+        # still has the SKUs that matter for LLM/VLM inference sizing
+        # (HBM-class accelerators), not consumer cards. Verified against NVIDIA
+        # / AMD datasheets — see backend/gpu_data.json for fully-specced entries.
         fallback_data: Dict[str, Dict[str, Any]] = {
-            "NVIDIA_RTX_4090": {
+            "NVIDIA_H100_SXM": {
                 "Vendor": "NVIDIA",
-                "Model": "GeForce RTX 4090",
-                "Model name": "GeForce RTX 4090",
-                "Memory_GB": 24.0,
-                "Cores": 16384,
-                "Launch": "2022-10-12",
-                "Memory_Type": "GDDR6X",
-                "Memory Size (MiB)": "24576",  # 24GB в MiB
-                "TDP (Watts)": "450",
+                "Model": "H100 SXM",
+                "Model name": "H100 SXM",
+                "Memory_GB": 80.0,
+                "Launch": "2022-03-22",
+                "Memory_Type": "HBM3",
+                "Memory Size (MiB)": "81920",
+                "Memory bandwidth (GB/s)": "3352",
+                "TDP (Watts)": "700",
             },
-            "NVIDIA_RTX_4080": {
+            "NVIDIA_H200_SXM": {
                 "Vendor": "NVIDIA",
-                "Model": "GeForce RTX 4080",
-                "Model name": "GeForce RTX 4080",
-                "Memory_GB": 16.0,
-                "Cores": 9728,
-                "Launch": "2022-11-16",
-                "Memory_Type": "GDDR6X",
-                "Memory Size (MiB)": "16384",  # 16GB в MiB
-                "TDP (Watts)": "320",
+                "Model": "H200 SXM",
+                "Model name": "H200 SXM",
+                "Memory_GB": 141.0,
+                "Launch": "2024-03-01",
+                "Memory_Type": "HBM3e",
+                "Memory Size (MiB)": "144384",
+                "Memory bandwidth (GB/s)": "4800",
+                "TDP (Watts)": "700",
             },
-            "NVIDIA_RTX_4070": {
+            "NVIDIA_B200_SXM": {
                 "Vendor": "NVIDIA",
-                "Model": "GeForce RTX 4070",
-                "Model name": "GeForce RTX 4070",
-                "Memory_GB": 12.0,
-                "Cores": 5888,
-                "Launch": "2023-04-13",
-                "Memory_Type": "GDDR6X",
-                "Memory Size (MiB)": "12288",  # 12GB в MiB
-                "TDP (Watts)": "200",
+                "Model": "B200 SXM",
+                "Model name": "B200 SXM",
+                "Memory_GB": 192.0,
+                "Launch": "2024-03-18",
+                "Memory_Type": "HBM3e",
+                "Memory Size (MiB)": "196608",
+                "Memory bandwidth (GB/s)": "8000",
+                "TDP (Watts)": "1000",
             },
-            "AMD_RX_7900_XTX": {
+            "NVIDIA_B300_SXM": {
+                "Vendor": "NVIDIA",
+                "Model": "B300 SXM",
+                "Model name": "B300 SXM (Blackwell Ultra)",
+                "Memory_GB": 288.0,
+                "Launch": "2026-01-01",
+                "Memory_Type": "HBM3e",
+                "Memory Size (MiB)": "294912",
+                "Memory bandwidth (GB/s)": "8000",
+                "TDP (Watts)": "1400",
+            },
+            "NVIDIA_GH200_144GB": {
+                "Vendor": "NVIDIA",
+                "Model": "GH200 144GB",
+                "Model name": "GH200 Grace Hopper 144GB HBM3e",
+                "Memory_GB": 144.0,
+                "Launch": "2024-04-01",
+                "Memory_Type": "HBM3e",
+                "Memory Size (MiB)": "147456",
+                "Memory bandwidth (GB/s)": "4900",
+                "TDP (Watts)": "1000",
+            },
+            "NVIDIA_RTX_PRO_6000_BLACKWELL_SERVER": {
+                "Vendor": "NVIDIA",
+                "Model": "RTX PRO 6000 Blackwell Server",
+                "Model name": "RTX PRO 6000 Blackwell Server Edition",
+                "Memory_GB": 96.0,
+                "Launch": "2025-03-19",
+                "Memory_Type": "GDDR7",
+                "Memory Size (MiB)": "98304",
+                "Memory bandwidth (GB/s)": "1600",
+                "TDP (Watts)": "600",
+            },
+            "AMD_INSTINCT_MI300X": {
                 "Vendor": "AMD",
-                "Model": "Radeon RX 7900 XTX",
-                "Model name": "Radeon RX 7900 XTX",
-                "Memory_GB": 24.0,
-                "Cores": 6144,
-                "Launch": "2022-12-13",
-                "Memory_Type": "GDDR6",
-                "Memory Size (MiB)": "24576",  # 24GB в MiB
-                "TDP (Watts)": "355",
+                "Model": "Instinct MI300X",
+                "Model name": "Instinct MI300X",
+                "Memory_GB": 192.0,
+                "Launch": "2023-12-06",
+                "Memory_Type": "HBM3",
+                "Memory Size (MiB)": "196608",
+                "Memory bandwidth (GB/s)": "5300",
+                "TDP (Watts)": "750",
             },
         }
 

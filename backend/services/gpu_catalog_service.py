@@ -73,22 +73,35 @@ def lookup_gpu_bandwidth_gbs(gpu_id: Optional[str]) -> float:
 
 
 def lookup_gpu_tflops(gpu_id: Optional[str], gpu_mem_gb: float) -> float:
-    """Поиск TFLOPS GPU из каталога по id или объёму памяти."""
+    """Поиск TFLOPS GPU из каталога: сначала по id, при отсутствии — по объёму памяти.
+
+    Раньше один цикл выбирал первое совпадение по id ИЛИ по памяти, из-за чего
+    при запросе с явным gpu_id, но при наличии другого GPU с такой же памятью,
+    раньше в каталоге, возвращался не тот GPU (например, AMD MI300X 192 GB
+    подменял NVIDIA B200 SXM 192 GB). Теперь id-проход выполняется первым.
+    """
     try:
         gpu_data = load_gpu_catalog()
     except FileNotFoundError, json.JSONDecodeError:
         return 0.0
 
     target_gpu: Optional[dict[str, Any]] = None
-    for gpu in gpu_data:
-        if gpu_id and gpu.get("id") == gpu_id:
-            target_gpu = gpu
-            break
 
-        mem = gpu.get("memory_gb", 0)
-        if mem and float(mem) == float(gpu_mem_gb):
-            target_gpu = gpu
-            break
+    # Pass 1: exact gpu_id match wins unconditionally.
+    if gpu_id:
+        for gpu in gpu_data:
+            if gpu.get("id") == gpu_id:
+                target_gpu = gpu
+                break
+
+    # Pass 2: fallback to memory match only when gpu_id wasn't supplied or
+    # didn't resolve.
+    if target_gpu is None:
+        for gpu in gpu_data:
+            mem = gpu.get("memory_gb", 0)
+            if mem and float(mem) == float(gpu_mem_gb):
+                target_gpu = gpu
+                break
 
     if not target_gpu:
         return 0.0
