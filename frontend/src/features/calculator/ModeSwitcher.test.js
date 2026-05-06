@@ -11,8 +11,8 @@ describe("ModeSwitcher", () => {
     expect(screen.getByText("VLM")).toBeInTheDocument();
     expect(screen.getByText("OCR + LLM")).toBeInTheDocument();
 
-    const llmButton = screen.getByText("LLM").closest("button");
-    const vlmButton = screen.getByText("VLM").closest("button");
+    const llmButton = screen.getByRole("button", { name: /^LLM$/ });
+    const vlmButton = screen.getByRole("button", { name: /^VLM$/ });
     expect(llmButton).toHaveAttribute("aria-pressed", "true");
     expect(vlmButton).toHaveAttribute("aria-pressed", "false");
   });

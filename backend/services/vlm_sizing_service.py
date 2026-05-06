@@ -229,8 +229,8 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
 
     if has_batch_inputs:
         eta_batch_used = float(inp.eta_batch)
-        D_used = float(inp.D_pages)
-        W_used = float(inp.W_seconds)
+        D_used = float(inp.D_pages or 0)
+        W_used = float(inp.W_seconds or 0)
 
         bs_max = max(1, int(s_tp_z))
         # Per-session throughput at BS=bs_max

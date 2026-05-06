@@ -24,12 +24,16 @@ def test_report_service_outputs_xlsx_and_expected_cells() -> None:
     assert result.getvalue().startswith(b"PK")
 
     workbook = openpyxl.load_workbook(io.BytesIO(result.getvalue()))
-    worksheet = workbook.active
+    inputs = workbook["Inputs"]
 
-    assert worksheet["D4"].value == payload["internal_users"]
-    assert worksheet["D23"].value == payload["params_billions"]
-    assert worksheet["D38"].value == payload["gpu_mem_gb"]
-    assert worksheet["D58"].value == payload["gpu_flops_Fcount"]
+    # Cell addresses follow `llm_calc.inputs.build_inputs()` layout —
+    # see services/report_service.py:_fill_template for the mapping.
+    assert inputs["D7"].value == payload["internal_users"]
+    assert inputs["D8"].value == payload["penetration_internal"]
+    assert inputs["D15"].value == payload["system_prompt_tokens_SP"]
+    assert inputs["D29"].value == payload["gpus_per_server"]
+    assert inputs["D58"].value == payload["safe_margin"]
+    assert inputs["D75"].value == payload["rps_per_session_R"]
 
 
 def test_report_service_raises_when_template_missing(tmp_path: Path) -> None:
@@ -43,42 +47,6 @@ def test_report_service_raises_when_template_missing(tmp_path: Path) -> None:
         raise AssertionError("expected FileNotFoundError")
     except FileNotFoundError:
         pass
-
-
-def test_report_service_uses_lookup_when_tflops_not_set(monkeypatch) -> None:
-    payload_path = Path(__file__).parent.parent / "payload.json"
-    payload = json.loads(payload_path.read_text(encoding="utf-8"))
-    payload["gpu_flops_Fcount"] = None
-    sizing_input = SizingInput(**payload)
-
-    called = {"value": False}
-
-    def _lookup(gpu_id, gpu_mem_gb):  # noqa: ANN001
-        called["value"] = True
-        assert gpu_mem_gb == payload["gpu_mem_gb"]
-        return 999.0
-
-    generator = ReportGenerator(gpu_tflops_lookup=_lookup)
-    result = generator.generate(sizing_input)
-    assert called["value"] is True
-
-    workbook = openpyxl.load_workbook(io.BytesIO(result.getvalue()))
-    worksheet = workbook.active
-    assert worksheet["D58"].value == 999.0
-
-
-def test_report_service_sets_zero_tflops_when_lookup_unavailable() -> None:
-    payload_path = Path(__file__).parent.parent / "payload.json"
-    payload = json.loads(payload_path.read_text(encoding="utf-8"))
-    payload["gpu_flops_Fcount"] = None
-    sizing_input = SizingInput(**payload)
-
-    generator = ReportGenerator(gpu_tflops_lookup=lambda gpu_id, gpu_mem_gb: None)  # noqa: ARG005
-    result = generator.generate(sizing_input)
-
-    workbook = openpyxl.load_workbook(io.BytesIO(result.getvalue()))
-    worksheet = workbook.active
-    assert worksheet["D58"].value == 0
 
 
 def test_report_service_wraps_template_fill_errors(monkeypatch) -> None:

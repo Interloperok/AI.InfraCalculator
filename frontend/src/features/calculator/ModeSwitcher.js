@@ -39,6 +39,7 @@ const ModeSwitcher = ({ mode, onChange }) => {
               type="button"
               onClick={() => onChange(m.id)}
               title={m.description}
+              aria-label={m.label}
               aria-pressed={active}
               className={`text-left p-3 rounded-lg border-2 transition-all ${
                 active

@@ -118,7 +118,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         MKV = calc_kv_mla(
             L=inp.layers_L,
             SL=SL,
-            kv_lora_rank=int(inp.kv_lora_rank),
+            kv_lora_rank=int(inp.kv_lora_rank or 0),
             qk_rope_head_dim=int(inp.qk_rope_head_dim or 0),
             bytes_state=inp.bytes_per_kv_state,
             emp_kv=inp.emp_kv,
@@ -332,10 +332,10 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     )
     if is_moe_detailed:
         p_eff_pf_init = calc_p_effective(
-            p_dense=float(inp.params_dense),
-            p_moe=float(inp.params_moe),
-            n_experts=int(inp.n_experts),
-            k_experts=int(inp.k_experts),
+            p_dense=float(inp.params_dense or 0),
+            p_moe=float(inp.params_moe or 0),
+            n_experts=int(inp.n_experts or 1),
+            k_experts=int(inp.k_experts or 1),
             bs_real=bs_real_init + 1,
         )
     else:
@@ -377,10 +377,10 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         # used in the decode mem-branch denominator.
         if is_moe_detailed:
             p_eff_local = calc_p_effective(
-                p_dense=float(inp.params_dense),
-                p_moe=float(inp.params_moe),
-                n_experts=int(inp.n_experts),
-                k_experts=int(inp.k_experts),
+                p_dense=float(inp.params_dense or 0),
+                p_moe=float(inp.params_moe or 0),
+                n_experts=int(inp.n_experts or 1),
+                k_experts=int(inp.k_experts or 1),
                 bs_real=bs_r,
             )
         else:

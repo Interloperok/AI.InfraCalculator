@@ -267,8 +267,8 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
 
     if has_batch_inputs:
         eta_batch_used = float(inp.eta_batch)
-        D_used = float(inp.D_pages)
-        W_used = float(inp.W_seconds)
+        D_used = float(inp.D_pages or 0)
+        W_used = float(inp.W_seconds or 0)
 
         # OCR batch pool: t_OCR is BS-independent (per-page rate). For ocr_cpu
         # the OCR pool is out of GPU scope (N_GPU = 0).
