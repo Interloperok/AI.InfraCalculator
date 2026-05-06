@@ -33,11 +33,17 @@ const OptimizeResultsTable = ({
   embedded = false,
 }) => {
   return (
-    <div className={embedded ? "flex flex-col" : "bg-white rounded-xl shadow-lg p-6 flex flex-col"}>
+    <div
+      className={
+        embedded
+          ? "flex flex-col"
+          : "bg-surface border border-border rounded-xl shadow-card p-6 flex flex-col"
+      }
+    >
       {!embedded && (
-        <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <h2 className="text-xl font-semibold text-fg mb-4 flex items-center gap-2">
           <svg
-            className="w-5 h-5 text-indigo-500"
+            className="w-5 h-5 text-accent"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -55,8 +61,8 @@ const OptimizeResultsTable = ({
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="bg-danger-soft border border-danger/30 rounded-lg p-4 mb-4">
+          <p className="text-sm text-danger">{error}</p>
         </div>
       )}
 
@@ -64,8 +70,8 @@ const OptimizeResultsTable = ({
       {loading && (
         <div className="flex-1 flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500 mb-3"></div>
-            <p className="text-gray-500 text-sm">Evaluating configurations...</p>
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-accent mb-3"></div>
+            <p className="text-muted text-sm">Evaluating configurations...</p>
           </div>
         </div>
       )}
@@ -74,7 +80,7 @@ const OptimizeResultsTable = ({
       {!loading && !results && !error && (
         <div className="flex-1 flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="text-gray-300 mb-3">
+            <div className="text-subtle mb-3">
               <svg
                 className="mx-auto h-12 w-12"
                 fill="none"
@@ -89,8 +95,8 @@ const OptimizeResultsTable = ({
                 />
               </svg>
             </div>
-            <h3 className="text-sm font-medium text-gray-400">No results yet</h3>
-            <p className="text-xs text-gray-400 mt-1">Click "Find Best Configs" to start</p>
+            <h3 className="text-sm font-medium text-subtle">No results yet</h3>
+            <p className="text-xs text-subtle mt-1">Click "Find Best Configs" to start</p>
           </div>
         </div>
       )}
@@ -100,8 +106,8 @@ const OptimizeResultsTable = ({
         <>
           {/* Stats bar */}
           {stats && (
-            <div className="flex items-center gap-3 mb-3 text-xs text-gray-500 flex-wrap">
-              <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-full font-medium">
+            <div className="flex items-center gap-3 mb-3 text-xs text-muted flex-wrap">
+              <span className="px-2 py-1 bg-accent-soft text-accent rounded-full font-medium">
                 {OPTIMIZATION_MODE_LABELS[stats.mode] || stats.mode}
               </span>
               <span>
@@ -120,35 +126,35 @@ const OptimizeResultsTable = ({
           <div className="overflow-x-auto -mx-6 px-6">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b-2 border-gray-200">
-                  <th className="py-2 px-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                <tr className="border-b-2 border-border">
+                  <th className="py-2 px-2 text-left text-xs font-semibold text-muted uppercase">
                     #
                   </th>
-                  <th className="py-2 px-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-2 px-2 text-left text-xs font-semibold text-muted uppercase">
                     GPU
                   </th>
-                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
                     Quant
                   </th>
-                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
                     TP(Z)
                   </th>
-                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
                     GPU/Srv
                   </th>
-                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
                     Servers
                   </th>
-                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
                     Total GPU
                   </th>
-                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
                     Sess/Srv
                   </th>
-                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
                     Throughput
                   </th>
-                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
                     Cost
                   </th>
                 </tr>
@@ -160,31 +166,31 @@ const OptimizeResultsTable = ({
                     <tr
                       key={idx}
                       onClick={() => onSelectRow(idx)}
-                      className={`border-b border-gray-100 cursor-pointer transition-all duration-150 ${
+                      className={`border-b border-border cursor-pointer transition-all duration-150 ${
                         isSelected
-                          ? "bg-indigo-100 ring-2 ring-indigo-500 ring-inset"
+                          ? "bg-accent-soft ring-2 ring-accent ring-inset"
                           : idx === 0 && selectedIdx === null
-                            ? "bg-indigo-50/30 hover:bg-indigo-50"
-                            : "hover:bg-indigo-50/50"
+                            ? "bg-accent-soft/40 hover:bg-accent-soft"
+                            : "hover:bg-accent-soft/60"
                       }`}
                     >
                       <td className="py-2.5 px-2">
                         {idx === 0 ? (
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-accent-fg text-xs font-bold">
                             1
                           </span>
                         ) : (
-                          <span className="text-gray-400 font-medium pl-1.5">{config.rank}</span>
+                          <span className="text-subtle font-medium pl-1.5">{config.rank}</span>
                         )}
                       </td>
                       <td
                         className="py-2.5 px-2"
                         title={`${config.gpu_name} — ${config.gpu_mem_gb} GB | ${fmt(config.gpu_tflops, 0)} TFLOPS`}
                       >
-                        <div className="font-medium text-gray-800 truncate max-w-[150px]">
+                        <div className="font-medium text-fg truncate max-w-[150px]">
                           {config.gpu_name}
                         </div>
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-subtle">
                           {config.gpu_mem_gb} GB | {fmt(config.gpu_tflops, 0)} TF
                         </div>
                       </td>
@@ -192,10 +198,10 @@ const OptimizeResultsTable = ({
                         <span
                           className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${
                             config.bytes_per_param === 1
-                              ? "bg-green-100 text-green-700"
+                              ? "bg-success-soft text-success"
                               : config.bytes_per_param === 2
-                                ? "bg-blue-100 text-blue-700"
-                                : "bg-orange-100 text-orange-700"
+                                ? "bg-info-soft text-info"
+                                : "bg-warning-soft text-warning"
                           }`}
                         >
                           {QUANT_LABELS[config.bytes_per_param] || config.bytes_per_param}
@@ -206,19 +212,19 @@ const OptimizeResultsTable = ({
                       </td>
                       <td className="py-2.5 px-2 text-center">{config.gpus_per_server}</td>
                       <td className="py-2.5 px-2 text-center">
-                        <span className="font-bold text-gray-800">{config.servers_final}</span>
+                        <span className="font-bold text-fg">{config.servers_final}</span>
                       </td>
-                      <td className="py-2.5 px-2 text-center font-semibold text-gray-700">
+                      <td className="py-2.5 px-2 text-center font-semibold text-fg">
                         {config.total_gpus}
                       </td>
                       <td className="py-2.5 px-2 text-center">{config.sessions_per_server}</td>
-                      <td className="py-2.5 px-2 text-center text-gray-600">
+                      <td className="py-2.5 px-2 text-center text-muted">
                         {fmt(config.th_server_comp, 2)}
                       </td>
-                      <td className="py-2.5 px-2 text-center text-gray-600">
+                      <td className="py-2.5 px-2 text-center text-muted">
                         <div>{fmtCost(config.cost_estimate_usd)}</div>
                         {config.gpu_price_usd != null && (
-                          <div className="text-xs text-gray-400">
+                          <div className="text-xs text-subtle">
                             {fmtCost(config.gpu_price_usd)}/gpu
                           </div>
                         )}
@@ -236,8 +242,8 @@ const OptimizeResultsTable = ({
       {results && results.length === 0 && !error && (
         <div className="flex-1 flex items-center justify-center py-12">
           <div className="text-center">
-            <h3 className="text-sm font-medium text-gray-500">No valid configurations found</h3>
-            <p className="text-xs text-gray-400 mt-1">
+            <h3 className="text-sm font-medium text-muted">No valid configurations found</h3>
+            <p className="text-xs text-subtle mt-1">
               Try adjusting your parameters or GPU filters
             </p>
           </div>

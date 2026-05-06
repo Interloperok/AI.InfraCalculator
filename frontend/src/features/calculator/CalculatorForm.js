@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import ReactDOM from "react-dom";
 import { getGPUs, getLLMs, probeHuggingFace } from "../../services/api";
+import { useT } from "../../contexts/I18nContext";
 
 // ── Model subtitle from Hugging Face API fields (when description is missing) ──
 const getModelSubtitle = (model) => {
@@ -67,21 +68,21 @@ const ToggleSwitch = ({ autoMode, setAutoMode }) => {
         <button
           type="button"
           onClick={() => setAutoMode(!autoMode)}
-          className={`relative inline-flex h-8 w-[56px] shrink-0 cursor-pointer rounded-full border-2 transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+          className={`relative inline-flex h-8 w-[56px] shrink-0 cursor-pointer rounded-full border-2 transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
             autoMode
-              ? "bg-indigo-600 border-indigo-600 toggle-electric"
-              : "bg-gray-200 border-gray-200 toggle-shimmer"
+              ? "bg-accent border-accent toggle-electric"
+              : "bg-elevated border-border toggle-shimmer"
           }`}
           title="Auto-Optimize: automatically find the best hardware configuration"
         >
           <span
-            className={`pointer-events-none inline-flex h-[28px] w-[28px] items-center justify-center rounded-full bg-white shadow-lg ring-0 transition-all duration-300 ease-[cubic-bezier(0.68,-0.55,0.265,1.55)] ${
+            className={`pointer-events-none inline-flex h-[28px] w-[28px] items-center justify-center rounded-full bg-surface shadow-card-hover ring-0 transition-all duration-300 ease-[cubic-bezier(0.68,-0.55,0.265,1.55)] ${
               autoMode ? "translate-x-[25px]" : "translate-x-0"
             }`}
           >
             <svg
               className={`w-4 h-4 transition-all duration-200 ${
-                autoMode ? "text-indigo-600" : "text-gray-400"
+                autoMode ? "text-accent" : "text-subtle"
               } ${justActivated ? "bolt-zap" : ""} ${autoMode && !justActivated ? "bolt-glow" : ""}`}
               fill="none"
               stroke="currentColor"
@@ -99,7 +100,7 @@ const ToggleSwitch = ({ autoMode, setAutoMode }) => {
       </div>
       <span
         className={`text-sm font-semibold select-none transition-all duration-300 ${
-          autoMode ? "text-indigo-600" : "text-gray-400"
+          autoMode ? "text-accent" : "text-subtle"
         }`}
       >
         Auto
@@ -137,9 +138,9 @@ const TooltipBubble = ({ text, anchorRef, visible, width = 240 }) => {
         pointerEvents: "none",
       }}
     >
-      <div className="px-3 py-2 text-xs font-normal text-white bg-gray-800 rounded-lg shadow-lg text-center leading-relaxed">
+      <div className="px-3 py-2 text-xs font-normal text-white bg-fg rounded-lg shadow-elevated text-center leading-relaxed">
         {text}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-fg" />
       </div>
     </div>,
     document.body,
@@ -166,7 +167,7 @@ const InfoTooltip = ({ text }) => {
       onMouseLeave={onLeave}
     >
       <svg
-        className="w-4 h-4 text-gray-400 hover:text-indigo-500 cursor-help transition-colors"
+        className="w-4 h-4 text-subtle hover:text-accent cursor-help transition-colors"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -565,12 +566,12 @@ const OPTIMIZATION_MODE_BALANCED = {
 };
 
 const CARD_COLOR_MAP = {
-  blue: { selected: "border-blue-500 bg-blue-50 text-blue-700" },
-  emerald: { selected: "border-emerald-500 bg-emerald-50 text-emerald-700" },
-  rose: { selected: "border-rose-500 bg-rose-50 text-rose-700" },
-  violet: { selected: "border-violet-500 bg-violet-50 text-violet-700" },
-  amber: { selected: "border-amber-500 bg-amber-50 text-amber-700" },
-  indigo: { selected: "border-indigo-500 bg-indigo-50 text-indigo-700" },
+  blue: { selected: "border-info bg-info-soft text-info" },
+  emerald: { selected: "border-success bg-success-soft text-success" },
+  rose: { selected: "border-danger bg-danger-soft text-danger" },
+  violet: { selected: "border-accent bg-accent-soft text-accent" },
+  amber: { selected: "border-warning bg-warning-soft text-warning" },
+  indigo: { selected: "border-accent bg-accent-soft text-accent" },
 };
 
 const ALLOWED_DISCRETE = [1, 2, 4, 6, 8];
@@ -661,6 +662,7 @@ const CalculatorForm = ({
   appliedConfig,
   onAppliedConfigConsumed,
 }) => {
+  const t = useT();
   // Initial form values based on the SizingInput (Methodology v2)
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
 
@@ -1286,11 +1288,11 @@ const CalculatorForm = ({
 
   // Helper function to render a collapsible section
   const renderCollapsibleSection = (key, title, inputs, isExpanded, tooltip = "") => (
-    <div className="bg-gray-50 rounded-lg border border-gray-200 mb-4 overflow-hidden">
+    <div className="bg-elevated rounded-lg border border-border mb-4 overflow-hidden">
       <button
         type="button"
         onClick={() => toggleSection(key)}
-        className="w-full flex justify-between items-center p-4 text-left text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors"
+        className="w-full flex justify-between items-center p-4 text-left text-fg font-medium rounded-lg hover:bg-elevated/70 transition-colors"
       >
         <span className="font-semibold flex items-center">
           {title}
@@ -1311,7 +1313,7 @@ const CalculatorForm = ({
           isExpanded ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="p-4 pt-2 border-t border-gray-200">{inputs}</div>
+        <div className="p-4 pt-2 border-t border-border">{inputs}</div>
       </div>
     </div>
   );
@@ -1376,10 +1378,10 @@ const CalculatorForm = ({
     return (
       <div className={`mb-6 ${disabled ? "opacity-50 pointer-events-none" : ""}`} key={name}>
         <div className="flex justify-between items-center mb-2">
-          <label className="block text-sm font-medium text-gray-700 flex items-center">
+          <label className="block text-sm font-medium text-fg flex items-center">
             {label}
             {disabled && (
-              <span className="ml-1.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-normal">
+              <span className="ml-1.5 text-xs text-warning bg-warning-soft px-1.5 py-0.5 rounded font-normal">
                 auto
               </span>
             )}
@@ -1394,11 +1396,11 @@ const CalculatorForm = ({
               value={value}
               onChange={handleInputChange}
               disabled={disabled}
-              className={`px-2 py-1 text-sm border border-gray-300 rounded-md text-right ${max >= 1000000 ? "w-28" : "w-20"} ${disabled ? "bg-gray-100" : ""}`}
+              className={`px-2 py-1 text-sm border border-border-strong rounded-md text-right bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent ${max >= 1000000 ? "w-28" : "w-20"} ${disabled ? "bg-elevated text-subtle" : ""}`}
               inputMode={isInteger ? "numeric" : "decimal"}
               placeholder="0"
             />
-            <span className="text-sm text-gray-500 font-medium">{unit}</span>
+            <span className="text-sm text-muted font-medium">{unit}</span>
           </div>
         </div>
         <input
@@ -1409,9 +1411,9 @@ const CalculatorForm = ({
           value={value}
           onChange={handleSliderChange}
           disabled={disabled}
-          className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
+          className="w-full rounded-lg appearance-none cursor-pointer accent-accent"
         />
-        <div className="flex justify-between text-xs text-gray-500 mt-1">
+        <div className="flex justify-between text-xs text-muted mt-1">
           <span>
             {typeof min === "number" && min >= 1000 ? min.toLocaleString() : min}
             {unit}
@@ -1428,9 +1430,9 @@ const CalculatorForm = ({
   // Basic configuration inputs
   const basicInputs = (
     <div className="space-y-6">
-      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-        <h3 className="text-lg font-medium text-blue-800 mb-4 flex items-center">
-          Users
+      <div className="bg-info-soft rounded-lg p-4 border border-info/30">
+        <h3 className="text-lg font-medium text-info mb-4 flex items-center">
+          {t("form.section.users")}
           <SectionTooltip text="Define the total user base. Fine-tune adoption and concurrency rates in the Advanced tab." />
         </h3>
         {renderSliderInput(
@@ -1445,19 +1447,19 @@ const CalculatorForm = ({
         )}
       </div>
 
-      <div className="bg-green-50 rounded-lg p-4 border border-green-200" data-tour="model-search">
-        <h3 className="text-lg font-medium text-green-800 mb-4 flex items-center">
-          Model
+      <div className="bg-success-soft rounded-lg p-4 border border-success/30" data-tour="model-search">
+        <h3 className="text-lg font-medium text-success mb-4 flex items-center">
+          {t("form.section.model")}
           <SectionTooltip text="Search for a model on Hugging Face to auto-fill architecture parameters, or set them manually in the Advanced tab." />
         </h3>
 
         {/* Source toggle: Auto / HF live / Curated only */}
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-gray-600 font-medium">Data source:</span>
+          <span className="text-muted font-medium">Data source:</span>
           {[
-            { id: "auto", label: "Auto", title: "Use HuggingFace if reachable, fall back to curated catalog" },
-            { id: "hf", label: "HF live", title: "Force HuggingFace; errors visibly when unreachable" },
-            { id: "curated", label: "Curated only", title: "Use bundled curated catalog only — no outbound HF traffic" },
+            { id: "auto", label: t("form.source.auto"), title: "Use HuggingFace if reachable, fall back to curated catalog" },
+            { id: "hf", label: t("form.source.hf"), title: "Force HuggingFace; errors visibly when unreachable" },
+            { id: "curated", label: t("form.source.curated"), title: "Use bundled curated catalog only — no outbound HF traffic" },
           ].map((opt) => {
             const active = llmSourceMode === opt.id;
             return (
@@ -1468,8 +1470,8 @@ const CalculatorForm = ({
                 title={opt.title}
                 className={`px-2.5 py-1 rounded-md border transition-all ${
                   active
-                    ? "bg-green-600 border-green-600 text-white"
-                    : "bg-white border-gray-300 text-gray-700 hover:border-green-400"
+                    ? "bg-success border-success text-white"
+                    : "bg-surface border-border-strong text-fg hover:border-success/50"
                 }`}
               >
                 {opt.label}
@@ -1480,8 +1482,8 @@ const CalculatorForm = ({
           <span
             className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
               effectiveLlmSource === "hf"
-                ? "bg-blue-100 text-blue-700"
-                : "bg-amber-100 text-amber-700"
+                ? "bg-info-soft text-info"
+                : "bg-warning-soft text-warning"
             }`}
             title={
               effectiveLlmSource === "hf"
@@ -1498,8 +1500,8 @@ const CalculatorForm = ({
 
         {/* Model search */}
         <div className="mb-4 relative">
-          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-            Search Model
+          <label className="block text-sm font-medium text-fg mb-2 flex items-center">
+            {t("form.search.model")}
             <InfoTooltip text="Search Hugging Face to find your model. Parameters like size, layers, and hidden dim will be filled automatically. In 'Curated only' mode searches the bundled catalog instead." />
           </label>
           <input
@@ -1507,25 +1509,25 @@ const CalculatorForm = ({
             value={modelSearch}
             onChange={handleSearchChange}
             placeholder="Search for a model (e.g., llama, gpt, etc.)"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
           />
 
           {isSearching && (
             <div className="absolute right-3 top-2">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-accent"></div>
             </div>
           )}
 
           {searchResults.length > 0 && (
-            <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto">
+            <div className="absolute z-10 mt-1 w-full bg-surface border border-border shadow-elevated rounded-md max-h-60 overflow-auto">
               {searchResults.map((model, index) => (
                 <div
                   key={index}
                   onClick={() => handleModelSelect(model)}
-                  className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  className="px-4 py-2 text-sm text-fg hover:bg-accent-soft cursor-pointer border-b border-border last:border-b-0"
                 >
                   <div className="font-medium">{model.modelId || model.id}</div>
-                  <div className="text-xs text-gray-500 truncate">
+                  <div className="text-xs text-muted truncate">
                     {getModelSubtitle(model) || "—"}
                   </div>
                 </div>
@@ -1536,11 +1538,11 @@ const CalculatorForm = ({
 
         {selectedModel && (
           <div className="mt-4 mb-4">
-            <div className="p-3 bg-green-50 border-2 border-green-400 rounded-md shadow-sm">
+            <div className="p-3 bg-success-soft border-2 border-success/50 rounded-md shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0">
                   <svg
-                    className="w-5 h-5 text-green-600 mr-2 flex-shrink-0"
+                    className="w-5 h-5 text-success mr-2 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1553,10 +1555,10 @@ const CalculatorForm = ({
                     />
                   </svg>
                   <div className="min-w-0">
-                    <div className="text-xs font-medium text-green-700 uppercase tracking-wide mb-0.5">
+                    <div className="text-xs font-medium text-success uppercase tracking-wide mb-0.5">
                       Selected Model
                     </div>
-                    <div className="text-sm font-semibold text-green-900 truncate">
+                    <div className="text-sm font-semibold text-fg truncate">
                       {selectedModel.modelId || selectedModel.id}
                     </div>
                   </div>
@@ -1565,7 +1567,7 @@ const CalculatorForm = ({
                   href={`https://huggingface.co/${selectedModel.modelId || selectedModel.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ml-2 p-1 rounded-lg hover:bg-yellow-50 transition-colors flex-shrink-0"
+                  className="ml-2 p-1 rounded-lg hover:bg-warning-soft transition-colors flex-shrink-0"
                   title="Open on Hugging Face"
                 >
                   <img src="/huggingface-color.png" alt="Hugging Face" className="w-6 h-6" />
@@ -1574,12 +1576,12 @@ const CalculatorForm = ({
             </div>
 
             {modelWarning && (
-              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md flex justify-between items-start">
-                <div className="text-sm text-yellow-800">{modelWarning}</div>
+              <div className="mt-2 p-3 bg-warning-soft border border-warning/30 rounded-md flex justify-between items-start">
+                <div className="text-sm text-warning">{modelWarning}</div>
                 <button
                   type="button"
                   onClick={() => setModelWarning(null)}
-                  className="text-yellow-800 hover:text-yellow-900"
+                  className="text-warning hover:text-warning/80"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -1596,18 +1598,18 @@ const CalculatorForm = ({
         )}
       </div>
 
-      <div className="bg-purple-50 rounded-lg p-4 border border-purple-200" data-tour="gpu-search">
-        <h3 className="text-lg font-medium text-purple-800 mb-4 flex items-center">
-          Hardware
+      <div className="bg-accent-soft rounded-lg p-4 border border-accent/30" data-tour="gpu-search">
+        <h3 className="text-lg font-medium text-accent mb-4 flex items-center">
+          {t("form.section.hardware")}
           <SectionTooltip text="Choose the GPU accelerator and server layout. Memory and TFLOPS are auto-filled from the GPU catalog." />
         </h3>
 
         {/* GPU Selection with Search — or GPU Filter in autoMode */}
         {autoMode ? (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+            <label className="block text-sm font-medium text-fg mb-2 flex items-center">
               GPU Selection
-              <span className="ml-1.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-normal">
+              <span className="ml-1.5 text-xs text-warning bg-warning-soft px-1.5 py-0.5 rounded font-normal">
                 auto
               </span>
               <InfoTooltip text="In auto-optimize mode GPUs are selected automatically. Use the filter to restrict which GPUs to consider." />
@@ -1615,7 +1617,7 @@ const CalculatorForm = ({
             <button
               type="button"
               onClick={onOpenGpuFilter}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-100 hover:border-purple-400 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-accent/40 rounded-lg text-sm font-medium text-accent hover:bg-accent-soft/80 hover:border-accent/60 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -1633,14 +1635,14 @@ const CalculatorForm = ({
           </div>
         ) : (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+            <label className="block text-sm font-medium text-fg mb-2 flex items-center">
               GPU
               <InfoTooltip text="Open the catalog to choose one GPU. Memory and compute specs will be filled in automatically." />
             </label>
             <button
               type="button"
               onClick={() => onOpenGpuPicker(selectedGpu?.id)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-400 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-accent/40 rounded-lg text-sm font-medium text-accent hover:bg-accent-soft/60 hover:border-accent/60 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -1655,10 +1657,10 @@ const CalculatorForm = ({
                 : "Select GPU"}
             </button>
             {selectedGpu && (
-              <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <div className="mt-3 p-3 bg-accent-soft border border-accent/30 rounded-lg">
                 <div className="flex items-center">
                   <svg
-                    className="w-5 h-5 text-purple-600 mr-2 flex-shrink-0"
+                    className="w-5 h-5 text-accent mr-2 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1671,12 +1673,12 @@ const CalculatorForm = ({
                     />
                   </svg>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium text-purple-700 uppercase tracking-wide mb-0.5">
+                    <div className="text-xs font-medium text-accent uppercase tracking-wide mb-0.5">
                       Selected GPU
                     </div>
-                    <div className="text-sm font-semibold text-purple-900">
+                    <div className="text-sm font-semibold text-fg">
                       {selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`}
-                      <span className="text-purple-700 font-normal ml-1">
+                      <span className="text-accent font-normal ml-1">
                         ({selectedGpu.memory_size_formatted || `${selectedGpu.memory_gb} GB`})
                         {selectedGpu.tflops ? ` | ${selectedGpu.tflops} TFLOPS` : ""}
                       </span>
@@ -1711,10 +1713,10 @@ const CalculatorForm = ({
               key="gpus_per_server"
             >
               <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700 flex items-center">
+                <label className="block text-sm font-medium text-fg flex items-center">
                   GPUs per Server
                   {gpuLocked && (
-                    <span className="ml-1.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-normal">
+                    <span className="ml-1.5 text-xs text-warning bg-warning-soft px-1.5 py-0.5 rounded font-normal">
                       auto
                     </span>
                   )}
@@ -1722,7 +1724,7 @@ const CalculatorForm = ({
                 </label>
                 <div className="flex items-center space-x-2">
                   <span
-                    className={`px-2 py-1 text-sm border border-gray-300 rounded-md text-right w-20 inline-block text-center font-medium ${gpuLocked ? "bg-gray-100" : "bg-white"}`}
+                    className={`px-2 py-1 text-sm border border-border-strong rounded-md text-right w-20 inline-block text-center font-medium ${gpuLocked ? "bg-elevated text-subtle" : "bg-surface text-fg"}`}
                   >
                     {displayVal}
                   </span>
@@ -1739,9 +1741,9 @@ const CalculatorForm = ({
                   handleChange("gpus_per_server", gpuPerServerAllowed[parseInt(e.target.value)])
                 }
                 disabled={gpuLocked}
-                className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className="w-full rounded-lg appearance-none cursor-pointer accent-accent"
               />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-muted mt-1">
                 <span>{gpuPerServerAllowed[0]}</span>
                 <span>{gpuPerServerAllowed[gpuPerServerAllowed.length - 1]}</span>
               </div>
@@ -1760,8 +1762,8 @@ const CalculatorForm = ({
         )}
       </div>
 
-      <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-        <h3 className="text-lg font-medium text-orange-800 mb-4 flex items-center">
+      <div className="bg-warning-soft rounded-lg p-4 border border-warning/30">
+        <h3 className="text-lg font-medium text-warning mb-4 flex items-center">
           Tensor Parallelism
           <SectionTooltip text="Tensor parallelism splits one model across multiple GPUs, increasing available memory per instance." />
         </h3>
@@ -1784,10 +1786,10 @@ const CalculatorForm = ({
           return (
             <div className={`mb-6 ${tpLocked ? "opacity-50 pointer-events-none" : ""}`}>
               <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700 flex items-center">
+                <label className="block text-sm font-medium text-fg flex items-center">
                   TP Degree (Z)
                   {tpLocked && (
-                    <span className="ml-1.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-normal">
+                    <span className="ml-1.5 text-xs text-warning bg-warning-soft px-1.5 py-0.5 rounded font-normal">
                       auto
                     </span>
                   )}
@@ -1795,7 +1797,7 @@ const CalculatorForm = ({
                 </label>
                 <div className="flex items-center space-x-2">
                   <span
-                    className={`px-2 py-1 text-sm border border-gray-300 rounded-md text-right w-20 inline-block text-center font-medium ${tpLocked ? "bg-gray-100" : "bg-white"}`}
+                    className={`px-2 py-1 text-sm border border-border-strong rounded-md text-right w-20 inline-block text-center font-medium ${tpLocked ? "bg-elevated text-subtle" : "bg-surface text-fg"}`}
                   >
                     {formData.tp_multiplier_Z}
                   </span>
@@ -1811,9 +1813,9 @@ const CalculatorForm = ({
                   !tpLocked && handleChange("tp_multiplier_Z", tpAllowed[parseInt(e.target.value)])
                 }
                 disabled={tpLocked}
-                className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className="w-full rounded-lg appearance-none cursor-pointer accent-accent"
               />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-muted mt-1">
                 <span>{tpAllowed[0]}</span>
                 <span>{tpAllowed[tpAllowed.length - 1]}</span>
               </div>
@@ -1832,9 +1834,9 @@ const CalculatorForm = ({
         )}
       </div>
 
-      <div className="bg-amber-50 rounded-lg p-4 border border-amber-200" data-tour="sla-targets">
-        <h3 className="text-lg font-medium text-amber-800 mb-4 flex items-center">
-          SLA Targets
+      <div className="bg-warning-soft rounded-lg p-4 border border-warning/30" data-tour="sla-targets">
+        <h3 className="text-lg font-medium text-warning mb-4 flex items-center">
+          {t("form.section.sla")}
           <SectionTooltip text="Time To First Token (TTFT) and end-to-end latency limits used to validate the configuration against your service-level requirements." />
         </h3>
         {renderSliderInput(
@@ -2051,7 +2053,7 @@ const CalculatorForm = ({
         <>
           {/* Architecture pattern presets — Appendix В Table В.1 */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-2">
+            <label className="block text-xs font-medium text-muted mb-2">
               Architecture pattern
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -2068,14 +2070,14 @@ const CalculatorForm = ({
                     title={preset.description}
                     className={`text-left px-2.5 py-1.5 rounded-md border text-xs transition-all ${
                       isActive
-                        ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
-                        : "bg-white border-gray-200 text-gray-700 hover:border-indigo-300 hover:bg-indigo-50"
+                        ? "bg-accent border-accent text-accent-fg shadow-card"
+                        : "bg-surface border-border text-fg hover:border-accent/40 hover:bg-accent-soft"
                     }`}
                   >
                     <span className="font-semibold leading-tight">{preset.name}</span>
                     <span
                       className={`block text-[10px] mt-0.5 ${
-                        isActive ? "opacity-80" : "text-gray-500"
+                        isActive ? "opacity-80" : "text-muted"
                       }`}
                     >
                       k={preset.data.k_calls}
@@ -2150,42 +2152,42 @@ const CalculatorForm = ({
           )}
 
           {/* Effective values preview */}
-          <div className="mt-3 p-3 rounded-lg bg-indigo-50 border border-indigo-100">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-indigo-700 mb-2">
+          <div className="mt-3 p-3 rounded-lg bg-accent-soft border border-accent/30">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">
               Effective values applied to sizing
             </p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono text-gray-700">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono text-fg">
               <div>
                 SP_eff ={" "}
-                <span className="text-indigo-700 font-semibold">
+                <span className="text-accent font-semibold">
                   {(formData.system_prompt_tokens_SP || 0) + (formData.sp_tools || 0) + (formData.c_rag_static || 0)}
                 </span>{" "}
                 tok
               </div>
               <div>
                 Prp_eff ={" "}
-                <span className="text-indigo-700 font-semibold">
+                <span className="text-accent font-semibold">
                   {(formData.user_prompt_tokens_Prp || 0) + (formData.c_rag_dynamic || 0)}
                 </span>{" "}
                 tok
               </div>
               <div>
                 A_eff ={" "}
-                <span className="text-indigo-700 font-semibold">
+                <span className="text-accent font-semibold">
                   {(formData.answer_tokens_A || 0) + (formData.a_tool || 0)}
                 </span>{" "}
                 tok
               </div>
               <div>
                 R_eff ={" "}
-                <span className="text-indigo-700 font-semibold">
+                <span className="text-accent font-semibold">
                   {((formData.rps_per_session_R || 0) * (formData.k_calls || 1)).toFixed(4)}
                 </span>{" "}
                 req/s
               </div>
               <div className="col-span-2">
                 TS_agent ={" "}
-                <span className="text-indigo-700 font-semibold">
+                <span className="text-accent font-semibold">
                   {((formData.system_prompt_tokens_SP || 0) +
                     (formData.sp_tools || 0) +
                     (formData.c_rag_static || 0) +
@@ -2198,12 +2200,12 @@ const CalculatorForm = ({
                         (formData.a_tool || 0))).toLocaleString()}
                 </span>{" "}
                 tok &nbsp;
-                <span className="text-gray-500">
+                <span className="text-muted">
                   (full session, drives KV-cache via SL = min(TS, max_context))
                 </span>
               </div>
             </div>
-            <p className="text-[10px] text-gray-500 mt-2 leading-snug">
+            <p className="text-[10px] text-muted mt-2 leading-snug">
               These derive from your token + agentic inputs. Backend recomputes them per
               §2.2 / Appendix В when you Calculate — no need to re-enter values manually.
             </p>
@@ -2318,9 +2320,9 @@ const CalculatorForm = ({
             "",
             "GPU utilization during the decode phase (generating tokens). Typically 0.10–0.20.",
           )}
-          <div className="text-xs text-gray-500 mb-4 p-2 bg-blue-50 rounded flex items-center">
+          <div className="text-xs text-muted mb-4 p-2 bg-info-soft rounded flex items-center">
             <svg
-              className="w-4 h-4 mr-1.5 text-blue-400 flex-shrink-0"
+              className="w-4 h-4 mr-1.5 text-info flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -2396,7 +2398,7 @@ const CalculatorForm = ({
     <form onSubmit={handleSubmit} className="gap-6 flex flex-col flex-1">
       {/* Header with toggle switch */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <h2 className="text-lg sm:text-2xl font-semibold text-gray-800 min-w-0 truncate">
+        <h2 className="text-lg sm:text-2xl font-semibold text-fg min-w-0 truncate">
           Configuration Parameters
         </h2>
         <div data-tour="auto-optimize" className="shrink-0">
@@ -2407,7 +2409,7 @@ const CalculatorForm = ({
       {/* Presets (normal mode) or Optimization Mode cards (auto mode) */}
       {autoMode ? (
         <div className="mb-2" data-tour="optimize-mode">
-          <label className="block text-sm font-medium text-gray-600 mb-2">Optimization Mode</label>
+          <label className="block text-sm font-medium text-muted mb-2">Optimization Mode</label>
           <div className="grid grid-cols-2 gap-2">
             {OPTIMIZATION_MODES_GRID.map((mode) => {
               const isSelected = optimizeMode === mode.id;
@@ -2419,8 +2421,8 @@ const CalculatorForm = ({
                   onClick={() => setOptimizeMode(mode.id)}
                   className={`p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
                     isSelected
-                      ? `${colors.selected} border-current shadow-sm`
-                      : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                      ? `${colors.selected} border-current shadow-card`
+                      : "border-border text-muted hover:border-border-strong hover:bg-elevated"
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-0.5">
@@ -2442,8 +2444,8 @@ const CalculatorForm = ({
                 onClick={() => setOptimizeMode(mode.id)}
                 className={`mt-2 w-full p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
                   isSelected
-                    ? `${colors.selected} border-current shadow-sm`
-                    : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                    ? `${colors.selected} border-current shadow-card`
+                    : "border-border text-muted hover:border-border-strong hover:bg-elevated"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-0.5">
@@ -2458,7 +2460,7 @@ const CalculatorForm = ({
         </div>
       ) : (
         <div className="mb-2" data-tour="presets">
-          <label className="block text-sm font-medium text-gray-600 mb-2">Quick Presets</label>
+          <label className="block text-sm font-medium text-muted mb-2">{t("form.preset.select")}</label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {PRESETS.map((preset) => {
               const isActive = selectedPreset === preset.id;
@@ -2471,8 +2473,8 @@ const CalculatorForm = ({
                   title={preset.description}
                   className={`p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
                     isActive
-                      ? `${colors.selected} border-current shadow-sm`
-                      : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                      ? `${colors.selected} border-current shadow-card`
+                      : "border-border text-muted hover:border-border-strong hover:bg-elevated"
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-0.5">
@@ -2488,14 +2490,14 @@ const CalculatorForm = ({
       )}
 
       {/* Tab Navigation */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-border">
         <button
           type="button"
           data-tour="basic-tab"
           className={`py-2 px-4 font-medium text-sm ${
             activeTab === "basic"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500 hover:text-gray-700"
+              ? "text-accent border-b-2 border-accent"
+              : "text-muted hover:text-fg"
           }`}
           onClick={() => setActiveTab("basic")}
         >
@@ -2506,8 +2508,8 @@ const CalculatorForm = ({
           data-tour="advanced-tab"
           className={`py-2 px-4 font-medium text-sm ${
             activeTab === "advanced"
-              ? "text-gray-600 border-b-2 border-gray-600 bg-gray-50"
-              : "text-gray-400 hover:text-gray-600 bg-gray-50"
+              ? "text-fg border-b-2 border-fg bg-elevated"
+              : "text-subtle hover:text-fg bg-elevated"
           }`}
           onClick={() => setActiveTab("advanced")}
         >
@@ -2526,20 +2528,16 @@ const CalculatorForm = ({
         type="submit"
         data-tour="calculate-btn"
         disabled={loading}
-        className={`mt-auto w-full py-3 px-4 rounded-lg font-semibold text-lg transition-colors ${
+        className={`mt-auto w-full py-3 px-4 rounded-lg font-semibold text-lg transition-colors text-accent-fg ${
           loading
-            ? autoMode
-              ? "bg-indigo-300 text-white cursor-not-allowed"
-              : "bg-blue-300 text-white cursor-not-allowed"
-            : autoMode
-              ? "bg-indigo-600 text-white hover:bg-indigo-700 calc-btn-glow"
-              : "bg-blue-600 text-white hover:bg-blue-700 calc-btn-glow"
+            ? "bg-accent/60 cursor-not-allowed"
+            : "bg-accent hover:bg-accent/90 calc-btn-glow"
         }`}
       >
         {loading ? (
           <span className="flex items-center justify-center">
-            <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></span>
-            {autoMode ? "Searching configurations..." : "Calculating..."}
+            <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></span>
+            {autoMode ? "Searching configurations..." : t("form.calculating")}
           </span>
         ) : autoMode ? (
           <span className="flex items-center justify-center gap-2">
@@ -2554,7 +2552,7 @@ const CalculatorForm = ({
             Find Best Configs
           </span>
         ) : (
-          "Calculate"
+          t("form.calculate")
         )}
       </button>
     </form>

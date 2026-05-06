@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useT } from "../../contexts/I18nContext";
 
 const QUANTIZATION_OPTIONS = [
   { label: "FP16 / BF16 (2 B/param)", value: 2 },
@@ -104,9 +105,9 @@ export const OCR_PRESETS = [
 
 const NumberInput = ({ name, label, value, onChange, min, max, step, suffix, hint }) => (
   <div>
-    <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor={`ocr-${name}`}>
+    <label className="block text-xs font-medium text-muted mb-1" htmlFor={`ocr-${name}`}>
       {label}
-      {hint && <span className="ml-1 text-gray-400 font-normal">· {hint}</span>}
+      {hint && <span className="ml-1 text-subtle font-normal">· {hint}</span>}
     </label>
     <div className="relative">
       <input
@@ -118,10 +119,10 @@ const NumberInput = ({ name, label, value, onChange, min, max, step, suffix, hin
         min={min}
         max={max}
         step={step ?? "any"}
-        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+        className="w-full px-3 py-2 text-sm border border-border rounded-md bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
       />
       {suffix && (
-        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">
+        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-subtle pointer-events-none">
           {suffix}
         </span>
       )}
@@ -131,7 +132,7 @@ const NumberInput = ({ name, label, value, onChange, min, max, step, suffix, hin
 
 const SelectInput = ({ name, label, value, options, onChange }) => (
   <div>
-    <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor={`ocr-${name}`}>
+    <label className="block text-xs font-medium text-muted mb-1" htmlFor={`ocr-${name}`}>
       {label}
     </label>
     <select
@@ -139,7 +140,7 @@ const SelectInput = ({ name, label, value, options, onChange }) => (
       name={name}
       value={value}
       onChange={(e) => onChange(name, Number(e.target.value))}
-      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+      className="w-full px-3 py-2 text-sm border border-border rounded-md bg-surface text-fg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
     >
       {options.map((o) => (
         <option key={o.value} value={o.value}>
@@ -152,24 +153,24 @@ const SelectInput = ({ name, label, value, options, onChange }) => (
 
 const SECTION_STYLES = {
   blue: {
-    container: "rounded-lg p-4 border bg-blue-50 border-blue-200",
-    heading: "text-sm font-semibold text-blue-700 mb-3 uppercase tracking-wider",
+    container: "rounded-lg p-4 border bg-info-soft border-info/30",
+    heading: "text-sm font-semibold text-info mb-3 uppercase tracking-wider",
   },
   emerald: {
-    container: "rounded-lg p-4 border bg-emerald-50 border-emerald-200",
-    heading: "text-sm font-semibold text-emerald-700 mb-3 uppercase tracking-wider",
+    container: "rounded-lg p-4 border bg-success-soft border-success/30",
+    heading: "text-sm font-semibold text-success mb-3 uppercase tracking-wider",
   },
   purple: {
-    container: "rounded-lg p-4 border bg-purple-50 border-purple-200",
-    heading: "text-sm font-semibold text-purple-700 mb-3 uppercase tracking-wider",
+    container: "rounded-lg p-4 border bg-accent-soft border-accent/30",
+    heading: "text-sm font-semibold text-accent mb-3 uppercase tracking-wider",
   },
   amber: {
-    container: "rounded-lg p-4 border bg-amber-50 border-amber-200",
-    heading: "text-sm font-semibold text-amber-700 mb-3 uppercase tracking-wider",
+    container: "rounded-lg p-4 border bg-warning-soft border-warning/30",
+    heading: "text-sm font-semibold text-warning mb-3 uppercase tracking-wider",
   },
   rose: {
-    container: "rounded-lg p-4 border bg-rose-50 border-rose-200",
-    heading: "text-sm font-semibold text-rose-700 mb-3 uppercase tracking-wider",
+    container: "rounded-lg p-4 border bg-danger-soft border-danger/30",
+    heading: "text-sm font-semibold text-danger mb-3 uppercase tracking-wider",
   },
 };
 
@@ -198,7 +199,7 @@ const PipelineToggle = ({ value, onChange }) => {
   ];
   return (
     <div className="sm:col-span-2">
-      <label className="block text-xs font-medium text-gray-600 mb-1">OCR pipeline</label>
+      <label className="block text-xs font-medium text-muted mb-1">OCR pipeline</label>
       <div className="grid grid-cols-2 gap-2">
         {options.map((o) => {
           const active = value === o.id;
@@ -209,13 +210,13 @@ const PipelineToggle = ({ value, onChange }) => {
               onClick={() => onChange(o.id)}
               className={`text-left p-2 rounded-md border-2 transition-all ${
                 active
-                  ? "bg-indigo-600 border-indigo-600 text-white"
-                  : "bg-white border-gray-200 text-gray-700 hover:border-indigo-300"
+                  ? "bg-accent border-accent text-accent-fg"
+                  : "bg-surface border-border text-fg hover:border-accent/40"
               }`}
             >
               <p className="text-sm font-semibold">{o.label}</p>
               <p
-                className={`text-[11px] mt-0.5 ${active ? "opacity-80" : "text-gray-500"}`}
+                className={`text-[11px] mt-0.5 ${active ? "opacity-80" : "text-muted"}`}
               >
                 {o.hint}
               </p>
@@ -234,6 +235,7 @@ const OCRCalculatorForm = ({
   gpuPickerResult,
   onClearGpuPickerResult,
 }) => {
+  const t = useT();
   const [formData, setFormData] = useState(DEFAULTS);
   const [selectedGpu, setSelectedGpu] = useState(null);
   const [selectedPreset, setSelectedPreset] = useState(null);
@@ -334,7 +336,7 @@ const OCRCalculatorForm = ({
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 flex-1">
       {/* Presets */}
       <div data-tour="ocr-presets">
-        <label className="block text-sm font-medium text-gray-600 mb-2">Quick Presets</label>
+        <label className="block text-sm font-medium text-muted mb-2">Quick Presets</label>
         <div className="grid grid-cols-2 gap-2">
           {OCR_PRESETS.map((preset) => {
             const isActive = selectedPreset === preset.id;
@@ -346,12 +348,12 @@ const OCRCalculatorForm = ({
                 title={preset.description}
                 className={`text-left p-3 rounded-lg border-2 transition-all ${
                   isActive
-                    ? "bg-indigo-600 border-indigo-600 text-white shadow-md"
-                    : "bg-white border-gray-200 text-gray-700 hover:border-indigo-300 hover:bg-indigo-50"
+                    ? "bg-accent border-accent text-accent-fg shadow-card"
+                    : "bg-surface border-border text-fg hover:border-accent/40 hover:bg-accent-soft"
                 }`}
               >
                 <p className="text-sm font-semibold">{preset.name}</p>
-                <p className={`text-xs mt-0.5 ${isActive ? "opacity-80" : "text-gray-500"}`}>
+                <p className={`text-xs mt-0.5 ${isActive ? "opacity-80" : "text-muted"}`}>
                   {preset.subtitle}
                 </p>
               </button>
@@ -558,18 +560,18 @@ const OCRCalculatorForm = ({
       {/* Hardware */}
       <Section title="Hardware" color="amber" dataTour="ocr-hardware">
         <div className="sm:col-span-2">
-          <label className="block text-xs font-medium text-gray-600 mb-1">GPU model</label>
+          <label className="block text-xs font-medium text-muted mb-1">GPU model</label>
           <button
             type="button"
             onClick={() => onOpenGpuPicker?.(selectedGpu?.id)}
-            className="w-full text-left px-3 py-2 text-sm border border-gray-200 rounded-md bg-white hover:border-indigo-300 transition-colors"
+            className="w-full text-left px-3 py-2 text-sm border border-border rounded-md bg-surface text-fg hover:border-accent/40 hover:bg-elevated transition-colors"
           >
             {selectedGpu
               ? selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`
               : "Click to choose a GPU…"}
           </button>
           {selectedGpu && (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted mt-1">
               {selectedGpu.memory_size_formatted || `${selectedGpu.memory_gb} GB`}
               {selectedGpu.tflops ? ` · ${selectedGpu.tflops} TFLOPS` : ""}
             </p>
@@ -614,7 +616,7 @@ const OCRCalculatorForm = ({
       </Section>
 
       {validationError && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700">
+        <div className="bg-danger-soft border border-danger/30 rounded-md p-3 text-sm text-danger">
           {validationError}
         </div>
       )}
@@ -624,13 +626,13 @@ const OCRCalculatorForm = ({
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-3 px-4 rounded-lg text-sm font-semibold text-white shadow-md transition-all ${
+          className={`w-full py-3 px-4 rounded-lg text-sm font-semibold text-accent-fg shadow-card transition-all ${
             loading
-              ? "bg-indigo-400 cursor-not-allowed"
-              : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg"
+              ? "bg-accent/60 cursor-not-allowed"
+              : "bg-accent hover:bg-accent/90 hover:shadow-card-hover"
           }`}
         >
-          {loading ? "Calculating…" : "Calculate OCR + LLM Sizing"}
+          {loading ? t("form.calculating") : "Calculate OCR + LLM Sizing"}
         </button>
       </div>
     </form>
