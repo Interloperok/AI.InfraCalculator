@@ -152,16 +152,37 @@ def calc_SL(TS, TSmax):
     return min(TS, TSmax)
 
 
-def calc_kv_per_session_gb(L, H, SL, bytes_state, emp_kv, num_kv_heads=32, num_attention_heads=32):
+def calc_kv_per_session_gb(
+    L,
+    H,
+    SL,
+    bytes_state,
+    emp_kv,
+    num_kv_heads=32,
+    num_attention_heads=32,
+    head_dim=None,
+):
     """
-    Раздел 3.2 — KV-кэш на 1 сессию для MHA/GQA/MQA (GiB)
+    Раздел 3.2 — KV-кэш на 1 сессию для MHA/GQA/MQA (GiB).
 
-    MKV_s1 = 2 × L × H × SL × Bstate × EMPkv × (Nkv / Nattention) / 1024³
+    Универсальная форма (предпочтительна, методология §3.2):
+        M_KV = 2 · L · N_kv · head_dim · SL · B_state · EMP_kv / 1024³
 
-    Применяется для стандартных трансформеров: K и V хранятся отдельно
-    (отсюда множитель 2), размер каждой головы H/Nattention. Для MLA
-    архитектур (DeepSeek V2/V3/R1) используйте ``calc_kv_mla``.
+    Применяется к MHA/GQA/MQA при ЛЮБОМ соотношении H, N_attention, head_dim.
+    Корректна для нестандартных моделей (например, MoE Qwen3-30B-A3B, где
+    N_attention · head_dim ≠ H). Активируется при head_dim > 0.
+
+    Резервная форма (через H · N_kv/N_attention):
+        M_KV = 2 · L · H · SL · B_state · EMP_kv · (N_kv/N_attention) / 1024³
+
+    Используется когда head_dim не задан. Эквивалентна универсальной форме
+    только при H = N_attention · head_dim (стандартные dense-трансформеры).
     """
+    if head_dim is not None and head_dim > 0 and num_kv_heads > 0:
+        # Universal form via head_dim — methodology-preferred.
+        return (2 * L * num_kv_heads * head_dim * SL * bytes_state * emp_kv) / (1024**3)
+
+    # Fallback: H-based form (assumes H = N_attention · head_dim).
     kv_ratio = num_kv_heads / num_attention_heads if num_attention_heads > 0 else 1.0
     return (2 * L * H * SL * bytes_state * emp_kv * kv_ratio) / (1024**3)
 

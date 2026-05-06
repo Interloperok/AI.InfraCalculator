@@ -7,7 +7,6 @@ from core.sizing_math import (
     calc_Cmodel,
     calc_FPS,
     calc_Kbatch,
-    calc_S_TP,
     calc_SL,
     calc_Ssim,
     calc_T,
@@ -134,6 +133,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
             inp.emp_kv,
             inp.num_kv_heads,
             inp.num_attention_heads,
+            head_dim=int(inp.head_dim) if inp.head_dim else None,
         )
         if inp.num_kv_heads == 1:
             kv_arch_mode = "mqa"
@@ -157,7 +157,31 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     )
 
     # ── Section 4.4: Параллельные сессии и Kbatch ──
-    S_TP_base = calc_S_TP(kv_free_base, MKV)
+    # KV-cache sharding under TP — methodology §4.4 H-6:
+    #   - MLA (DeepSeek V2/V3/R1): latent c_t^KV replicated on every TP rank,
+    #     so per-instance session memory = M_KV · GPUcount_inst.
+    #     S_TP = floor(kv_free_inst / (GPUcount_inst · M_KV))
+    #   - MHA/GQA/MQA: K/V sharded by min(GPUcount_inst, N_kv) heads,
+    #     remaining ranks replicate. Per-instance session memory =
+    #     M_KV · GPUcount_inst / min(GPUcount_inst, N_kv).
+    #     S_TP = floor(kv_free_inst · min(GPUcount_inst, N_kv) / (M_KV · GPUcount_inst))
+    # When GPUcount_inst ≤ N_kv (typical) the standard form reduces to
+    # floor(kv_free / M_KV) — matches the legacy calc_S_TP. The replication
+    # penalty kicks in for high-TP configurations or low-N_kv models.
+
+    def _s_tp(kv_free_gb: float, gpu_count_inst: int) -> int:
+        if MKV <= 0 or gpu_count_inst <= 0:
+            return 0
+        if is_mla:
+            # MLA: latent replicated unconditionally.
+            denom = gpu_count_inst * MKV
+            return int(kv_free_gb // denom) if denom > 0 else 0
+        # Standard: shard by min(GPUcount_inst, N_kv).
+        n_kv = max(1, int(inp.num_kv_heads))
+        shard = min(gpu_count_inst, n_kv)
+        return int((kv_free_gb * shard) // (MKV * gpu_count_inst))
+
+    S_TP_base = _s_tp(kv_free_base, GPUcount_model)
 
     # Расчёт для Z × GPUcount_model GPU (с TP-множителем)
     Z = inp.tp_multiplier_Z
@@ -168,7 +192,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         inp.kavail,
         Mmodel,
     )
-    S_TP_z = calc_S_TP(kv_free_z, MKV)
+    S_TP_z = _s_tp(kv_free_z, GPUcount_z)
 
     Kbatch = calc_Kbatch(S_TP_z, S_TP_base, inp.saturation_coeff_C)
 

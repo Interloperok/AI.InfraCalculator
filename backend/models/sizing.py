@@ -163,6 +163,15 @@ class SizingInput(BaseModel):
         description="Размерность RoPE-ключа MLA. DeepSeek-V3: 64. "
         "Используется только если kv_lora_rank > 0. None для не-MLA.",
     )
+    head_dim: Optional[conint(ge=0)] = Field(
+        default=None,
+        description="Размерность одной головы внимания (head_dim). Когда задано — "
+        "используется универсальная форма KV-кэша (§3.2): "
+        "M_KV = 2·L·N_kv·head_dim·SL·B_state·EMP_kv. Корректна для моделей с "
+        "N_attention·head_dim ≠ H (например, MoE Qwen3-30B-A3B: H=2048, "
+        "N_attn=32, head_dim=128). Когда не задано — fallback к форме через "
+        "H·(N_kv/N_attention), эквивалентной только при H = N_attn·head_dim.",
+    )
 
     # ── Section 4: Hardware & TP ──
     gpu_mem_gb: confloat(gt=0) = Field(..., description="Память GPU в GiB (GPUmemory)")
