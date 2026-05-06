@@ -605,9 +605,9 @@ function App() {
                 <Cpu className="h-4 w-4" strokeWidth={2.25} />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-semibold leading-tight text-fg truncate">
+                <h1 className="text-sm font-semibold leading-tight text-fg truncate">
                   {t("app.title")}
-                </p>
+                </h1>
                 <p className="text-[11px] leading-tight text-muted truncate hidden sm:block">
                   {t("app.subtitle")}
                 </p>
