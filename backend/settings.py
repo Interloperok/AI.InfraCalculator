@@ -22,7 +22,7 @@ _FALSE_VALUES = {"0", "false", "no", "off"}
 
 @dataclass(frozen=True, slots=True)
 class AppSettings:
-    """Типизированные настройки backend из переменных окружения."""
+    """Typed backend settings sourced from environment variables."""
 
     app_env: str
     log_level: str
@@ -87,7 +87,7 @@ def _parse_float_env(name: str, default: float) -> float:
 
 @lru_cache(maxsize=1)
 def get_settings() -> AppSettings:
-    """Вернуть кэшированные настройки приложения."""
+    """Return cached application settings."""
     backend_dir = Path(__file__).resolve().parent
 
     return AppSettings(

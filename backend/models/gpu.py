@@ -22,7 +22,7 @@ class GPUInfo(BaseModel):
     estimated_tps_per_instance: float = Field(
         default=1000, description="Оценка токенов в секунду на инстанс", gt=0
     )
-    # Новые поля для отображения
+    # Display-only fields
     full_name: Optional[str] = Field(
         None, description="Полное название модели GPU (Vendor + Model)"
     )

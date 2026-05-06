@@ -1,9 +1,9 @@
 """
-Генератор Excel-отчётов по шаблону reportTemplate.xlsx.
+Excel report generator using the reportTemplate.xlsx template.
 
-Заполняет ячейки шаблона, помеченные как «Заполняется», входными значениями
-из SizingInput. Формулы («Рассчитывается») сохраняются и пересчитываются
-Excel при открытии файла.
+Populates the template cells marked as "input" with values from SizingInput.
+Formula cells ("calculated") are preserved and recomputed by Excel on file
+open.
 """
 
 from __future__ import annotations
@@ -20,16 +20,16 @@ from models import SizingInput
 
 logger = logging.getLogger("sizing.report")
 
-# Путь к шаблону Excel в корне backend.
+# Path to the Excel template at the backend root.
 REPORT_TEMPLATE_PATH = str(Path(__file__).resolve().parents[1] / "reportTemplate.xlsx")
 
 
 class ReportGenerator:
     """
-    Генератор Excel-отчётов на основе шаблона.
+    Excel report generator backed by a template.
 
-    Принимает входные параметры расчёта (SizingInput) и опционально
-    функцию для поиска TFLOPS GPU из каталога.
+    Accepts sizing input parameters (SizingInput) and optionally a
+    callable for looking up GPU TFLOPS in the catalog.
     """
 
     def __init__(
@@ -42,17 +42,17 @@ class ReportGenerator:
 
     @property
     def template_exists(self) -> bool:
-        """Проверяет наличие файла шаблона."""
+        """Check whether the template file exists."""
         return Path(self.template_path).exists()
 
     def _resolve_gpu_tflops(self, inp: SizingInput) -> float:
         """
-        Определяет значение TFLOPS GPU.
+        Resolve the GPU TFLOPS value.
 
-        Приоритет:
-        1. Явно заданное значение во входных данных (gpu_flops_Fcount)
-        2. Поиск в каталоге GPU по gpu_id / gpu_mem_gb
-        3. 0 (если ничего не найдено)
+        Priority:
+        1. Explicit value in the input (gpu_flops_Fcount)
+        2. Lookup in the GPU catalog by gpu_id / gpu_mem_gb
+        3. 0 (if nothing is found)
         """
         if inp.gpu_flops_Fcount is not None:
             return inp.gpu_flops_Fcount
@@ -81,7 +81,7 @@ class ReportGenerator:
         ws = wb["Inputs"] if "Inputs" in wb.sheetnames else wb.active
 
         # ── Workload (4 segments; web sends 2: internal + external) ──
-        # Segment columns: D=Внутренние, E=Внешние, F/G=spare segments.
+        # Segment columns: D=internal (Внутренние), E=external (Внешние), F/G=spare segments.
         ws["D7"] = inp.internal_users
         ws["D8"] = inp.penetration_internal
         ws["D9"] = inp.concurrency_internal
@@ -139,11 +139,11 @@ class ReportGenerator:
 
     def generate(self, inp: SizingInput) -> io.BytesIO:
         """
-        Генерирует заполненный Excel-файл и возвращает его как BytesIO-буфер.
+        Generate the populated Excel file and return it as a BytesIO buffer.
 
         Raises:
-            FileNotFoundError: если шаблон не найден.
-            RuntimeError: при ошибке генерации.
+            FileNotFoundError: if the template is not found.
+            RuntimeError: on generation error.
         """
         if not self.template_exists:
             raise FileNotFoundError(f"Шаблон отчёта не найден: {self.template_path}")
@@ -161,5 +161,5 @@ class ReportGenerator:
 
     @staticmethod
     def make_filename() -> str:
-        """Формирует имя файла с текущей датой/временем."""
+        """Build a filename stamped with the current date/time."""
         return f"sizing_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"

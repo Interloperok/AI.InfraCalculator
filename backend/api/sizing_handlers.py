@@ -31,7 +31,7 @@ def size_endpoint_handler(
     inp: SizingInput,
     run_sizing_fn: Callable[[SizingInput], SizingOutput] = run_sizing,
 ) -> SizingOutput:
-    """Выполнить sizing-расчёт с единообразной обработкой ошибок."""
+    """Run a sizing calculation with uniform error handling."""
     try:
         return run_sizing_fn(inp)
     except (AppError, ValueError) as exc:
@@ -40,7 +40,7 @@ def size_endpoint_handler(
 
 
 def report_endpoint_handler(inp: SizingInput) -> StreamingResponse:
-    """Сгенерировать Excel-отчёт по sizing-входу."""
+    """Generate an Excel report from a sizing input."""
     try:
         buf = report_builder.generate(inp)
     except FileNotFoundError as exc:
@@ -61,7 +61,7 @@ def whatif_endpoint_handler(
     req: WhatIfRequest,
     run_sizing_fn: Callable[[SizingInput], SizingOutput] = run_sizing,
 ) -> list[WhatIfResponseItem]:
-    """Выполнить пакетный расчёт по сценариям `what-if`."""
+    """Run a batch sizing pass over `what-if` scenarios."""
     items: list[WhatIfResponseItem] = []
     try:
         for scenario in req.scenarios:
@@ -80,7 +80,7 @@ def whatif_endpoint_handler(
 
 
 def auto_optimize_endpoint_handler(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
-    """Вернуть top-N оптимальных конфигураций по выбранному режиму."""
+    """Return top-N optimal configurations for the selected mode."""
     try:
         return auto_optimize(inp)
     except AppError as exc:
@@ -91,7 +91,7 @@ def vlm_size_endpoint_handler(
     inp: VLMSizingInput,
     run_vlm_sizing_fn: Callable[[VLMSizingInput], VLMSizingOutput] = run_vlm_sizing,
 ) -> VLMSizingOutput:
-    """Выполнить VLM single-pass online sizing (Приложение И.4.1)."""
+    """Run VLM single-pass online sizing (Приложение И.4.1)."""
     try:
         return run_vlm_sizing_fn(inp)
     except (AppError, ValueError) as exc:
@@ -103,7 +103,7 @@ def ocr_size_endpoint_handler(
     inp: OCRSizingInput,
     run_ocr_sizing_fn: Callable[[OCRSizingInput], OCRSizingOutput] = run_ocr_sizing,
 ) -> OCRSizingOutput:
-    """Выполнить OCR + LLM two-pass online sizing (Приложение И.4.2)."""
+    """Run OCR + LLM two-pass online sizing (Приложение И.4.2)."""
     try:
         return run_ocr_sizing_fn(inp)
     except (AppError, ValueError) as exc:

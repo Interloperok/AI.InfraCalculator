@@ -1,10 +1,10 @@
 """
-Pydantic модели для AI Server Calculator API
+Pydantic models for the AI Server Calculator API.
 
-Структура:
-- sizing.py - модели для расчета серверов
-- gpu.py - модели для GPU каталога
-- common.py - общие модели и утилиты
+Structure:
+- sizing.py - server sizing models
+- gpu.py - GPU catalog models
+- common.py - shared models and helpers
 """
 
 from .sizing import (

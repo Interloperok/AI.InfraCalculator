@@ -50,15 +50,15 @@ from services.gpu_catalog_service import (
 
 def run_sizing(inp: SizingInput) -> SizingOutput:
     """
-    Главный pipeline расчёта — Методика v2
+    Main sizing pipeline — Methodology v2.
 
-    Выполняет расчёт по двум независимым ограничениям:
-    - по памяти GPU (разделы 3-5)
-    - по вычислительной пропускной способности (раздел 6)
-    Итог: max(серверы_по_памяти, серверы_по_compute)
+    Sizing runs under two independent constraints:
+    - GPU memory (sections 3-5)
+    - compute throughput (section 6)
+    Final: max(servers_by_memory, servers_by_compute)
     """
 
-    # ── Section 2.1: Ssim — пиковое кол-во одновременных сессий ──
+    # ── Section 2.1: Ssim — peak concurrent sessions ──
     Ssim = calc_Ssim(
         inp.internal_users,
         inp.penetration_internal,
@@ -69,7 +69,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         inp.sessions_per_user_J,
     )
 
-    # ── Section 2.2: T — общая длина запроса и ответа в токенах ──
+    # ── Section 2.2: T — total request+response length in tokens ──
     T = calc_T(
         inp.system_prompt_tokens_SP,
         inp.user_prompt_tokens_Prp,
@@ -77,7 +77,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         inp.answer_tokens_A,
     )
 
-    # ── Section 3.1: Mmodel — память для весов модели ──
+    # ── Section 3.1: Mmodel — memory for model weights ──
     Mmodel = calc_model_mem_gb(
         inp.params_billions,
         inp.bytes_per_param,
@@ -85,7 +85,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         inp.safe_margin,
     )
 
-    # ── Section 2.2 (P8): TS и SL — оценка длины контекста сессии ──
+    # ── Section 2.2 (P8): TS and SL — session context length estimate ──
     # Use the agentic generalization: at K_calls=1 + zero tool/RAG fields,
     # reduces to the v2 (2.2) formula. With agentic params, includes tool
     # definitions, RAG context, multi-call amplification.
@@ -108,7 +108,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     )
     SL = calc_SL(TS, inp.max_context_window_TSmax)
 
-    # ── Section 3.2: KV-кэш на 1 сессию ──
+    # ── Section 3.2: KV-cache per session ──
     # P5: branch on Multi-Head Latent Attention (MLA, DeepSeek-V2/V3/R1).
     # When kv_lora_rank > 0, the model uses MLA — different formula. For
     # standard MHA/GQA/MQA, fall back to the v2 formula and detect arch
@@ -142,13 +142,13 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         else:
             kv_arch_mode = "mha"
 
-    # ── Section 4.1: GPU на 1 экземпляр модели ──
+    # ── Section 4.1: GPUs per model instance ──
     GPUcount_model = calc_gpus_per_instance(Mmodel, inp.gpu_mem_gb, inp.kavail)
 
-    # ── Section 4.2: Экземпляры на сервер (без TP-множителя) ──
+    # ── Section 4.2: instances per server (no TP factor) ──
     Ncount_model = calc_instances_per_server(inp.gpus_per_server, GPUcount_model)
 
-    # ── Section 4.3: Свободная память для KV на базовом TP ──
+    # ── Section 4.3: free memory for KV at the base TP ──
     kv_free_base = calc_kv_free_per_instance_gb(
         GPUcount_model,
         inp.gpu_mem_gb,
@@ -156,7 +156,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         Mmodel,
     )
 
-    # ── Section 4.4: Параллельные сессии и Kbatch ──
+    # ── Section 4.4: concurrent sessions and Kbatch ──
     # KV-cache sharding under TP — methodology §4.4 H-6:
     #   - MLA (DeepSeek V2/V3/R1): latent c_t^KV replicated on every TP rank,
     #     so per-instance session memory = M_KV · GPUcount_inst.
@@ -183,7 +183,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
 
     S_TP_base = _s_tp(kv_free_base, GPUcount_model)
 
-    # Расчёт для Z × GPUcount_model GPU (с TP-множителем)
+    # Computation for Z × GPUcount_model GPUs (with the TP multiplier)
     Z = inp.tp_multiplier_Z
     GPUcount_z = Z * GPUcount_model
     kv_free_z = calc_kv_free_per_instance_gb(
@@ -207,7 +207,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     NcountTP = calc_instances_per_server_tp(inp.gpus_per_server, GPUcount_model, Z_combined)
     Sserver = calc_sessions_per_server(NcountTP, S_TP_z)
 
-    # ── Section 5.2: Серверы по памяти ──
+    # ── Section 5.2: Servers by memory ──
     servers_mem = calc_servers_by_memory(Ssim, Sserver)
     if servers_mem is math.inf:
         raise ValidationAppError(
@@ -244,7 +244,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         gpu_tflops = lookup_gpu_tflops(inp.gpu_id, inp.gpu_mem_gb)
     Fcount_model_flops = gpu_tflops * 1e12 * GPUcount_z if gpu_tflops > 0 else 0.0
 
-    # Аналитические throughput
+    # Analytical throughput
     # P7: Engine mode determines prefill compute branch.
     #   - 'static' (offline / Triton w/o inflight): K_batch boost, uses SL.
     #   - 'continuous' (vLLM/SGLang/TGI default): K_batch=1, uses SL_pf_eff,
@@ -492,7 +492,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     if checks:
         sla_passed = all(checks)
 
-    # ── Приложение Б: рекомендации при невыполнении SLA ──
+    # ── Appendix Б (Приложение Б): recommendations when SLA fails ──
     sla_recommendations = None
     if sla_passed is False:
         sla_recommendations = []
@@ -615,13 +615,13 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
             f"Установите use_pd_disagg=true для расчёта с раздельными пулами."
         )
 
-    # ── Section 8: Итоговое количество серверов ──
+    # ── Section 8: final server count ──
     if inp.use_pd_disagg and servers_pd_total is not None:
         servers_final = max(servers_mem, servers_pd_total)
     else:
         servers_final = max(servers_mem, servers_comp)
 
-    # ── Cost estimate (from GPU catalog price: custom catalog или gpu_data.json) ──
+    # ── Cost estimate (from GPU catalog price: custom catalog or gpu_data.json) ──
     custom_catalog_list = None
     if getattr(inp, "custom_gpu_catalog", None) is not None:
         raw_catalog = inp.custom_gpu_catalog

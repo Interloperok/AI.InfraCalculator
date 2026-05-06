@@ -4,7 +4,7 @@ from fastapi import HTTPException
 
 
 class AppError(Exception):
-    """Базовая доменная ошибка backend."""
+    """Base backend domain error."""
 
     status_code = 500
 
@@ -14,23 +14,23 @@ class AppError(Exception):
 
 
 class ValidationAppError(AppError):
-    """Ошибка валидации входных данных/параметров запроса."""
+    """Input validation / request parameter error."""
 
     status_code = 400
 
 
 class NotFoundAppError(AppError):
-    """Запрошенный ресурс не найден."""
+    """Requested resource not found."""
 
     status_code = 404
 
 
 class ServiceAppError(AppError):
-    """Внутренняя ошибка backend-сервиса."""
+    """Internal backend service error."""
 
     status_code = 500
 
 
 def to_http_exception(error: AppError) -> HTTPException:
-    """Преобразовать доменную ошибку в HTTPException."""
+    """Convert a domain error into an HTTPException."""
     return HTTPException(status_code=error.status_code, detail=error.message)

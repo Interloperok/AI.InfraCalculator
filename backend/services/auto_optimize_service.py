@@ -109,13 +109,13 @@ def display_score(score_key: tuple[float, ...]) -> float:
 
 
 def auto_optimize(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
-    """Автоматический подбор оптимальной конфигурации."""
-    # ── Пространство поиска ──
+    """Automatically pick the optimal configuration."""
+    # ── Search space ──
     tp_values = [1, 2, 4, 6, 8]
     gpus_per_server_values = [1, 2, 4, 6, 8]
     bytes_per_param_values = [1, 2, 4]
 
-    # ── Загрузка и фильтрация GPU из каталога ──
+    # ── Load and filter GPUs from the catalog ──
     min_mem = inp.min_gpu_memory_gb or 0
     gpu_catalog = load_gpu_catalog_for_optimize(
         min_memory_gb=min_mem,
@@ -130,7 +130,7 @@ def auto_optimize(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
             "или убрать фильтр по вендору."
         )
 
-    # ── Перебор комбинаций ──
+    # ── Sweep combinations ──
     raw_results: list[dict[str, Any]] = []
     total_evaluated = 0
 
@@ -152,14 +152,14 @@ def auto_optimize(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
 
                     try:
                         sizing_inp = SizingInput(
-                            # Модель
+                            # Model
                             params_billions=inp.params_billions,
                             bytes_per_param=bpp,
                             safe_margin=inp.safe_margin,
                             emp_model=inp.emp_model,
                             layers_L=inp.layers_L,
                             hidden_size_H=inp.hidden_size_H,
-                            # Пользователи
+                            # Users
                             internal_users=inp.internal_users,
                             penetration_internal=inp.penetration_internal,
                             concurrency_internal=inp.concurrency_internal,
@@ -167,7 +167,7 @@ def auto_optimize(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
                             penetration_external=inp.penetration_external,
                             concurrency_external=inp.concurrency_external,
                             sessions_per_user_J=inp.sessions_per_user_J,
-                            # Токены
+                            # Tokens
                             system_prompt_tokens_SP=inp.system_prompt_tokens_SP,
                             user_prompt_tokens_Prp=inp.user_prompt_tokens_Prp,
                             reasoning_tokens_MRT=inp.reasoning_tokens_MRT,
@@ -237,7 +237,7 @@ def auto_optimize(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
             "Попробуйте увеличить min_gpu_memory_gb или ослабить ограничения."
         )
 
-    # ── Скоринг ──
+    # ── Scoring ──
     # Population statistics computed once (was O(N²) inside the per-config
     # scoring loop because score_config recomputed min/max on every call).
     score_ctx = ScoreContext.from_results(raw_results)
@@ -256,7 +256,7 @@ def auto_optimize(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
 
     raw_results.sort(key=lambda item: item["score_key"])
 
-    # Дедупликация: по (servers, total_gpus, sessions_per_server, th_server округлённый)
+    # Deduplication key: (servers, total_gpus, sessions_per_server, th_server rounded)
     seen_keys: set[tuple[int, int, int, float]] = set()
     deduped: list[dict[str, Any]] = []
     for item in raw_results:

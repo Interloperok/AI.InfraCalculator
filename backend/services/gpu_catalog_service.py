@@ -33,17 +33,17 @@ def _read_gpu_catalog(path: Path = GPU_DATA_PATH) -> list[dict[str, Any]]:
 
 
 def load_gpu_catalog() -> list[dict[str, Any]]:
-    """Загрузить каталог GPU из `gpu_data.json`."""
+    """Load the GPU catalog from `gpu_data.json`."""
     return _read_gpu_catalog()
 
 
 def export_gpu_catalog_path() -> Path:
-    """Вернуть путь к каталогу GPU для отдачи файла через API."""
+    """Return the path to the GPU catalog for serving via the API."""
     return GPU_DATA_PATH
 
 
 def extract_gpu_tflops(gpu_info: dict[str, Any]) -> float:
-    """Извлечь наиболее подходящее значение TFLOPS для LLM-инференса."""
+    """Pick the most appropriate TFLOPS value for LLM inference."""
     fp16 = gpu_info.get("tflops_fp16")
     if fp16 and float(fp16) > 0:
         return float(fp16)
@@ -54,13 +54,13 @@ def extract_gpu_tflops(gpu_info: dict[str, Any]) -> float:
 
 
 def lookup_gpu_bandwidth_gbs(gpu_id: Optional[str]) -> float:
-    """Поиск пропускной способности памяти GPU (BW_GPU, GB/s) из каталога.
+    """Look up GPU memory bandwidth (BW_GPU, GB/s) from the catalog.
 
-    Строгий поиск только по ``gpu_id`` — без fallback по объёму памяти,
-    чтобы фейковые ``gpu_id`` (используемые в тестовых фикстурах) не
-    приводили к спонтанным совпадениям с реальными GPU из каталога.
-    Возвращает 0.0 если bw недоступен — в этом случае memory-bandwidth-bound
-    decode-ветвь не вычисляется (см. ``calc_th_decode_mem``).
+    Strict lookup by ``gpu_id`` only — no memory-size fallback, so that
+    fake ``gpu_id`` values (used in test fixtures) cannot incidentally
+    collide with real catalog entries. Returns 0.0 when bw is unavailable —
+    in that case the memory-bandwidth-bound decode branch is skipped (see
+    ``calc_th_decode_mem``).
     """
     if not gpu_id:
         return 0.0
@@ -82,12 +82,12 @@ def lookup_gpu_bandwidth_gbs(gpu_id: Optional[str]) -> float:
 
 
 def lookup_gpu_tflops(gpu_id: Optional[str], gpu_mem_gb: float) -> float:
-    """Поиск TFLOPS GPU из каталога: сначала по id, при отсутствии — по объёму памяти.
+    """Look up GPU TFLOPS in the catalog: first by id, then by memory size.
 
-    Раньше один цикл выбирал первое совпадение по id ИЛИ по памяти, из-за чего
-    при запросе с явным gpu_id, но при наличии другого GPU с такой же памятью,
-    раньше в каталоге, возвращался не тот GPU (например, AMD MI300X 192 GB
-    подменял NVIDIA B200 SXM 192 GB). Теперь id-проход выполняется первым.
+    Previously a single loop returned the first match by id OR memory, so a
+    request with an explicit gpu_id could resolve to a different GPU with
+    the same memory listed earlier in the catalog (e.g. AMD MI300X 192 GB
+    shadowed NVIDIA B200 SXM 192 GB). Now the id pass runs first.
     """
     try:
         gpu_data = load_gpu_catalog()
@@ -119,7 +119,7 @@ def lookup_gpu_tflops(gpu_id: Optional[str], gpu_mem_gb: float) -> float:
 
 
 def price_from_gpu_entry(gpu: dict[str, Any]) -> Optional[float]:
-    """Извлечь `price_usd` из одной записи каталога GPU."""
+    """Extract `price_usd` from a single GPU catalog entry."""
     price = gpu.get("price_usd")
     if price is None or str(price).strip() == "":
         return None
@@ -135,7 +135,7 @@ def lookup_gpu_price_in_catalog(
     gpu_id: Optional[str],
     gpu_mem_gb: float,
 ) -> Optional[float]:
-    """Поиск цены GPU (USD) по id или объёму памяти в переданном каталоге."""
+    """Look up GPU price (USD) in the given catalog by id or memory size."""
     target_gpu: Optional[dict[str, Any]] = None
     for gpu in catalog:
         if gpu_id and gpu.get("id") == gpu_id:
@@ -159,7 +159,7 @@ def lookup_gpu_price_usd(
     gpu_mem_gb: float,
     custom_catalog: Optional[list[dict[str, Any]]] = None,
 ) -> Optional[float]:
-    """Поиск цены GPU (USD): сначала в custom_catalog, затем в gpu_data.json."""
+    """Look up GPU price (USD): custom_catalog first, then gpu_data.json."""
     if custom_catalog:
         price = lookup_gpu_price_in_catalog(custom_catalog, gpu_id, gpu_mem_gb)
         if price is not None:
@@ -179,7 +179,7 @@ def load_gpu_catalog_for_optimize(
     gpu_ids: Optional[list[str]] = None,
     custom_catalog: Optional[dict[str, Any] | list[dict[str, Any]]] = None,
 ) -> list[dict[str, Any]]:
-    """Загрузить и отфильтровать GPU из каталога для автоподбора."""
+    """Load and filter GPUs from the catalog for auto-optimize."""
     if custom_catalog is not None:
         if isinstance(custom_catalog, list):
             gpu_data = custom_catalog
@@ -255,7 +255,7 @@ def load_gpu_catalog_for_optimize(
 
 
 def get_recommended_gpus_per_server(gpu_info: dict[str, Any]) -> int:
-    """Определить рекомендуемое количество GPU на сервер."""
+    """Determine the recommended number of GPUs per server."""
     memory_gb = gpu_info.get("memory_gb") or 0
     if memory_gb >= 16:
         return 8
@@ -263,7 +263,7 @@ def get_recommended_gpus_per_server(gpu_info: dict[str, Any]) -> int:
 
 
 def get_estimated_tps(gpu_info: dict[str, Any]) -> float:
-    """Оценить TPS на основе характеристик GPU."""
+    """Estimate TPS based on GPU characteristics."""
     memory_gb = gpu_info.get("memory_gb") or 0
     vendor = str(gpu_info.get("vendor", "")).lower()
 
@@ -298,7 +298,7 @@ def list_gpus(
     per_page: int,
     search: Optional[str],
 ) -> GPUListResponse:
-    """Получить список GPU с фильтрацией и пагинацией."""
+    """Return a paginated, filtered GPU list."""
     gpu_data = load_gpu_catalog()
 
     filtered_gpus: list[GPUInfo] = []
@@ -397,7 +397,7 @@ def list_gpus(
 
 
 def get_gpu_details(gpu_id: str) -> GPUInfo:
-    """Получить детальную информацию по одному GPU."""
+    """Return detailed info for a single GPU."""
     gpu_data = load_gpu_catalog()
     gpu_info = next((gpu for gpu in gpu_data if gpu.get("id") == gpu_id), None)
     if gpu_info is None:
@@ -435,7 +435,7 @@ def get_gpu_details(gpu_id: str) -> GPUInfo:
 
 
 def get_gpu_stats() -> GPUStats:
-    """Получить агрегированную статистику по каталогу GPU."""
+    """Return aggregated GPU catalog statistics."""
     gpu_data = load_gpu_catalog()
 
     vendors: dict[str, int] = {}

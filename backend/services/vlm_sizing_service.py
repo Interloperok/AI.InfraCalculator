@@ -49,7 +49,7 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
     sl_dec_vlm = calc_sl_dec_vlm(inp.n_fields, inp.tok_field)
     sl_pf_vlm_eff = sl_pf_vlm * (1.0 - inp.eta_cache_vlm)
 
-    # KV-кэш считаем по полной длине сессии (prefill + decode), capped TSmax
+    # KV-cache is computed over the full session length (prefill + decode), capped at TSmax
     sl_total = min(sl_pf_vlm + sl_dec_vlm, inp.max_context_window_TSmax)
 
     # ── §3.1: Model memory ──
@@ -57,7 +57,7 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
         inp.params_billions, inp.bytes_per_param, inp.emp_model, inp.safe_margin
     )
 
-    # ── §3.2: KV per session (стандартная MHA/GQA/MQA — MLA out of scope для P9a) ──
+    # ── §3.2: KV per session (standard MHA/GQA/MQA — MLA is out of scope for P9a) ──
     m_kv = calc_kv_per_session_gb(
         inp.layers_L,
         inp.hidden_size_H,
@@ -83,7 +83,7 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
         )
 
     # ── §6.1: Throughput resolution ──
-    p_active = float(inp.params_billions)  # MoE handling out of scope для P9a
+    p_active = float(inp.params_billions)  # MoE handling out of scope for P9a
     FPS = calc_FPS(p_active)
 
     gpu_tflops = inp.gpu_flops_Fcount
@@ -96,7 +96,7 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
         catalog_bw = lookup_gpu_bandwidth_gbs(inp.gpu_id)
         bw_gpu = catalog_bw if catalog_bw > 0 else None
 
-    # Prefill compute branch — continuous-batching (BS-independent, использует η_vlm,pf)
+    # Prefill compute branch — continuous-batching (BS-independent; uses η_vlm,pf)
     th_pf_compute_branch = calc_th_prefill_cb_compute(
         fcount_model_flops,
         inp.eta_vlm_pf,
@@ -110,7 +110,7 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
     th_dec_compute_instance = calc_th_decode_analyt(
         fcount_model_flops,
         inp.eta_decode,
-        1.0,  # K_batch=1 для continuous mode
+        1.0,  # K_batch=1 for continuous mode
         FPS,
         inp.layers_L,
         inp.hidden_size_H,

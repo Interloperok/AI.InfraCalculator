@@ -38,7 +38,7 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
     OCR + LLM two-pass online sizing (Приложение И.4.2).
 
     Pipeline:
-      1. OCR stage — pages/sec на GPU (ocr_gpu) или CPU (ocr_cpu, out of GPU budget).
+      1. OCR stage — pages/sec on GPU (ocr_gpu) or CPU (ocr_cpu, out of GPU budget).
       2. SLA budget split: t_LLM^target = SLA_page − t_OCR − T_handoff.
       3. LLM stage tokens: L_text = chars_page / c_token; SL_pf^LLM = L_text + N_prompt^sys.
       4. LLM memory & throughput (§3, §6.1).
@@ -51,7 +51,7 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
             f"Неизвестный pipeline: '{inp.pipeline}'. Допустимо: 'ocr_gpu', 'ocr_cpu'."
         )
 
-    # ── И.3.2 / И.3.3: OCR stage time and pool size ──
+    # ── И.3.2 / И.3.3 (Приложение И.3.2 / И.3.3): OCR stage time and pool size ──
     eta_ocr_used: float | None = None
     r_ocr_used: float | None = None
     n_ocr_cores_used: int | None = None

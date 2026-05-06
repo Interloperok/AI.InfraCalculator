@@ -1,17 +1,17 @@
 """
-Тесты расчёта серверов — на основании эталонного Excel-калькулятора.
+Server sizing tests — based on the reference Excel calculator.
 
-Все ожидаемые значения взяты из скриншотов Excel:
-- 500 000 пользователей, 32B модель, 80 GiB GPU × 8, Z=4
-- MRT=0 (без reasoning tokens)
-- Результат: 23 сервера (по памяти = 23, по compute = 5)
+All expected values are taken from Excel screenshots:
+- 500,000 users, 32B model, 80 GiB GPU × 8, Z=4
+- MRT=0 (no reasoning tokens)
+- Result: 23 servers (by memory = 23, by compute = 5)
 """
 
 import sys
 import os
 import pytest
 
-# Добавляем backend/ в путь для импорта
+# Add backend/ to the import path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from core.sizing_math import (
@@ -42,11 +42,11 @@ from services.sizing_service import run_sizing
 
 
 # ═══════════════════════════════════════════════════════════
-# Эталонные входные данные из Excel
+# Reference input values from Excel
 # ═══════════════════════════════════════════════════════════
 
 EXCEL_INPUT = dict(
-    # Пользователи (Сегмент 1)
+    # Users (Segment 1)
     internal_users=500_000,
     penetration_internal=0.1,
     concurrency_internal=0.05,
@@ -54,13 +54,13 @@ EXCEL_INPUT = dict(
     penetration_external=0.0,
     concurrency_external=0.0,
     sessions_per_user_J=1,
-    # Токены
+    # Tokens
     system_prompt_tokens_SP=1000,
     user_prompt_tokens_Prp=200,
-    reasoning_tokens_MRT=0,  # MRT = 0 (модель без reasoning)
+    reasoning_tokens_MRT=0,  # MRT = 0 (model without reasoning)
     answer_tokens_A=400,
     dialog_turns=5,  # N_prp = 5
-    # Модель
+    # Model
     params_billions=32,
     bytes_per_param=2,
     safe_margin=5.0,  # SM = 5 GiB (safe margin)
@@ -90,7 +90,7 @@ EXCEL_INPUT = dict(
 
 
 # ═══════════════════════════════════════════════════════════
-# Эталонные промежуточные и итоговые значения из Excel
+# Reference intermediate and final values from Excel
 # ═══════════════════════════════════════════════════════════
 
 EXCEL_EXPECTED = dict(
@@ -136,12 +136,12 @@ EXCEL_EXPECTED = dict(
 
 
 # ═══════════════════════════════════════════════════════════
-# Тесты отдельных формул
+# Tests for individual formulas
 # ═══════════════════════════════════════════════════════════
 
 
 class TestSection2LoadCalculation:
-    """Раздел 2: Определение нагрузки"""
+    """Section 2 (Раздел 2) — workload definition."""
 
     def test_Ssim(self):
         result = calc_Ssim(500_000, 0.1, 0.05, 0, 0.0, 0.0, 1)
@@ -153,7 +153,7 @@ class TestSection2LoadCalculation:
 
 
 class TestSection3Memory:
-    """Раздел 3: Память GPU"""
+    """Section 3 (Раздел 3) — GPU memory."""
 
     def test_model_memory(self):
         result = calc_model_mem_gb(32, 2, 1.0, 5.0)
@@ -168,7 +168,7 @@ class TestSection3Memory:
         assert result == EXCEL_EXPECTED["SL"]
 
     def test_sequence_length_SL_capped(self):
-        """SL не может превышать TS_max"""
+        """SL must not exceed TS_max."""
         result = calc_SL(50000, 32768)
         assert result == 32768
 
@@ -178,7 +178,7 @@ class TestSection3Memory:
 
 
 class TestSection4GpuTP:
-    """Раздел 4: GPU и Tensor Parallelism"""
+    """Section 4 (Раздел 4) — GPU and Tensor Parallelism."""
 
     def test_gpus_per_instance(self):
         result = calc_gpus_per_instance(EXCEL_EXPECTED["Mmodel_gb"], 80, 0.9)
@@ -212,13 +212,13 @@ class TestSection4GpuTP:
         assert result == pytest.approx(EXCEL_EXPECTED["Kbatch"], rel=1e-6)
 
     def test_Kbatch_no_tp(self):
-        """При Z=1: S_TP_z == S_TP_base → Kbatch = 1.0"""
+        """At Z=1: S_TP_z == S_TP_base → Kbatch = 1.0."""
         result = calc_Kbatch(4, 4, 8)
         assert result == 1.0
 
 
 class TestSection5ServersByMemory:
-    """Раздел 5: Серверы по памяти"""
+    """Section 5 (Раздел 5) — servers by memory."""
 
     def test_instances_per_server_tp(self):
         result = calc_instances_per_server_tp(8, 1, 4)
@@ -234,7 +234,7 @@ class TestSection5ServersByMemory:
 
 
 class TestSection6Compute:
-    """Раздел 6: Серверы по вычислительной мощности"""
+    """Section 6 (Раздел 6) — servers by compute throughput."""
 
     def test_FPS(self):
         result = calc_FPS(32)
@@ -279,7 +279,7 @@ class TestSection6Compute:
         assert result == pytest.approx(EXCEL_EXPECTED["Cmodel"], rel=1e-4)
 
     def test_th_server_comp(self):
-        """Th_server = NcountTP × Cmodel (раздел 6.3, изм.8: N_model_TP=Z)"""
+        """Th_server = NcountTP × Cmodel (Section 6.3, change 8: N_model_TP=Z)."""
         result = calc_th_server_comp(EXCEL_EXPECTED["NcountTP"], EXCEL_EXPECTED["Cmodel"])
         assert result == pytest.approx(EXCEL_EXPECTED["th_server_comp"], rel=1e-4)
 
@@ -291,12 +291,12 @@ class TestSection6Compute:
 
 
 # ═══════════════════════════════════════════════════════════
-# Интеграционный тест: полный pipeline
+# Integration test: full pipeline
 # ═══════════════════════════════════════════════════════════
 
 
 class TestFullPipeline:
-    """Полный расчёт должен совпадать с Excel"""
+    """The full calculation must match the Excel reference."""
 
     @pytest.fixture
     def excel_result(self):
@@ -393,39 +393,39 @@ class TestFullPipeline:
 
 
 # ═══════════════════════════════════════════════════════════
-# Дополнительные тесты: граничные случаи
+# Additional tests: edge cases
 # ═══════════════════════════════════════════════════════════
 
 
 class TestEdgeCases:
-    """Граничные случаи и инварианты"""
+    """Edge cases and invariants."""
 
     def test_servers_final_is_max_of_memory_and_compute(self):
-        """Итог = max(по памяти, по compute)"""
+        """Final = max(by memory, by compute)."""
         inp = SizingInput(**EXCEL_INPUT)
         result = run_sizing(inp)
         assert result.servers_final == max(result.servers_by_memory, result.servers_by_compute)
 
     def test_with_reasoning_tokens(self):
-        """С MRT > 0 значения должны существенно отличаться"""
+        """With MRT > 0 values must differ substantially."""
         data = {**EXCEL_INPUT, "reasoning_tokens_MRT": 4096}
         inp = SizingInput(**data)
         result = run_sizing(inp)
-        # С reasoning: TS = 1000 + 5*(200+4096+400) = 24480 — гораздо больше
+        # With reasoning: TS = 1000 + 5*(200+4096+400) = 24480 — much larger
         assert result.TS_session_context == 24480.0
         assert result.kv_per_session_gb > EXCEL_EXPECTED["MKV_gb"]
-        # Больше памяти → больше серверов
+        # More memory → more servers
         assert result.servers_by_memory > EXCEL_EXPECTED["Servers_mem"]
 
     def test_Z1_Kbatch_equals_1(self):
-        """При Z=1 Kbatch должен быть ровно 1.0"""
+        """At Z=1 Kbatch must be exactly 1.0."""
         data = {**EXCEL_INPUT, "tp_multiplier_Z": 1}
         inp = SizingInput(**data)
         result = run_sizing(inp)
         assert result.Kbatch == 1.0
 
     def test_SL_capped_by_TSmax(self):
-        """SL не превышает TSmax"""
+        """SL must not exceed TSmax."""
         data = {**EXCEL_INPUT, "max_context_window_TSmax": 2000}
         inp = SizingInput(**data)
         result = run_sizing(inp)
@@ -433,7 +433,7 @@ class TestEdgeCases:
         assert result.SL_sequence_length == 2000
 
     def test_zero_users_zero_servers(self):
-        """При 0 пользователях: 0 серверов"""
+        """At 0 users: 0 servers."""
         data = {**EXCEL_INPUT, "internal_users": 0}
         inp = SizingInput(**data)
         result = run_sizing(inp)

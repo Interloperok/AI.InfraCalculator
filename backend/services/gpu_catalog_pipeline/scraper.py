@@ -230,7 +230,7 @@ def fetch_vendor_tables(vendor: str, url: str) -> List[pd.DataFrame]:
         response.raise_for_status()
         html = clean_html(response.text)
 
-        # Попробуем разные паттерны для поиска таблиц
+        # Try several patterns when searching for tables
         patterns = [
             r"Launch|Release Date",
             r"Model.*Launch",
@@ -251,7 +251,7 @@ def fetch_vendor_tables(vendor: str, url: str) -> List[pd.DataFrame]:
                 print(f"  ⚠️  Pattern {pattern} failed: {e}")
                 continue
 
-        # Специальная обработка для NVIDIA
+        # Special-case handling for NVIDIA
         if vendor == "NVIDIA" and not dfs:
             try:
                 for df_t in pd.read_html(StringIO(html), match=re.compile(r"Release date", re.I)):
@@ -298,7 +298,7 @@ def scrape_gpu_catalog_raw(raw_output_path: str | Path | None = None) -> Dict[st
     for vendor, info in data.items():
         try:
             print(f"Processing {vendor}...")
-            # Добавляем задержку между запросами
+            # Throttle between requests
             time.sleep(2)
             vendor_frames = []
             for raw in fetch_vendor_tables(vendor, info["url"]):
@@ -438,11 +438,11 @@ def scrape_gpu_catalog_raw(raw_output_path: str | Path | None = None) -> Dict[st
         ],
     )
 
-    # Фильтрация GPU: оставляем только те, у которых Launch дата после 2013 года
+    # GPU filter: keep only entries whose Launch date is after 2013
     if "Launch" in df.columns:
-        # Преобразуем даты в формат datetime, если это возможно
+        # Convert dates to datetime when possible
         df["Launch"] = pd.to_datetime(df["Launch"], errors="coerce")
-        # Фильтруем только GPU с датой запуска после 2013 года
+        # Keep only GPUs launched after 2013
         df = df[df["Launch"].dt.year > 2013] if not df["Launch"].isna().all() else df
         print(f"✅ Filtered GPUs: kept {len(df)} out of original count based on Launch date > 2013")
     else:

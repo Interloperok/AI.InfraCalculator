@@ -23,7 +23,7 @@ import pytest
 from errors import ValidationAppError
 from pydantic import ValidationError
 
-# Сохраняем текущий стиль прямых импортов модулей для backend-тестов
+# Preserve the current style of direct module imports for backend tests
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from models.sizing import OCRSizingInput, SizingInput, VLMSizingInput  # noqa: E402

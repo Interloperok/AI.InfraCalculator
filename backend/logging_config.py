@@ -6,7 +6,7 @@ from settings import get_settings
 
 
 def configure_logger(name: str) -> logging.Logger:
-    """Создать/настроить логгер приложения в едином формате."""
+    """Create/configure the application logger using a uniform format."""
     settings = get_settings()
     level = logging.getLevelName(settings.log_level.upper())
     if isinstance(level, str):

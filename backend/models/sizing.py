@@ -24,7 +24,7 @@ class EngineMode(str, Enum):
 
 
 class OCRPipeline(str, Enum):
-    """OCR-стадия pipeline (Приложение И.3.2-И.3.3)."""
+    """OCR pipeline stage (Приложение И.3.2-И.3.3)."""
 
     ocr_gpu = "ocr_gpu"
     ocr_cpu = "ocr_cpu"
@@ -343,7 +343,7 @@ class SizingInput(BaseModel):
         "Дефолт калиброван по методологии §Е.5.",
     )
 
-    # ── Optional: пользовательский каталог GPU (для расчёта Cost Estimate по ценам из каталога) ──
+    # ── Optional: user-supplied GPU catalog (for Cost Estimate using catalog prices) ──
     custom_gpu_catalog: Optional[Union[List[Dict[str, Any]], Dict[str, Any]]] = Field(
         default=None,
         description="Пользовательский каталог GPU (массив или объект). Если задан — цена для Cost Estimate берётся из него.",
@@ -846,7 +846,7 @@ class WhatIfResponseItem(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════
-#  Auto-Optimize: подбор оптимальной конфигурации
+#  Auto-Optimize: pick the optimal configuration
 # ═══════════════════════════════════════════════════════════
 
 
@@ -950,7 +950,7 @@ class AutoOptimizeResult(BaseModel):
     rank: int = Field(..., description="Ранг конфигурации (1 = лучшая)")
     score: float = Field(..., description="Скор оптимизации (меньше = лучше)")
 
-    # ── Подобранные параметры ──
+    # ── Selected parameters ──
     gpu_name: str = Field(..., description="Название GPU")
     gpu_id: Optional[str] = Field(None, description="ID GPU из каталога")
     gpu_mem_gb: float = Field(..., description="Память GPU (GiB)")
@@ -959,7 +959,7 @@ class AutoOptimizeResult(BaseModel):
     gpus_per_server: int = Field(..., description="GPU на сервер")
     bytes_per_param: float = Field(..., description="Квантизация (байт/параметр)")
 
-    # ── Ключевые метрики ──
+    # ── Key metrics ──
     servers_final: int = Field(..., description="Итого серверов")
     total_gpus: int = Field(..., description="Итого GPU (серверов × GPU/сервер)")
     servers_by_memory: int = Field(..., description="Серверов по памяти")
@@ -1443,7 +1443,7 @@ class OCRSizingInput(BaseModel):
         description="Длина системного промпта для LLM-стадии (N_prompt^sys), tokens",
     )
 
-    # ── LLM output (схоже с VLM) ──
+    # ── LLM output (parallel to VLM) ──
     n_fields: conint(ge=1) = Field(..., description="Число извлекаемых полей в JSON-ответе")
     tok_field: conint(ge=1) = Field(default=50, description="Среднее число токенов на поле")
 
@@ -1472,7 +1472,7 @@ class OCRSizingInput(BaseModel):
     kavail: confloat(gt=0.0, le=1.0) = Field(default=0.9, description="Kavail")
     tp_multiplier_Z: conint(ge=1) = Field(default=1, description="TP degree (Z)")
 
-    # ── §6.1: Compute (LLM-стадия) ──
+    # ── §6.1: Compute (LLM stage) ──
     gpu_flops_Fcount: Optional[confloat(gt=0)] = Field(None, description="TFLOPS GPU")
     eta_prefill: confloat(gt=0.0, le=1.0) = Field(
         default=ETA_PF_DEFAULT, description="η_pf для LLM-стадии prefill"

@@ -47,38 +47,38 @@ from services.ocr_sizing_service import run_ocr_sizing
 from services.sizing_service import run_sizing
 from services.vlm_sizing_service import run_vlm_sizing
 
-# Модуль расчета мощностей для развертывания LLM (Методика v2)
+# Capacity sizing module for LLM deployment (Methodology v2)
 #
-# Методика расчета основана на документе:
-# «Методика расчета количества серверов и GPU для LLM-inference решений»
+# Sizing methodology is based on the document:
+# "Methodology for calculating the number of servers and GPUs for LLM-inference solutions"
 #
-# Расчет выполняется по двум независимым ограничениям:
-# 1. По памяти GPU (веса модели и KV-кэш) — разделы 3-5
-# 2. По вычислительной пропускной способности (tokens/sec, requests/sec) — раздел 6
-# Итоговое количество серверов = max(серверы_по_памяти, серверы_по_compute)
+# Sizing is performed under two independent constraints:
+# 1. GPU memory (model weights and KV-cache) — sections 3-5 (разделы 3-5)
+# 2. Compute throughput (tokens/sec, requests/sec) — section 6 (раздел 6)
+# Final server count = max(servers_by_memory, servers_by_compute)
 
 logger = configure_logger("sizing")
 
 
-# Точка композиции приложения:
-# - бизнес-логика вынесена в services/*
-# - HTTP-обработчики вынесены в api/*
+# Application composition point:
+# - business logic lives in services/*
+# - HTTP handlers live in api/*
 
-# Глобальная переменная для планировщика
+# Global scheduler reference
 scheduler: Optional[BackgroundScheduler] = None
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    """Lifespan-хук приложения вместо устаревших startup/shutdown событий."""
+    """Application lifespan hook (replaces deprecated startup/shutdown events)."""
     global scheduler
     settings = get_settings()
 
     logger.info("🚀 Запуск AI Server Calculator API...")
 
-    # При старте: скрапим только если gpu_data.json не существует.
-    # Если файл уже есть — используем его как есть.
-    # Обновление по расписанию или вручную через /v1/gpus/refresh.
+    # On startup: scrape only if gpu_data.json does not exist.
+    # If the file already exists — use it as-is.
+    # Refresh runs on schedule or manually via /v1/gpus/refresh.
     if not settings.gpu_data_path.exists():
         logger.info("🔄 Файл gpu_data.json не найден, запускаем первичный скрапинг...")
         refresh_gpu_data_internal()
