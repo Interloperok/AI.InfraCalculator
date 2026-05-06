@@ -997,6 +997,28 @@ class VLMSizingInput(BaseModel):
         default=256, description="Chunked-prefill step budget (vLLM)"
     )
 
+    # ── И.5 (P9c): Batch-mode parameters ──
+    mode: Optional[str] = Field(
+        default="online",
+        description="Режим расчёта: 'online' — sizing по SLA_page, "
+        "'batch' — sizing по окну W и η_batch, "
+        "'combined' — max(N_online, N_batch) per И.5. По умолчанию 'online'.",
+    )
+    D_pages: Optional[confloat(ge=0)] = Field(
+        default=None,
+        description="Объём batch-обработки за окно (D, pages/window). "
+        "Обязательно для mode='batch' или 'combined'.",
+    )
+    W_seconds: Optional[confloat(gt=0)] = Field(
+        default=None,
+        description="Длительность batch-окна (W, сек). Типично 28800 (8 ч). "
+        "Обязательно для mode='batch' или 'combined'.",
+    )
+    eta_batch: confloat(gt=0.0, le=1.0) = Field(
+        default=0.90,
+        description="Утилизация в batch-режиме (η_batch, И.5). 0.85-0.95.",
+    )
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -1076,6 +1098,42 @@ class VLMSizingOutput(BaseModel):
     n_servers_vlm_online: int = Field(
         ..., description="Серверы в online-пуле: ⌈N_GPU_online / gpus_per_server⌉"
     )
+
+    # ── И.5 (P9c): Batch-mode outputs ──
+    mode_used: Optional[str] = Field(
+        default=None, description="Режим расчёта (echo): 'online', 'batch', 'combined'"
+    )
+    t_page_vlm_at_bs_max: Optional[float] = Field(
+        default=None,
+        description="Время страницы при BS = BS_max (S_TP_z, steady-state без SLA), сек. "
+        "Используется для batch-сайзинга. Может быть > SLA_page.",
+    )
+    n_gpu_vlm_batch: Optional[int] = Field(
+        default=None,
+        description="GPU в batch-пуле: ⌈D · t_page_at_bs_max / (W · η_batch)⌉. "
+        "None если D / W не заданы.",
+    )
+    n_servers_vlm_batch: Optional[int] = Field(
+        default=None, description="Серверы в batch-пуле"
+    )
+    n_gpu_vlm_total: Optional[int] = Field(
+        default=None,
+        description="Combined deployment: max(N_GPU_online, N_GPU_batch) per И.5. "
+        "Совпадает с n_gpu_vlm_online при mode='online'.",
+    )
+    n_servers_vlm_total: Optional[int] = Field(
+        default=None, description="Серверы для combined deployment"
+    )
+    window_sufficient: Optional[bool] = Field(
+        default=None,
+        description="Достаточно ли окна W для batch-нагрузки на online-парке "
+        "(И.1: W ≥ D · t_page / (N_online · η_batch)). None если D/W не заданы.",
+    )
+    eta_batch_used: Optional[float] = Field(
+        default=None, description="η_batch (echo)"
+    )
+    D_pages_used: Optional[float] = Field(default=None, description="D (echo)")
+    W_seconds_used: Optional[float] = Field(default=None, description="W (echo)")
 
     # ── Echoes ──
     eta_vlm_pf_used: float = Field(..., description="η_vlm,pf, использованный в расчёте")
@@ -1215,6 +1273,25 @@ class OCRSizingInput(BaseModel):
     )
     c_pf: Optional[conint(gt=0)] = Field(default=256, description="Chunked-prefill budget")
 
+    # ── И.5 (P9c): Batch-mode parameters ──
+    mode: Optional[str] = Field(
+        default="online",
+        description="Режим: 'online' (sizing по SLA_page), "
+        "'batch' (sizing по окну W), 'combined' (max обоих per И.5).",
+    )
+    D_pages: Optional[confloat(ge=0)] = Field(
+        default=None,
+        description="Объём batch-обработки за окно (D, pages/window). "
+        "Обязательно для mode='batch' / 'combined'.",
+    )
+    W_seconds: Optional[confloat(gt=0)] = Field(
+        default=None,
+        description="Длительность batch-окна (W, сек). Типично 28800 (8 ч).",
+    )
+    eta_batch: confloat(gt=0.0, le=1.0) = Field(
+        default=0.90, description="Утилизация в batch-режиме (η_batch). 0.85-0.95."
+    )
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -1310,6 +1387,53 @@ class OCRSizingOutput(BaseModel):
     n_servers_total_online: int = Field(
         ..., description="Всего серверов: ⌈N_GPU_total / gpus_per_server⌉"
     )
+
+    # ── И.5 (P9c): Batch-mode outputs ──
+    mode_used: Optional[str] = Field(
+        default=None, description="Режим расчёта (echo): 'online', 'batch', 'combined'"
+    )
+    t_page_llm_at_bs_max: Optional[float] = Field(
+        default=None,
+        description="Время LLM-стадии при BS = BS_max (S_TP_z, без SLA), сек. "
+        "Используется для batch-сайзинга LLM-пула.",
+    )
+    n_gpu_ocr_batch: Optional[int] = Field(
+        default=None,
+        description="GPU в OCR batch-пуле: ⌈D · t_OCR / (W · η_batch)⌉. "
+        "0 для pipeline='ocr_cpu'. None если D/W не заданы.",
+    )
+    n_gpu_llm_batch: Optional[int] = Field(
+        default=None,
+        description="GPU в LLM batch-пуле: ⌈D · t_page_llm_at_bs_max / (W · η_batch)⌉.",
+    )
+    n_gpu_total_batch: Optional[int] = Field(
+        default=None,
+        description="Всего batch GPU: N_OCR_batch + N_LLM_batch.",
+    )
+    n_gpu_ocr_combined: Optional[int] = Field(
+        default=None,
+        description="Combined OCR-пул: max(N_OCR_online, N_OCR_batch) per И.5.",
+    )
+    n_gpu_llm_combined: Optional[int] = Field(
+        default=None,
+        description="Combined LLM-пул: max(N_LLM_online, N_LLM_batch).",
+    )
+    n_gpu_total_combined: Optional[int] = Field(
+        default=None,
+        description="Combined deployment: N_OCR_combined + N_LLM_combined. "
+        "Совпадает с n_gpu_total_online при mode='online'.",
+    )
+    n_servers_total_combined: Optional[int] = Field(
+        default=None, description="Серверы для combined deployment"
+    )
+    window_sufficient: Optional[bool] = Field(
+        default=None,
+        description="Достаточно ли W для batch-нагрузки на online-парке "
+        "(И.1: проверка по LLM-стадии — она доминирует во времени).",
+    )
+    eta_batch_used: Optional[float] = Field(default=None, description="η_batch (echo)")
+    D_pages_used: Optional[float] = Field(default=None, description="D (echo)")
+    W_seconds_used: Optional[float] = Field(default=None, description="W (echo)")
 
     # ── Echoes ──
     sla_page_target: float = Field(..., description="SLA_page (echo)")

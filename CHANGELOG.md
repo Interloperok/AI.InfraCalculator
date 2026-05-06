@@ -18,9 +18,63 @@ online sizing. Stacks under a single semver-bump because default-relying
 callers see numeric shifts when their inputs match the regimes the
 new formulas correct.
 
-P9 ships in phases: P9a (VLM single-pass online) and P9b (OCR+LLM
-two-pass online) are in this release. P9c (batch mode) and P9d
-(multi-class workloads + frontend) follow in v1.4.x.
+P9 ships in phases: P9a (VLM single-pass online), P9b (OCR+LLM
+two-pass online), and P9c (batch and combined-deployment modes) are
+in this release. P9d (multi-class workloads + frontend) follows in
+v1.4.x.
+
+#### P9c: Batch and combined-deployment modes (Appendix И.5)
+
+Adds batch-mode and combined-deployment sizing to both `/v1/size-vlm`
+and `/v1/size-ocr` endpoints. Batch mode evaluates per-page time at
+`BS = BS_max` (steady-state, no SLA constraint) and sizes the pool by
+window economics: `N_GPU^stage,batch = ⌈D · t_page / (W · η_batch)⌉`.
+Combined deployment takes per-pool max of online and batch counts —
+non-overlapping windows reuse the same hardware where possible.
+
+**Added:**
+- `core.sizing_math.calc_n_gpu_batch(d, t_page_at_bs_max, w, eta_batch)`:
+  batch pool sizing per И.5.
+- `core.sizing_math.calc_window_sufficient(w, d, t_page, n_online, eta_batch)`:
+  И.1 sufficiency check `W ≥ D · t_page / (N_online · η_batch)`.
+- `VLMSizingInput` and `OCRSizingInput` optional fields:
+  - `mode` (`online` / `batch` / `combined`, default `online`).
+  - `D_pages` — pages per window.
+  - `W_seconds` — window length, sec (typical 28800 for 8h overnight).
+  - `eta_batch` (default 0.90, range 0.85–0.95).
+- `VLMSizingOutput` fields: `mode_used`, `t_page_vlm_at_bs_max`,
+  `n_gpu_vlm_batch`, `n_servers_vlm_batch`, `n_gpu_vlm_total`,
+  `n_servers_vlm_total`, `window_sufficient`, `eta_batch_used`,
+  `D_pages_used`, `W_seconds_used`.
+- `OCRSizingOutput` fields: `mode_used`, `t_page_llm_at_bs_max`,
+  `n_gpu_ocr_batch`, `n_gpu_llm_batch`, `n_gpu_total_batch`,
+  `n_gpu_ocr_combined`, `n_gpu_llm_combined`, `n_gpu_total_combined`,
+  `n_servers_total_combined`, `window_sufficient`, `eta_batch_used`,
+  `D_pages_used`, `W_seconds_used`.
+- 10 pure-function tests + 9 VLM integration tests + 8 OCR integration
+  tests for batch/combined paths.
+
+**Changed:**
+- `services.vlm_sizing_service.run_vlm_sizing`: after the BS_real*
+  search, computes `t_page_vlm` at `BS = s_tp_z` (max sustainable batch
+  size) and the batch-pool size when `D_pages` and `W_seconds` are
+  provided. `mode='combined'` returns `max(N_online, N_batch)`.
+- `services.ocr_sizing_service.run_ocr_sizing`: same pattern, with
+  per-pool `max(online, batch)` for OCR and LLM stages independently.
+  `pipeline='ocr_cpu'` always sets `n_gpu_ocr_batch = 0` (CPU not in
+  GPU budget).
+
+**Notes:**
+- `mode='online'` is the default — backward compatible. All batch
+  fields stay `None` when `D_pages` / `W_seconds` are absent.
+- Window-sufficiency check evaluates against the LLM stage online
+  pool (the typically dominant stage in OCR+LLM pipelines). For
+  VLM-only it checks against the single online pool.
+- `t_page_at_bs_max` is **expected to exceed `SLA_page`** — batch mode
+  trades latency for throughput.
+- Combined per-pool maximization assumes non-overlapping windows
+  (online during day, batch overnight). Concurrent online + batch
+  loads need a different model (out of scope; see P9d).
 
 #### P9b: OCR + LLM two-pass online sizing (Appendix И.3.2-И.3.4, И.4.2)
 

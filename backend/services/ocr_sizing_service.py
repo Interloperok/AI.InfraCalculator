@@ -10,6 +10,7 @@ from core.sizing_math import (
     calc_kv_per_session_gb,
     calc_l_text,
     calc_model_mem_gb,
+    calc_n_gpu_batch,
     calc_n_gpu_ocr_online,
     calc_sl_dec_vlm,
     calc_sl_pf_llm_after_ocr,
@@ -20,6 +21,7 @@ from core.sizing_math import (
     calc_th_decode_mem,
     calc_th_prefill_cb_compute,
     calc_th_prefill_cb_mem,
+    calc_window_sufficient,
     select_th_decode,
     select_th_prefill,
 )
@@ -236,6 +238,103 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
     n_gpu_total = n_gpu_ocr_count + n_gpu_llm
     n_servers_total = math.ceil(n_gpu_total / inp.gpus_per_server)
 
+    # ── И.5 (P9c): Batch-mode what-if and combined-deployment sizing ──
+    mode = (inp.mode or "online").lower()
+    if mode not in ("online", "batch", "combined"):
+        raise ValidationAppError(
+            f"Неизвестный mode: '{inp.mode}'. Допустимо: 'online', 'batch', 'combined'."
+        )
+
+    t_page_llm_at_bs_max: float | None = None
+    n_gpu_ocr_batch: int | None = None
+    n_gpu_llm_batch: int | None = None
+    n_gpu_total_batch: int | None = None
+    n_gpu_ocr_combined: int | None = None
+    n_gpu_llm_combined: int | None = None
+    n_gpu_total_combined: int | None = None
+    n_servers_total_combined: int | None = None
+    window_ok: bool | None = None
+    eta_batch_used: float | None = None
+    D_used: float | None = None
+    W_used: float | None = None
+
+    has_batch_inputs = (
+        inp.D_pages is not None and inp.W_seconds is not None and inp.W_seconds > 0
+    )
+
+    if has_batch_inputs:
+        eta_batch_used = float(inp.eta_batch)
+        D_used = float(inp.D_pages)
+        W_used = float(inp.W_seconds)
+
+        # OCR batch pool: t_OCR is BS-independent (per-page rate). For ocr_cpu
+        # the OCR pool is out of GPU scope (N_GPU = 0).
+        if pipeline == "ocr_gpu":
+            n_ocr_raw = calc_n_gpu_batch(D_used, t_ocr, W_used, eta_batch_used)
+            n_gpu_ocr_batch = (
+                None if n_ocr_raw is math.inf else int(n_ocr_raw)
+            )
+        else:
+            n_gpu_ocr_batch = 0
+
+        # LLM batch pool: evaluate t_page_llm at BS = s_tp_z (steady-state).
+        bs_max = max(1, int(s_tp_z))
+        th_pf_cmp_at_max = th_pf_compute_branch / bs_max if bs_max > 0 else 0.0
+        th_dec_cmp_at_max = th_dec_compute_instance / bs_max if bs_max > 0 else 0.0
+        if bw_gpu and bw_gpu > 0:
+            th_pf_mem_at_max = calc_th_prefill_cb_mem(
+                c_pf=int(inp.c_pf or 256),
+                bw_gpu_gbs=bw_gpu,
+                eta_mem=inp.eta_mem,
+                p_effective_at_bs_plus_1=p_active,
+                b_quant=inp.bytes_per_param,
+                mkv_gb=m_kv,
+                bs_real=bs_max,
+                o_fixed_gb=inp.o_fixed,
+            )
+            th_dec_mem_at_max = calc_th_decode_mem(
+                bw_gpu_gbs=bw_gpu,
+                eta_mem=inp.eta_mem,
+                params_billions=p_active,
+                b_quant=inp.bytes_per_param,
+                mkv_gb=m_kv,
+                bs_real=bs_max,
+                o_fixed_gb=inp.o_fixed,
+            )
+        else:
+            th_pf_mem_at_max = 0.0
+            th_dec_mem_at_max = 0.0
+        th_pf_max_sel, _ = select_th_prefill(th_pf_cmp_at_max, th_pf_mem_at_max)
+        th_dec_max_sel, _ = select_th_decode(th_dec_cmp_at_max, th_dec_mem_at_max)
+
+        if th_pf_max_sel > 0 and th_dec_max_sel > 0:
+            t_page_llm_at_bs_max = (
+                sl_pf_llm_eff / th_pf_max_sel
+                + sl_dec_llm / th_dec_max_sel
+                + inp.t_overhead_llm
+            )
+            n_llm_raw = calc_n_gpu_batch(
+                D_used, t_page_llm_at_bs_max, W_used, eta_batch_used
+            )
+            n_gpu_llm_batch = (
+                None if n_llm_raw is math.inf else int(n_llm_raw)
+            )
+            # Window sufficiency on the LLM-stage online pool (the typically
+            # dominant stage). True if W ≥ D · t_page / (N_LLM_online · η_batch).
+            window_ok = calc_window_sufficient(
+                W_used, D_used, t_page_llm_at_bs_max, n_gpu_llm, eta_batch_used
+            )
+
+        if n_gpu_ocr_batch is not None and n_gpu_llm_batch is not None:
+            n_gpu_total_batch = n_gpu_ocr_batch + n_gpu_llm_batch
+            # И.5: combined per-pool max(online, batch)
+            n_gpu_ocr_combined = max(n_gpu_ocr_count, n_gpu_ocr_batch)
+            n_gpu_llm_combined = max(n_gpu_llm, n_gpu_llm_batch)
+            n_gpu_total_combined = n_gpu_ocr_combined + n_gpu_llm_combined
+            n_servers_total_combined = math.ceil(
+                n_gpu_total_combined / inp.gpus_per_server
+            )
+
     return OCRSizingOutput(
         pipeline_used=pipeline,
         t_ocr=round(t_ocr, 4) if t_ocr != float("inf") else float("inf"),
@@ -266,6 +365,24 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
         n_servers_llm_online=n_servers_llm,
         n_gpu_total_online=n_gpu_total,
         n_servers_total_online=n_servers_total,
+        # P9c batch outputs
+        mode_used=mode,
+        t_page_llm_at_bs_max=(
+            round(t_page_llm_at_bs_max, 4)
+            if t_page_llm_at_bs_max is not None and t_page_llm_at_bs_max != float("inf")
+            else None
+        ),
+        n_gpu_ocr_batch=n_gpu_ocr_batch,
+        n_gpu_llm_batch=n_gpu_llm_batch,
+        n_gpu_total_batch=n_gpu_total_batch,
+        n_gpu_ocr_combined=n_gpu_ocr_combined,
+        n_gpu_llm_combined=n_gpu_llm_combined,
+        n_gpu_total_combined=n_gpu_total_combined,
+        n_servers_total_combined=n_servers_total_combined,
+        window_sufficient=window_ok,
+        eta_batch_used=eta_batch_used,
+        D_pages_used=D_used,
+        W_seconds_used=W_used,
         sla_page_target=inp.sla_page,
         c_peak_used=inp.c_peak,
         lambda_online_used=inp.lambda_online,

@@ -830,3 +830,60 @@ class TestOCRPureFunctions:
         from core.sizing_math import calc_t_llm_target
         result = calc_t_llm_target(sla_page=0.05, t_ocr=0.5, t_handoff=0.0)
         assert result < 0
+
+
+class TestBatchModeFunctions:
+    """P9c — batch sizing pure functions (Приложение И.5)."""
+
+    def test_n_gpu_batch_basic_formula(self) -> None:
+        # ⌈D · t / (W · η)⌉; 1000 · 30 / (28800 · 0.9) = 1.157 → 2
+        from core.sizing_math import calc_n_gpu_batch
+        assert calc_n_gpu_batch(d_pages=1000, t_page_at_bs_max=30.0,
+                                w_seconds=28800, eta_batch=0.9) == 2
+
+    def test_n_gpu_batch_zero_demand_returns_zero(self) -> None:
+        from core.sizing_math import calc_n_gpu_batch
+        assert calc_n_gpu_batch(d_pages=0, t_page_at_bs_max=30.0,
+                                w_seconds=28800, eta_batch=0.9) == 0
+
+    def test_n_gpu_batch_inf_t_page_returns_inf(self) -> None:
+        import math
+        from core.sizing_math import calc_n_gpu_batch
+        assert calc_n_gpu_batch(d_pages=1000, t_page_at_bs_max=float("inf"),
+                                w_seconds=28800, eta_batch=0.9) is math.inf
+
+    def test_n_gpu_batch_grows_with_demand(self) -> None:
+        from core.sizing_math import calc_n_gpu_batch
+        small = calc_n_gpu_batch(1000, 30.0, 28800, 0.9)
+        big = calc_n_gpu_batch(100000, 30.0, 28800, 0.9)
+        assert big > small
+
+    def test_n_gpu_batch_drops_with_longer_window(self) -> None:
+        from core.sizing_math import calc_n_gpu_batch
+        short = calc_n_gpu_batch(1000, 30.0, 3600, 0.9)
+        long = calc_n_gpu_batch(1000, 30.0, 28800, 0.9)
+        assert long < short
+
+    def test_n_gpu_batch_drops_with_higher_eta(self) -> None:
+        from core.sizing_math import calc_n_gpu_batch
+        loose = calc_n_gpu_batch(1000, 30.0, 28800, 0.85)
+        tight = calc_n_gpu_batch(1000, 30.0, 28800, 0.95)
+        assert tight <= loose  # higher η → fewer GPUs (or equal due to ceiling)
+
+    def test_window_sufficient_true_when_capacity_exceeds_demand(self) -> None:
+        from core.sizing_math import calc_window_sufficient
+        # 1000 · 30 / (10 · 0.9) = 3333s required; 28800 > 3333 → True
+        assert calc_window_sufficient(28800, 1000, 30.0, 10, 0.9) is True
+
+    def test_window_sufficient_false_when_capacity_short(self) -> None:
+        from core.sizing_math import calc_window_sufficient
+        # 100000 · 30 / (1 · 0.9) = 3333333s required; 3600 << that → False
+        assert calc_window_sufficient(3600, 100000, 30.0, 1, 0.9) is False
+
+    def test_window_sufficient_false_on_zero_online(self) -> None:
+        from core.sizing_math import calc_window_sufficient
+        assert calc_window_sufficient(28800, 1000, 30.0, 0, 0.9) is False
+
+    def test_window_sufficient_false_on_inf_t_page(self) -> None:
+        from core.sizing_math import calc_window_sufficient
+        assert calc_window_sufficient(28800, 1000, float("inf"), 10, 0.9) is False

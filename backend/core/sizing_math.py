@@ -810,3 +810,47 @@ def calc_t_llm_target(sla_page, t_ocr, t_handoff=0.0):
     SLA — вызывающий должен распознать невыполнимый сценарий.
     """
     return sla_page - t_ocr - t_handoff
+
+
+# ── P9c: Batch-mode sizing (Приложение И.5) ──
+
+
+def calc_n_gpu_batch(d_pages, t_page_at_bs_max, w_seconds, eta_batch):
+    """
+    Приложение И.5 — GPU в batch-пуле для пакетной обработки.
+
+    N_GPU^stage,batch = ⌈ D · t_page^stage / (W · η_batch) ⌉
+
+    Где:
+      D — объём обработки за окно (pages/window)
+      t_page^stage — время страницы при BS = BS_max (steady-state, без SLA)
+      W — длительность окна (сек, типично 28800 для 8-часового ночного окна)
+      η_batch — утилизация в batch-режиме (0.85-0.95)
+
+    Возвращает math.inf при невалидных входах (вызывающий должен распознать).
+    """
+    if w_seconds <= 0 or eta_batch <= 0:
+        return math.inf
+    if t_page_at_bs_max == float("inf") or t_page_at_bs_max <= 0:
+        return math.inf
+    if d_pages <= 0:
+        return 0
+    return math.ceil(d_pages * t_page_at_bs_max / (w_seconds * eta_batch))
+
+
+def calc_window_sufficient(w_seconds, d_pages, t_page_at_bs_max, n_gpu_online, eta_batch):
+    """
+    Приложение И.1 — Достаточность окна W для batch-нагрузки на online-парке.
+
+    W ≥ D · t_page^stage / (N_GPU^stage,online · η_batch)
+
+    Если выполнено — batch-нагрузка размещается на онлайн-парке без
+    дополнительных GPU. Иначе нужен раздельный batch-парк или расширение
+    окна / снижение D.
+    """
+    if n_gpu_online <= 0 or eta_batch <= 0 or w_seconds <= 0:
+        return False
+    if t_page_at_bs_max == float("inf") or t_page_at_bs_max <= 0:
+        return False
+    required_w = d_pages * t_page_at_bs_max / (n_gpu_online * eta_batch)
+    return w_seconds >= required_w

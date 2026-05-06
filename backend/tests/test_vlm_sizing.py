@@ -174,3 +174,65 @@ class TestVLMSizingEchoes:
     def test_sla_page_echo(self):
         result = run_vlm_sizing(VLMSizingInput(**BASELINE_VLM))
         assert result.sla_page_target == BASELINE_VLM["sla_page"]
+
+
+class TestVLMBatchMode:
+    """P9c — batch and combined-deployment sizing (Приложение И.5)."""
+
+    def test_default_mode_is_online(self):
+        result = run_vlm_sizing(VLMSizingInput(**BASELINE_VLM))
+        assert result.mode_used == "online"
+
+    def test_no_batch_inputs_leaves_batch_fields_none(self):
+        result = run_vlm_sizing(VLMSizingInput(**BASELINE_VLM))
+        assert result.t_page_vlm_at_bs_max is None
+        assert result.n_gpu_vlm_batch is None
+        assert result.window_sufficient is None
+        assert result.eta_batch_used is None
+
+    def test_online_total_equals_online_pool(self):
+        result = run_vlm_sizing(VLMSizingInput(**BASELINE_VLM))
+        assert result.n_gpu_vlm_total == result.n_gpu_vlm_online
+
+    def test_batch_mode_populates_what_if(self):
+        data = {**BASELINE_VLM, "mode": "batch", "D_pages": 1000.0,
+                "W_seconds": 28800.0, "eta_batch": 0.9}
+        result = run_vlm_sizing(VLMSizingInput(**data))
+        assert result.t_page_vlm_at_bs_max is not None
+        assert result.n_gpu_vlm_batch is not None
+        assert result.n_gpu_vlm_total == result.n_gpu_vlm_batch
+        assert result.window_sufficient is not None
+
+    def test_combined_mode_picks_max(self):
+        data = {**BASELINE_VLM, "mode": "combined", "D_pages": 100000.0,
+                "W_seconds": 3600.0, "eta_batch": 0.9}
+        result = run_vlm_sizing(VLMSizingInput(**data))
+        assert result.n_gpu_vlm_total == max(
+            result.n_gpu_vlm_online, result.n_gpu_vlm_batch
+        )
+
+    def test_t_page_at_bs_max_exceeds_t_page_at_star(self):
+        # Per-session throughput drops with BS, so t_page at BS_max > t_page at BS*
+        data = {**BASELINE_VLM, "mode": "combined", "D_pages": 1000.0,
+                "W_seconds": 28800.0}
+        result = run_vlm_sizing(VLMSizingInput(**data))
+        assert result.t_page_vlm_at_bs_max > result.t_page_vlm
+
+    def test_window_insufficient_with_heavy_demand(self):
+        data = {**BASELINE_VLM, "mode": "combined", "D_pages": 1_000_000.0,
+                "W_seconds": 60.0, "eta_batch": 0.9}
+        result = run_vlm_sizing(VLMSizingInput(**data))
+        assert result.window_sufficient is False
+
+    def test_unknown_mode_fails(self):
+        data = {**BASELINE_VLM, "mode": "alien"}
+        with pytest.raises(ValidationAppError):
+            run_vlm_sizing(VLMSizingInput(**data))
+
+    def test_d_w_eta_echoes(self):
+        data = {**BASELINE_VLM, "mode": "batch", "D_pages": 500.0,
+                "W_seconds": 3600.0, "eta_batch": 0.88}
+        result = run_vlm_sizing(VLMSizingInput(**data))
+        assert result.D_pages_used == 500.0
+        assert result.W_seconds_used == 3600.0
+        assert result.eta_batch_used == 0.88

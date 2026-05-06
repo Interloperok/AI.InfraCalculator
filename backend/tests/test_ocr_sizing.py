@@ -221,3 +221,68 @@ class TestOCRSizingEchoes:
         data = {**BASELINE_OCR_GPU, "t_handoff": 0.05}
         result = run_ocr_sizing(OCRSizingInput(**data))
         assert result.t_handoff_used == 0.05
+
+
+class TestOCRBatchMode:
+    """P9c — batch and combined-deployment sizing for OCR+LLM (Приложение И.5)."""
+
+    def test_default_mode_is_online(self):
+        result = run_ocr_sizing(OCRSizingInput(**BASELINE_OCR_GPU))
+        assert result.mode_used == "online"
+
+    def test_no_batch_inputs_leaves_batch_fields_none(self):
+        result = run_ocr_sizing(OCRSizingInput(**BASELINE_OCR_GPU))
+        assert result.t_page_llm_at_bs_max is None
+        assert result.n_gpu_llm_batch is None
+        assert result.n_gpu_total_batch is None
+        assert result.window_sufficient is None
+
+    def test_batch_populates_both_pools(self):
+        data = {**BASELINE_OCR_GPU, "mode": "batch", "D_pages": 10000.0,
+                "W_seconds": 28800.0, "eta_batch": 0.9}
+        result = run_ocr_sizing(OCRSizingInput(**data))
+        assert result.n_gpu_ocr_batch is not None and result.n_gpu_ocr_batch >= 1
+        assert result.n_gpu_llm_batch is not None and result.n_gpu_llm_batch >= 1
+        assert result.n_gpu_total_batch == result.n_gpu_ocr_batch + result.n_gpu_llm_batch
+
+    def test_ocr_cpu_pipeline_zero_ocr_batch(self):
+        data = {**BASELINE_OCR_CPU, "mode": "batch", "D_pages": 10000.0,
+                "W_seconds": 28800.0}
+        result = run_ocr_sizing(OCRSizingInput(**data))
+        assert result.n_gpu_ocr_batch == 0
+        assert result.n_gpu_llm_batch is not None
+        assert result.n_gpu_total_batch == result.n_gpu_llm_batch
+
+    def test_combined_takes_per_pool_max(self):
+        data = {**BASELINE_OCR_GPU, "mode": "combined", "D_pages": 100000.0,
+                "W_seconds": 28800.0, "eta_batch": 0.9}
+        result = run_ocr_sizing(OCRSizingInput(**data))
+        # Combined per-pool max(online, batch)
+        assert result.n_gpu_ocr_combined == max(
+            result.n_gpu_ocr_online, result.n_gpu_ocr_batch
+        )
+        assert result.n_gpu_llm_combined == max(
+            result.n_gpu_llm_online, result.n_gpu_llm_batch
+        )
+        assert result.n_gpu_total_combined == (
+            result.n_gpu_ocr_combined + result.n_gpu_llm_combined
+        )
+
+    def test_window_insufficient_with_heavy_demand(self):
+        data = {**BASELINE_OCR_GPU, "mode": "combined", "D_pages": 1_000_000.0,
+                "W_seconds": 60.0, "eta_batch": 0.9}
+        result = run_ocr_sizing(OCRSizingInput(**data))
+        assert result.window_sufficient is False
+
+    def test_unknown_mode_fails(self):
+        data = {**BASELINE_OCR_GPU, "mode": "alien"}
+        with pytest.raises(ValidationAppError):
+            run_ocr_sizing(OCRSizingInput(**data))
+
+    def test_d_w_eta_echoes(self):
+        data = {**BASELINE_OCR_GPU, "mode": "batch", "D_pages": 500.0,
+                "W_seconds": 3600.0, "eta_batch": 0.88}
+        result = run_ocr_sizing(OCRSizingInput(**data))
+        assert result.D_pages_used == 500.0
+        assert result.W_seconds_used == 3600.0
+        assert result.eta_batch_used == 0.88
