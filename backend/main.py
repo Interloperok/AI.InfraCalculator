@@ -30,6 +30,8 @@ from models import (
     GPUListResponse,
     GPURefreshResponse,
     GPUStats,
+    LLMInfo,
+    LLMListResponse,
     OCRSizingInput,
     OCRSizingOutput,
     SizingInput,
@@ -330,3 +332,48 @@ def get_gpu_stats() -> GPUStats:
     - Распределение по годам выпуска
     """
     return get_gpu_stats_handler()
+
+
+# ── Curated LLM catalog (mirrors /llm_catalog.json) ────────────────────────
+# Frontend uses these endpoints as a fallback / curated alternative when
+# HuggingFace is unreachable from an enterprise environment. Schema mirrors
+# llm_catalog.schema.json — keep `models/llm.py` in sync.
+
+from services.llm_catalog_service import build_list_response, get_model_by_name  # noqa: E402
+
+
+@app.get("/v1/llms", response_model=LLMListResponse, tags=["LLM Catalog"])
+def list_llms(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(100, ge=1, le=200),
+    vendor: Optional[str] = Query(None, description="Filter by vendor (e.g. 'Qwen')."),
+    family: Optional[str] = Query(None, description="Filter by family (e.g. 'Qwen3')."),
+    is_moe: Optional[bool] = Query(None),
+    is_mla: Optional[bool] = Query(None),
+    verified: Optional[bool] = Query(None),
+    search: Optional[str] = Query(
+        None, description="Substring search across name, hf_id, family."
+    ),
+) -> LLMListResponse:
+    """List entries from the curated LLM catalog with optional filters."""
+    return build_list_response(
+        page=page,
+        per_page=per_page,
+        vendor=vendor,
+        family=family,
+        is_moe=is_moe,
+        is_mla=is_mla,
+        verified=verified,
+        search=search,
+    )
+
+
+@app.get("/v1/llms/{name}", response_model=LLMInfo, tags=["LLM Catalog"])
+def get_llm(name: str) -> LLMInfo:
+    """Lookup a single catalog entry by exact `name` match."""
+    entry = get_model_by_name(name)
+    if entry is None:
+        from errors import NotFoundAppError, to_http_exception
+
+        raise to_http_exception(NotFoundAppError(f"LLM not found: {name}"))
+    return entry

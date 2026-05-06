@@ -296,6 +296,54 @@ export const autoOptimize = async (inputData: ApiPayload): Promise<ApiResult<Api
   }
 };
 
+export const getLLMs = async (
+  params: Record<string, string | number | boolean | undefined> = {},
+): Promise<ApiResult<ApiPayload>> => {
+  try {
+    const response = await axios.get<ApiPayload>(`${API_BASE_URL}/v1/llms`, {
+      params,
+      headers: { "Content-Type": "application/json" },
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        const detail = getResponseDetail(error.response.data);
+        return { error: stringifyDetail(detail) || `Server error (${error.response.status})` };
+      }
+      if (error.request) {
+        return { error: "Network error: Unable to connect to the server." };
+      }
+    }
+    return { error: `Request error: ${getErrorMessage(error)}` };
+  }
+};
+
+/**
+ * Probe HuggingFace reachability with a short timeout.
+ * Returns `true` if HF responds within `timeoutMs`, `false` otherwise.
+ * Used to auto-fallback to the curated catalog in enterprise envs where
+ * outbound traffic to huggingface.co is firewalled.
+ */
+export const probeHuggingFace = async (timeoutMs = 2500): Promise<boolean> => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch("https://huggingface.co/api/models?limit=1", {
+      method: "HEAD",
+      signal: controller.signal,
+      mode: "no-cors", // we only care about reachability, not CORS-readable body
+    });
+    clearTimeout(timer);
+    // With no-cors the response is opaque; reaching this point at all means
+    // the request returned a status (any status) — which is good enough.
+    return resp.type === "opaque" || resp.ok;
+  } catch {
+    clearTimeout(timer);
+    return false;
+  }
+};
+
 export const exportGpuCatalog = async (): Promise<ApiResult<ApiPayload>> => {
   try {
     const response = await axios.get<ApiPayload>(`${API_BASE_URL}/v1/gpus/export`, {

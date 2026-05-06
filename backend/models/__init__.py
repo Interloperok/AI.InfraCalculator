@@ -25,6 +25,7 @@ from .sizing import (
     AutoOptimizeResponse,
 )
 from .gpu import GPUInfo, GPUFilter, GPUListResponse, GPUStats, GPURefreshResponse
+from .llm import LLMInfo, LLMListResponse
 
 __all__ = [
     # Sizing models
@@ -50,4 +51,7 @@ __all__ = [
     "GPUListResponse",
     "GPUStats",
     "GPURefreshResponse",
+    # LLM catalog models
+    "LLMInfo",
+    "LLMListResponse",
 ]
