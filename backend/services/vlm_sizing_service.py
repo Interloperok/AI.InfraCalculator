@@ -3,12 +3,15 @@ from __future__ import annotations
 import math
 
 from core.sizing_math import (
+    calc_demand_pool,
+    calc_factor_class,
     calc_gpus_per_instance,
     calc_kv_free_per_instance_gb,
     calc_kv_per_session_gb,
     calc_model_mem_gb,
     calc_FPS,
     calc_n_gpu_batch,
+    calc_n_gpu_multiclass,
     calc_S_TP,
     calc_sl_dec_vlm,
     calc_sl_pf_vlm,
@@ -288,6 +291,81 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
         n_gpu_total = n_gpu_online
         n_servers_total = n_servers_online
 
+    # ── И.4.2 ext (P9d): Multi-class workload aggregation ──
+    # When `classes` provided: compute factor[c] per class, aggregate
+    # Demand_pool, and size against the representative class's per-GPU
+    # throughput.
+    multi_class_used: bool | None = None
+    factor_per_class: list[dict] | None = None
+    demand_pool_tps: float | None = None
+    representative_class_name: str | None = None
+    th_pool_eff_tps_per_gpu: float | None = None
+    n_gpu_multiclass_int: int | None = None
+    n_servers_multiclass_int: int | None = None
+    K_SLA_multi_used: float | None = None
+
+    if inp.classes and len(inp.classes) > 0:
+        multi_class_used = True
+        K_SLA_multi_used = float(inp.K_SLA_multi)
+
+        # Per-class breakdown: V_tok, SL_pf, SL_dec, factor[c]
+        factor_per_class = []
+        class_factors_with_lambda: list[tuple[float, float]] = []
+        max_sl_pf = -1.0
+        rep_idx = 0
+        for idx, cls in enumerate(inp.classes):
+            cls_v_tok = calc_v_tok(cls.w_px, cls.h_px, cls.patch_eff, cls.n_ch)
+            cls_sl_pf = calc_sl_pf_vlm(cls_v_tok, cls.n_prompt_txt)
+            cls_sl_dec = calc_sl_dec_vlm(cls.n_fields, cls.tok_field)
+            cls_factor = calc_factor_class(
+                sl_pf=cls_sl_pf,
+                sl_dec=cls_sl_dec,
+                eta_cache=cls.eta_cache_vlm,
+                k_spec=cls.k_spec,
+            )
+            cls_demand = float(cls.lambda_online) * cls_factor
+            factor_per_class.append(
+                {
+                    "name": cls.name,
+                    "lambda": float(cls.lambda_online),
+                    "v_tok": cls_v_tok,
+                    "sl_pf": cls_sl_pf,
+                    "sl_dec": cls_sl_dec,
+                    "factor_tokens": round(cls_factor, 4),
+                    "tokens_per_sec_demand": round(cls_demand, 4),
+                }
+            )
+            class_factors_with_lambda.append((float(cls.lambda_online), cls_factor))
+            if cls_sl_pf > max_sl_pf:
+                max_sl_pf = cls_sl_pf
+                rep_idx = idx
+        representative_class_name = inp.classes[rep_idx].name
+
+        demand_pool_tps = calc_demand_pool(class_factors_with_lambda)
+
+        # Th_pool^eff: per-GPU tokens/sec at the representative class's
+        # converged BS_real*. Approximation: tokens/page = factor of rep
+        # class; pages/sec/instance = BS_real* / t_page_at_star; tokens/sec/GPU
+        # = (factor_rep · BS_real* / t_page_at_star) / (Z · gpus_per_instance)
+        if (
+            t_page_at_star > 0
+            and t_page_at_star != float("inf")
+            and bs_real_star > 0
+            and Z * gpus_per_instance > 0
+        ):
+            rep_factor = factor_per_class[rep_idx]["factor_tokens"]
+            tps_per_instance = rep_factor * bs_real_star / t_page_at_star
+            th_pool_eff_tps_per_gpu = tps_per_instance / (Z * gpus_per_instance)
+
+            n_multi_raw = calc_n_gpu_multiclass(
+                demand_pool_tps, th_pool_eff_tps_per_gpu, K_SLA_multi_used
+            )
+            if n_multi_raw is not math.inf:
+                n_gpu_multiclass_int = int(n_multi_raw)
+                n_servers_multiclass_int = math.ceil(
+                    n_gpu_multiclass_int / inp.gpus_per_server
+                )
+
     return VLMSizingOutput(
         v_tok=v_tok,
         sl_pf_vlm=sl_pf_vlm,
@@ -323,6 +401,21 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
         eta_batch_used=eta_batch_used,
         D_pages_used=D_used,
         W_seconds_used=W_used,
+        # P9d multi-class outputs
+        multi_class_used=multi_class_used,
+        factor_per_class=factor_per_class,
+        demand_pool_tokens_per_sec=(
+            round(demand_pool_tps, 4) if demand_pool_tps is not None else None
+        ),
+        representative_class_name=representative_class_name,
+        th_pool_eff_tokens_per_sec_per_gpu=(
+            round(th_pool_eff_tps_per_gpu, 4)
+            if th_pool_eff_tps_per_gpu is not None
+            else None
+        ),
+        n_gpu_multiclass=n_gpu_multiclass_int,
+        n_servers_multiclass=n_servers_multiclass_int,
+        K_SLA_multi_used=K_SLA_multi_used,
         eta_vlm_pf_used=inp.eta_vlm_pf,
         c_peak_used=inp.c_peak,
         lambda_online_used=inp.lambda_online,

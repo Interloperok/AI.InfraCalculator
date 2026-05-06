@@ -19,9 +19,78 @@ callers see numeric shifts when their inputs match the regimes the
 new formulas correct.
 
 P9 ships in phases: P9a (VLM single-pass online), P9b (OCR+LLM
-two-pass online), and P9c (batch and combined-deployment modes) are
-in this release. P9d (multi-class workloads + frontend) follows in
-v1.4.x.
+two-pass online), P9c (batch and combined-deployment modes), and
+P9d (multi-class workload aggregation) are in this release. The
+v1.3.0 backend now covers all 11 alpha phases of methodology v3.
+Frontend updates remain deferred to v1.4.x.
+
+#### P9d: Multi-class workload aggregation (Appendix И.4.2 ext)
+
+Adds heterogeneous-workload sizing to both `/v1/size-vlm` and
+`/v1/size-ocr` endpoints. Mixed deployments — A4 forms + receipts +
+technical drawings on a shared pool — were previously sized by single
+representative class, over-provisioning when the heaviest class was a
+small fraction of demand. Multi-class aggregates per-class token
+"costs" weighted by per-class request rates: `Demand_pool =
+Σ_c λ^c · factor[c]` where `factor[c] = SL_pf^c·(1−η_cache^c) +
+SL_dec^c/k_spec^c`. The pool is sized against a representative class's
+per-GPU throughput.
+
+**Added:**
+- `core.sizing_math.calc_factor_class(sl_pf, sl_dec, eta_cache, k_spec)`:
+  per-class effective tokens/page (И.4.2 ext, item 142).
+- `core.sizing_math.calc_demand_pool(class_factors_with_lambda)`:
+  aggregate token rate `Σ_c λ^c · factor[c]` (item 146).
+- `core.sizing_math.calc_n_gpu_multiclass(demand_pool, th_pool_eff, k_sla)`:
+  pool size `⌈Demand · K_SLA / Th_pool^eff⌉` (item 147).
+- `VLMDocClass` Pydantic model: `name`, `lambda_online`, `w_px`, `h_px`,
+  `patch_eff`, `n_ch`, `n_prompt_txt`, `n_fields`, `tok_field`,
+  `eta_cache_vlm`, `k_spec`.
+- `OCRDocClass` Pydantic model: `name`, `lambda_online`, `chars_page`,
+  `c_token`, `n_prompt_sys`, `n_fields`, `tok_field`, `eta_cache`,
+  `k_spec`.
+- `VLMSizingInput.classes: Optional[List[VLMDocClass]]`,
+  `K_SLA_multi: float = 1.25`.
+- `OCRSizingInput.classes: Optional[List[OCRDocClass]]`,
+  `K_SLA_multi: float = 1.25`.
+- `VLMSizingOutput` fields: `multi_class_used`, `factor_per_class`
+  (per-class breakdown), `demand_pool_tokens_per_sec`,
+  `representative_class_name`, `th_pool_eff_tokens_per_sec_per_gpu`,
+  `n_gpu_multiclass`, `n_servers_multiclass`, `K_SLA_multi_used`.
+- `OCRSizingOutput` fields: same shape, plus per-stage
+  `n_gpu_ocr_multiclass`, `n_gpu_llm_multiclass`,
+  `n_gpu_total_multiclass`, `n_servers_total_multiclass`.
+- 13 pure-function unit tests + 7 VLM integration tests + 7 OCR
+  integration tests.
+
+**Changed:**
+- `services.vlm_sizing_service.run_vlm_sizing`: when `classes` is a
+  non-empty list, computes `factor[c]` per class, picks the class with
+  largest `SL_pf` as the representative, derives per-GPU throughput
+  `Th_pool^eff = factor_rep · BS_real* / (t_page_at_star · Z ·
+  gpus_per_instance)`, and sizes the pool by `Demand · K_SLA /
+  Th_pool^eff`. Single-class fields remain present as the
+  representative-class fallback for memory and BS_real* search.
+- `services.ocr_sizing_service.run_ocr_sizing`: same pattern for the
+  LLM stage. OCR pool sizing aggregates `Σ λ^c` (t_OCR is shared
+  across classes since it's the engine's per-page rate). For
+  `pipeline='ocr_cpu'`, `n_gpu_ocr_multiclass = 0`.
+
+**Notes:**
+- The representative class is the one with the largest `SL_pf` (or
+  `SL_pf_llm` for OCR). It governs memory sizing (worst-case KV) and
+  per-GPU throughput estimation. Mixing classes with very different
+  KV footprints will be conservative — refine with class-specific
+  pools (P10-style PD-disagg per class) if needed.
+- `Th_pool^eff` is a single representative-derived number, not a
+  per-class throughput average. For workloads where representative
+  class differs sharply from the mean, the pool sizing is biased
+  toward the heaviest case.
+- All multi-class output fields stay `None` when `classes` is `None`
+  or empty — backward compat preserved.
+- η_cache and k_spec become **class-specific** in multi-class mode
+  (carried on `VLMDocClass` / `OCRDocClass`). Single-class mode still
+  uses the global `eta_cache_vlm` / `eta_cache` and `k_spec` fields.
 
 #### P9c: Batch and combined-deployment modes (Appendix И.5)
 

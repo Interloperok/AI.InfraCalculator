@@ -887,3 +887,77 @@ class TestBatchModeFunctions:
     def test_window_sufficient_false_on_inf_t_page(self) -> None:
         from core.sizing_math import calc_window_sufficient
         assert calc_window_sufficient(28800, 1000, float("inf"), 10, 0.9) is False
+
+
+class TestMultiClassFunctions:
+    """P9d — multi-class workload pure functions (Приложение И.4.2 ext)."""
+
+    def test_factor_class_basic(self) -> None:
+        # SL_pf=2000, SL_dec=400, η_cache=0, k_spec=1 → 2000 + 400 = 2400
+        from core.sizing_math import calc_factor_class
+        assert calc_factor_class(sl_pf=2000, sl_dec=400) == 2400.0
+
+    def test_factor_class_with_cache_reduces_pf(self) -> None:
+        # 2000·(1-0.5) + 400/1 = 1000 + 400 = 1400
+        from core.sizing_math import calc_factor_class
+        assert calc_factor_class(sl_pf=2000, sl_dec=400, eta_cache=0.5) == 1400.0
+
+    def test_factor_class_with_spec_reduces_dec(self) -> None:
+        # 2000·1 + 400/2 = 2000 + 200 = 2200
+        from core.sizing_math import calc_factor_class
+        assert calc_factor_class(sl_pf=2000, sl_dec=400, k_spec=2.0) == 2200.0
+
+    def test_factor_class_clamps_eta_cache(self) -> None:
+        # eta clipped to [0,1]
+        from core.sizing_math import calc_factor_class
+        assert calc_factor_class(sl_pf=2000, sl_dec=400, eta_cache=2.0) == 0.0 + 400
+        assert calc_factor_class(sl_pf=2000, sl_dec=400, eta_cache=-1.0) == 2400.0
+
+    def test_factor_class_clamps_k_spec_to_one(self) -> None:
+        # k_spec < 1 clamped to 1
+        from core.sizing_math import calc_factor_class
+        assert calc_factor_class(sl_pf=2000, sl_dec=400, k_spec=0.5) == 2400.0
+
+    def test_demand_pool_sum_lambda_factor(self) -> None:
+        # λ1·f1 + λ2·f2 = 0.5·1000 + 0.3·2000 = 500 + 600 = 1100
+        from core.sizing_math import calc_demand_pool
+        result = calc_demand_pool([(0.5, 1000.0), (0.3, 2000.0)])
+        assert result == 1100.0
+
+    def test_demand_pool_empty_list_zero(self) -> None:
+        from core.sizing_math import calc_demand_pool
+        assert calc_demand_pool([]) == 0.0
+
+    def test_demand_pool_skips_zero_lambda(self) -> None:
+        from core.sizing_math import calc_demand_pool
+        result = calc_demand_pool([(0.0, 1000.0), (0.5, 2000.0)])
+        assert result == 1000.0
+
+    def test_n_gpu_multiclass_basic(self) -> None:
+        # ⌈1100·1.25/500⌉ = ⌈2.75⌉ = 3
+        from core.sizing_math import calc_n_gpu_multiclass
+        assert calc_n_gpu_multiclass(
+            demand_pool_tps=1100.0, th_pool_eff_tps_per_gpu=500.0, k_sla=1.25
+        ) == 3
+
+    def test_n_gpu_multiclass_zero_demand(self) -> None:
+        from core.sizing_math import calc_n_gpu_multiclass
+        assert calc_n_gpu_multiclass(0.0, 500.0, 1.25) == 0
+
+    def test_n_gpu_multiclass_invalid_throughput_inf(self) -> None:
+        import math
+        from core.sizing_math import calc_n_gpu_multiclass
+        assert calc_n_gpu_multiclass(1100.0, 0.0, 1.25) is math.inf
+        assert calc_n_gpu_multiclass(1100.0, -1.0, 1.25) is math.inf
+
+    def test_n_gpu_multiclass_grows_with_demand(self) -> None:
+        from core.sizing_math import calc_n_gpu_multiclass
+        small = calc_n_gpu_multiclass(1000.0, 500.0, 1.25)
+        big = calc_n_gpu_multiclass(10000.0, 500.0, 1.25)
+        assert big > small
+
+    def test_n_gpu_multiclass_drops_with_higher_throughput(self) -> None:
+        from core.sizing_math import calc_n_gpu_multiclass
+        slow = calc_n_gpu_multiclass(1000.0, 100.0, 1.25)
+        fast = calc_n_gpu_multiclass(1000.0, 1000.0, 1.25)
+        assert fast < slow

@@ -286,3 +286,64 @@ class TestOCRBatchMode:
         assert result.D_pages_used == 500.0
         assert result.W_seconds_used == 3600.0
         assert result.eta_batch_used == 0.88
+
+
+class TestOCRMultiClass:
+    """P9d — multi-class workload aggregation for OCR+LLM (Приложение И.4.2 ext)."""
+
+    def test_no_classes_leaves_multi_fields_none(self):
+        result = run_ocr_sizing(OCRSizingInput(**BASELINE_OCR_GPU))
+        assert result.multi_class_used is None
+        assert result.factor_per_class is None
+        assert result.n_gpu_total_multiclass is None
+
+    def test_multi_class_populates_breakdown(self):
+        from models import OCRDocClass
+        data = {**BASELINE_OCR_GPU, "classes": [
+            OCRDocClass(name="form", lambda_online=0.6, chars_page=3000, n_fields=20).model_dump(),
+            OCRDocClass(name="receipt", lambda_online=0.3, chars_page=600, n_fields=8).model_dump(),
+        ]}
+        result = run_ocr_sizing(OCRSizingInput(**data))
+        assert result.multi_class_used is True
+        assert len(result.factor_per_class) == 2
+
+    def test_representative_class_largest_sl_pf_llm(self):
+        from models import OCRDocClass
+        data = {**BASELINE_OCR_GPU, "classes": [
+            OCRDocClass(name="form", lambda_online=0.5, chars_page=3000, n_fields=20).model_dump(),
+            OCRDocClass(name="tech_doc", lambda_online=0.5, chars_page=12000, n_fields=50).model_dump(),
+        ]}
+        result = run_ocr_sizing(OCRSizingInput(**data))
+        assert result.representative_class_name == "tech_doc"
+
+    def test_total_multi_is_sum_ocr_and_llm(self):
+        from models import OCRDocClass
+        data = {**BASELINE_OCR_GPU, "classes": [
+            OCRDocClass(name="A", lambda_online=1.0, chars_page=3000, n_fields=20).model_dump(),
+        ]}
+        result = run_ocr_sizing(OCRSizingInput(**data))
+        assert result.n_gpu_total_multiclass == (
+            result.n_gpu_ocr_multiclass + result.n_gpu_llm_multiclass
+        )
+
+    def test_ocr_cpu_pipeline_zero_ocr_multi(self):
+        from models import OCRDocClass
+        data = {**BASELINE_OCR_CPU, "classes": [
+            OCRDocClass(name="A", lambda_online=1.0, chars_page=3000, n_fields=20).model_dump(),
+        ]}
+        result = run_ocr_sizing(OCRSizingInput(**data))
+        assert result.n_gpu_ocr_multiclass == 0
+        assert result.n_gpu_total_multiclass == result.n_gpu_llm_multiclass
+
+    def test_k_sla_multi_default_and_echo(self):
+        from models import OCRDocClass
+        data = {**BASELINE_OCR_GPU, "classes": [
+            OCRDocClass(name="A", lambda_online=1.0, chars_page=3000, n_fields=20).model_dump(),
+        ]}
+        result = run_ocr_sizing(OCRSizingInput(**data))
+        assert result.K_SLA_multi_used == 1.25
+
+    def test_empty_classes_list_treated_as_single_class(self):
+        data = {**BASELINE_OCR_GPU, "classes": []}
+        result = run_ocr_sizing(OCRSizingInput(**data))
+        assert result.multi_class_used is None

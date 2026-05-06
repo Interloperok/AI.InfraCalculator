@@ -236,3 +236,73 @@ class TestVLMBatchMode:
         assert result.D_pages_used == 500.0
         assert result.W_seconds_used == 3600.0
         assert result.eta_batch_used == 0.88
+
+
+class TestVLMMultiClass:
+    """P9d — multi-class workload aggregation (Приложение И.4.2 ext)."""
+
+    def test_no_classes_leaves_multi_fields_none(self):
+        result = run_vlm_sizing(VLMSizingInput(**BASELINE_VLM))
+        assert result.multi_class_used is None
+        assert result.factor_per_class is None
+        assert result.demand_pool_tokens_per_sec is None
+        assert result.n_gpu_multiclass is None
+
+    def test_multi_class_populates_breakdown(self):
+        from models import VLMDocClass
+        data = {**BASELINE_VLM, "classes": [
+            VLMDocClass(name="A4", lambda_online=0.6, w_px=1240, h_px=1754, n_fields=20).model_dump(),
+            VLMDocClass(name="receipt", lambda_online=0.3, w_px=800, h_px=1200, n_fields=8).model_dump(),
+        ]}
+        result = run_vlm_sizing(VLMSizingInput(**data))
+        assert result.multi_class_used is True
+        assert result.factor_per_class is not None
+        assert len(result.factor_per_class) == 2
+        names = [f["name"] for f in result.factor_per_class]
+        assert "A4" in names and "receipt" in names
+
+    def test_representative_class_is_largest_sl_pf(self):
+        # tech_doc has way more visual tokens → representative
+        from models import VLMDocClass
+        data = {**BASELINE_VLM, "classes": [
+            VLMDocClass(name="A4", lambda_online=0.5, w_px=1240, h_px=1754, n_fields=20).model_dump(),
+            VLMDocClass(name="tech_doc", lambda_online=0.5, w_px=2480, h_px=3508, n_fields=50).model_dump(),
+        ]}
+        result = run_vlm_sizing(VLMSizingInput(**data))
+        assert result.representative_class_name == "tech_doc"
+
+    def test_demand_pool_sum_of_lambda_times_factor(self):
+        from models import VLMDocClass
+        cls_a = VLMDocClass(name="A", lambda_online=1.0, w_px=1000, h_px=1000, n_fields=10)
+        cls_b = VLMDocClass(name="B", lambda_online=2.0, w_px=1000, h_px=1000, n_fields=10)
+        data = {**BASELINE_VLM, "classes": [cls_a.model_dump(), cls_b.model_dump()]}
+        result = run_vlm_sizing(VLMSizingInput(**data))
+        # Both classes have identical factor (same image+fields), so demand_pool = 3·factor
+        per_class = result.factor_per_class
+        factor = per_class[0]["factor_tokens"]
+        assert result.demand_pool_tokens_per_sec == pytest.approx(3.0 * factor, rel=1e-9)
+
+    def test_k_sla_multi_default_125(self):
+        from models import VLMDocClass
+        data = {**BASELINE_VLM, "classes": [
+            VLMDocClass(name="A", lambda_online=1.0, w_px=1240, h_px=1754, n_fields=20).model_dump(),
+        ]}
+        result = run_vlm_sizing(VLMSizingInput(**data))
+        assert result.K_SLA_multi_used == 1.25
+
+    def test_higher_k_sla_grows_n_gpu_multi(self):
+        from models import VLMDocClass
+        cls = VLMDocClass(name="A", lambda_online=10.0, w_px=2000, h_px=2000, n_fields=30)
+        loose = run_vlm_sizing(VLMSizingInput(
+            **{**BASELINE_VLM, "classes": [cls.model_dump()], "K_SLA_multi": 1.0}
+        ))
+        strict = run_vlm_sizing(VLMSizingInput(
+            **{**BASELINE_VLM, "classes": [cls.model_dump()], "K_SLA_multi": 2.0}
+        ))
+        assert strict.n_gpu_multiclass >= loose.n_gpu_multiclass
+
+    def test_empty_classes_list_treated_as_single_class(self):
+        # Empty list shouldn't trigger multi-class path
+        data = {**BASELINE_VLM, "classes": []}
+        result = run_vlm_sizing(VLMSizingInput(**data))
+        assert result.multi_class_used is None

@@ -892,6 +892,34 @@ class AutoOptimizeResponse(BaseModel):
 # ═══════════════════════════════════════════════════════════
 
 
+class VLMDocClass(BaseModel):
+    """P9d — Класс документов для VLM multi-class workload (Приложение И.4.2 ext).
+
+    Каждый класс задаёт свою долю нагрузки (λ_online^c) и токенный профиль.
+    Используется в `VLMSizingInput.classes` для агрегированного сайзинга
+    единого пула, обслуживающего смешанную нагрузку (например, A4-формы +
+    чеки + технические чертежи).
+    """
+
+    name: str = Field(..., description="Имя класса для диагностики (echo в выводе)")
+    lambda_online: confloat(gt=0) = Field(
+        ..., description="Доля нагрузки этого класса (λ^c, pages/s)"
+    )
+    w_px: conint(gt=0) = Field(..., description="Ширина изображения, px")
+    h_px: conint(gt=0) = Field(..., description="Высота изображения, px")
+    patch_eff: conint(gt=0) = Field(default=28, description="Patch_eff после spatial-merge")
+    n_ch: conint(ge=1) = Field(default=1, description="Каналов")
+    n_prompt_txt: conint(ge=0) = Field(default=100, description="Текстовый промпт, tokens")
+    n_fields: conint(ge=1) = Field(..., description="Полей JSON на класс")
+    tok_field: conint(ge=1) = Field(default=50, description="Tokens per field")
+    eta_cache_vlm: confloat(ge=0.0, le=1.0) = Field(
+        default=0.0, description="η_cache^c для класса"
+    )
+    k_spec: confloat(ge=1.0) = Field(
+        default=1.0, description="k_spec^c — speculative decoding для класса"
+    )
+
+
 class VLMSizingInput(BaseModel):
     """Входные параметры для расчёта VLM single-pass online сайзинга (Приложение И).
 
@@ -1019,6 +1047,19 @@ class VLMSizingInput(BaseModel):
         description="Утилизация в batch-режиме (η_batch, И.5). 0.85-0.95.",
     )
 
+    # ── И.4.2 ext (P9d): Multi-class workloads ──
+    classes: Optional[List[VLMDocClass]] = Field(
+        default=None,
+        description="Многоклассовая нагрузка: список классов документов с своей "
+        "λ^c и токенным профилем. При наличии перекрывает single-class fields. "
+        "Сайзинг: Demand_pool = Σ λ^c · factor[c], N_GPU = ⌈Demand · K_SLA / Th_pool⌉.",
+    )
+    K_SLA_multi: confloat(gt=0) = Field(
+        default=1.25,
+        description="K_SLA для multi-class сайзинга (Приложение И.4.2 ext). "
+        "Коэф. запаса по аналогии с §6.4. По умолчанию 1.25.",
+    )
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -1135,6 +1176,42 @@ class VLMSizingOutput(BaseModel):
     D_pages_used: Optional[float] = Field(default=None, description="D (echo)")
     W_seconds_used: Optional[float] = Field(default=None, description="W (echo)")
 
+    # ── И.4.2 ext (P9d): Multi-class outputs ──
+    multi_class_used: Optional[bool] = Field(
+        default=None,
+        description="Применён ли multi-class сайзинг (когда передан непустой classes список).",
+    )
+    factor_per_class: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="Per-class breakdown: [{name, lambda, sl_pf, sl_dec, factor_tokens, "
+        "tokens_per_sec_demand}, ...].",
+    )
+    demand_pool_tokens_per_sec: Optional[float] = Field(
+        default=None,
+        description="Demand_pool = Σ λ^c · factor[c] (tokens/sec, агрегат всех классов).",
+    )
+    representative_class_name: Optional[str] = Field(
+        default=None,
+        description="Класс, выбранный для memory/throughput-сайзинга — обычно с "
+        "самым большим SL_pf (наихудший по KV).",
+    )
+    th_pool_eff_tokens_per_sec_per_gpu: Optional[float] = Field(
+        default=None,
+        description="Th_pool^eff: эффективная пропускная способность пула, "
+        "tokens/sec/GPU. Резолвится из per-instance результатов "
+        "представительного класса при BS = BS_real*.",
+    )
+    n_gpu_multiclass: Optional[int] = Field(
+        default=None,
+        description="N_GPU^pool = ⌈ Demand_pool · K_SLA / Th_pool^eff ⌉ (И.4.2 ext).",
+    )
+    n_servers_multiclass: Optional[int] = Field(
+        default=None, description="Серверы для multi-class пула"
+    )
+    K_SLA_multi_used: Optional[float] = Field(
+        default=None, description="K_SLA, использованный в multi-class формуле"
+    )
+
     # ── Echoes ──
     eta_vlm_pf_used: float = Field(..., description="η_vlm,pf, использованный в расчёте")
     c_peak_used: int = Field(..., description="C_peak (echo)")
@@ -1149,6 +1226,31 @@ class VLMSizingOutput(BaseModel):
 # ═══════════════════════════════════════════════════════════
 # Section И (P9b): OCR + LLM two-pass online sizing
 # ═══════════════════════════════════════════════════════════
+
+
+class OCRDocClass(BaseModel):
+    """P9d — Класс документов для OCR+LLM multi-class workload (Приложение И.4.2 ext).
+
+    Каждый класс задаёт свою долю нагрузки и текстовый профиль (chars_page,
+    n_fields). LLM-стадия использует L_text = chars_page / c_token; OCR-стадия
+    масштабируется по `t_OCR · λ^c` (BS-независима).
+    """
+
+    name: str = Field(..., description="Имя класса (echo в выводе)")
+    lambda_online: confloat(gt=0) = Field(
+        ..., description="Доля нагрузки этого класса (λ^c, pages/s)"
+    )
+    chars_page: conint(gt=0) = Field(..., description="Распознаваемых символов на странице")
+    c_token: confloat(gt=0) = Field(default=3.5, description="Символов на токен")
+    n_prompt_sys: conint(ge=0) = Field(default=1000, description="Системный промпт LLM")
+    n_fields: conint(ge=1) = Field(..., description="Полей JSON")
+    tok_field: conint(ge=1) = Field(default=50, description="Tokens per field")
+    eta_cache: confloat(ge=0.0, le=1.0) = Field(
+        default=0.0, description="η_cache^c — prefix-cache для класса"
+    )
+    k_spec: confloat(ge=1.0) = Field(
+        default=1.0, description="k_spec^c — speculative decoding"
+    )
 
 
 class OCRSizingInput(BaseModel):
@@ -1290,6 +1392,18 @@ class OCRSizingInput(BaseModel):
     )
     eta_batch: confloat(gt=0.0, le=1.0) = Field(
         default=0.90, description="Утилизация в batch-режиме (η_batch). 0.85-0.95."
+    )
+
+    # ── И.4.2 ext (P9d): Multi-class workloads ──
+    classes: Optional[List[OCRDocClass]] = Field(
+        default=None,
+        description="Многоклассовая нагрузка: список OCR-классов. При наличии "
+        "перекрывает single-class fields. Demand_pool = Σ λ^c · factor[c] для "
+        "LLM-стадии; OCR-стадия суммирует λ^c · t_OCR.",
+    )
+    K_SLA_multi: confloat(gt=0) = Field(
+        default=1.25,
+        description="K_SLA для multi-class сайзинга. По умолчанию 1.25.",
     )
 
     model_config = ConfigDict(
@@ -1434,6 +1548,48 @@ class OCRSizingOutput(BaseModel):
     eta_batch_used: Optional[float] = Field(default=None, description="η_batch (echo)")
     D_pages_used: Optional[float] = Field(default=None, description="D (echo)")
     W_seconds_used: Optional[float] = Field(default=None, description="W (echo)")
+
+    # ── И.4.2 ext (P9d): Multi-class outputs ──
+    multi_class_used: Optional[bool] = Field(
+        default=None,
+        description="Применён ли multi-class сайзинг (когда передан непустой classes список).",
+    )
+    factor_per_class: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="Per-class breakdown для LLM-стадии: [{name, lambda, l_text, "
+        "sl_pf_llm, sl_dec, factor_tokens, tokens_per_sec_demand}, ...].",
+    )
+    demand_pool_tokens_per_sec: Optional[float] = Field(
+        default=None,
+        description="Demand_pool = Σ λ^c · factor[c] для LLM-стадии (tokens/sec).",
+    )
+    representative_class_name: Optional[str] = Field(
+        default=None,
+        description="Класс с наибольшим SL_pf — определяет KV / throughput-сайзинг.",
+    )
+    th_pool_eff_tokens_per_sec_per_gpu: Optional[float] = Field(
+        default=None,
+        description="Th_pool^eff: эффективная LLM-throughput пула, tokens/sec/GPU.",
+    )
+    n_gpu_ocr_multiclass: Optional[int] = Field(
+        default=None,
+        description="GPU в OCR-пуле для multi-class: ⌈ Σ λ^c · t_OCR / η_OCR ⌉. "
+        "0 для pipeline='ocr_cpu'.",
+    )
+    n_gpu_llm_multiclass: Optional[int] = Field(
+        default=None,
+        description="GPU в LLM-пуле для multi-class: "
+        "⌈ Demand_pool · K_SLA / Th_pool^eff ⌉.",
+    )
+    n_gpu_total_multiclass: Optional[int] = Field(
+        default=None, description="N_OCR + N_LLM для multi-class"
+    )
+    n_servers_total_multiclass: Optional[int] = Field(
+        default=None, description="Серверы для multi-class пула"
+    )
+    K_SLA_multi_used: Optional[float] = Field(
+        default=None, description="K_SLA, использованный в multi-class"
+    )
 
     # ── Echoes ──
     sla_page_target: float = Field(..., description="SLA_page (echo)")

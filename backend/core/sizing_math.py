@@ -854,3 +854,66 @@ def calc_window_sufficient(w_seconds, d_pages, t_page_at_bs_max, n_gpu_online, e
         return False
     required_w = d_pages * t_page_at_bs_max / (n_gpu_online * eta_batch)
     return w_seconds >= required_w
+
+
+# ── P9d: Multi-class workload aggregation (Приложение И.4.2 ext) ──
+
+
+def calc_factor_class(sl_pf, sl_dec, eta_cache=0.0, k_spec=1.0):
+    """
+    Приложение И.4.2 (multi-class) — Эффективная "стоимость" одной страницы класса.
+
+    factor[c] = SL_pf^c · (1 − η_cache^c) + SL_dec^c / k_spec^c
+
+    Tokens/page для класса c, учитывая:
+      - prefix-cache hit rate (η_cache: SL_pf эффективно сокращается)
+      - speculative decoding (k_spec: SL_dec эффективно сокращается)
+
+    Используется в `Demand_pool = Σ_c λ^c · factor[c]` для агрегирования
+    нагрузки нескольких классов документов на единый GPU-пул.
+    """
+    if sl_pf < 0 or sl_dec < 0:
+        return 0.0
+    eta = max(0.0, min(1.0, eta_cache))
+    spec = max(1.0, k_spec)
+    return sl_pf * (1.0 - eta) + sl_dec / spec
+
+
+def calc_demand_pool(class_factors_with_lambda):
+    """
+    Приложение И.4.2 (multi-class) — Аггрегированная нагрузка пула, токены/сек.
+
+    Demand_pool = Σ_{c ∈ classes} λ_online^c · factor[c]
+
+    Принимает список кортежей [(λ_c, factor_c), ...]. Возвращает
+    суммарный токен-поток в секунду — основу для сайзинга единого пула,
+    обслуживающего смешанную нагрузку из разных классов документов.
+    """
+    if not class_factors_with_lambda:
+        return 0.0
+    total = 0.0
+    for lam, factor in class_factors_with_lambda:
+        if lam <= 0 or factor <= 0:
+            continue
+        total += lam * factor
+    return total
+
+
+def calc_n_gpu_multiclass(demand_pool_tps, th_pool_eff_tps_per_gpu, k_sla=1.25):
+    """
+    Приложение И.4.2 (multi-class) — Размер пула под смешанную нагрузку.
+
+    N_GPU^pool = ⌈ Demand_pool · K_SLA / Th_pool^eff ⌉
+
+    Demand_pool — токенов/сек на пул (см. ``calc_demand_pool``).
+    Th_pool^eff — эффективная пропускная способность пула, токенов/сек/GPU
+    (резолвится вызывающим из per-instance результатов одного из классов).
+    K_SLA — коэф. запаса для SLA (по умолчанию 1.25).
+
+    Возвращает math.inf при невалидных входах.
+    """
+    if th_pool_eff_tps_per_gpu <= 0:
+        return math.inf
+    if demand_pool_tps <= 0:
+        return 0
+    return math.ceil(demand_pool_tps * k_sla / th_pool_eff_tps_per_gpu)
