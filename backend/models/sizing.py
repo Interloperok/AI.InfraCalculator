@@ -683,6 +683,38 @@ class SizingOutput(BaseModel):
     # ── Section 8: Final ──
     servers_final: int = Field(..., description="Итоговое количество серверов")
 
+    # ── Section 9: Gateway quotas (LiteLLM / shared vLLM rate-limits) ──
+    # Demand-side metrics independent of GPU choice. Use these to set
+    # tpm/rpm/parallel-request limits in LiteLLM-style proxies when this
+    # solution shares a vLLM cluster with other tenants.
+    peak_rpm: float = Field(
+        ...,
+        description="Пиковый rpm для шлюза = Ssim × R × K_calls × K_SLA × 60. "
+        "Учитывает агентный множитель — LiteLLM видит каждый LLM-вызов отдельным запросом.",
+    )
+    peak_tpm_input: float = Field(
+        ...,
+        description="Пиковый input-side tpm = (Ssim × R × K_SLA × 60) × SL_pf. "
+        "Без K_calls — токены на пользовательский запрос постоянны независимо от агентного дробления.",
+    )
+    peak_tpm_output: float = Field(
+        ..., description="Пиковый output-side tpm = (Ssim × R × K_SLA × 60) × T_dec."
+    )
+    peak_tpm: float = Field(
+        ..., description="Суммарный пиковый tpm = peak_tpm_input + peak_tpm_output."
+    )
+    sustained_rpm: float = Field(
+        ..., description="Среднеустановившийся rpm = peak_rpm / K_SLA (без headroom)."
+    )
+    sustained_tpm: float = Field(
+        ..., description="Среднеустановившийся tpm = peak_tpm / K_SLA (без headroom)."
+    )
+    max_parallel_requests: int = Field(
+        ...,
+        description="Лимит конкурентных запросов = ⌈Ssim × K_SLA⌉. "
+        "Для LiteLLM max_parallel_requests / vLLM max_num_seqs.",
+    )
+
     # ── Context ──
     gpu_id: Optional[str] = Field(None, description="ID выбранной GPU")
     gpu_mem_gb: float = Field(..., description="Память GPU (GiB)")
@@ -1287,6 +1319,28 @@ class VLMSizingOutput(BaseModel):
     c_peak_used: int = Field(..., description="C_peak (echo)")
     lambda_online_used: float = Field(..., description="λ_online (echo)")
 
+    # ── Section 9: Gateway quotas (LiteLLM / shared vLLM rate-limits) ──
+    # VLM: each "request" is one page processed. Tokens-per-page split
+    # into vision+text input (sl_pf_vlm) and structured JSON output (sl_dec_vlm).
+    peak_rpm: float = Field(
+        ...,
+        description="Peak gateway RPM (pages/min) = λ_online × K_SLA_multi × 60.",
+    )
+    peak_tpm_input: float = Field(
+        ..., description="Peak input-side TPM = peak_rpm × sl_pf_vlm."
+    )
+    peak_tpm_output: float = Field(
+        ..., description="Peak output-side TPM = peak_rpm × sl_dec_vlm."
+    )
+    peak_tpm: float = Field(..., description="peak_tpm_input + peak_tpm_output.")
+    sustained_rpm: float = Field(
+        ..., description="Sustained RPM = peak_rpm / K_SLA_multi (no headroom)."
+    )
+    sustained_tpm: float = Field(..., description="Sustained TPM = peak_tpm / K_SLA_multi.")
+    max_parallel_requests: int = Field(
+        ..., description="Concurrent in-flight pages = c_peak. For LiteLLM max_parallel_requests."
+    )
+
     # ── Context ──
     gpu_id: Optional[str] = Field(None, description="ID GPU")
     gpu_mem_gb: float = Field(..., description="Память GPU (GiB)")
@@ -1665,6 +1719,33 @@ class OCRSizingOutput(BaseModel):
     sla_page_target: float = Field(..., description="SLA_page (echo)")
     c_peak_used: int = Field(..., description="C_peak (echo)")
     lambda_online_used: float = Field(..., description="λ_online (echo)")
+
+    # ── Section 9: Gateway quotas ──
+    # OCR is two-pool: a separate page-rate metric for the OCR pool (no LLM
+    # tokens) and a TPM split for the LLM pool. The gateway can rate-limit
+    # each upstream independently (e.g. PaddleOCR-API vs vLLM).
+    ocr_peak_rpm: float = Field(
+        ...,
+        description="OCR-pool peak RPM (pages/min) = λ_online × K_SLA × 60. "
+        "0 for pipeline='ocr_cpu' (CPU stage doesn't hit a GPU gateway).",
+    )
+    llm_peak_rpm: float = Field(
+        ..., description="LLM-pool peak RPM (calls/min) = λ_online × K_SLA × 60."
+    )
+    llm_peak_tpm_input: float = Field(
+        ..., description="LLM input TPM = llm_peak_rpm × sl_pf_llm."
+    )
+    llm_peak_tpm_output: float = Field(
+        ..., description="LLM output TPM = llm_peak_rpm × sl_dec_llm."
+    )
+    llm_peak_tpm: float = Field(
+        ..., description="LLM total peak TPM (input + output)."
+    )
+    llm_sustained_rpm: float = Field(..., description="LLM sustained RPM = peak / K_SLA.")
+    llm_sustained_tpm: float = Field(..., description="LLM sustained TPM = peak / K_SLA.")
+    max_parallel_requests: int = Field(
+        ..., description="Concurrent in-flight pages = c_peak."
+    )
 
     # ── Context ──
     gpu_id: Optional[str] = Field(None, description="ID GPU")

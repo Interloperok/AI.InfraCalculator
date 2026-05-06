@@ -428,6 +428,20 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
                 n_gpu_total_multiclass / inp.gpus_per_server
             )
 
+    # Section 9: Gateway quotas. Two-pool (OCR + LLM) so gateway can rate-limit
+    # each upstream independently. OCR-pool sees pages-only; LLM-pool sees
+    # post-OCR token traffic. K_SLA_multi (default 1.25) provides peak headroom.
+    k_sla_for_quota = float(K_SLA_multi_used) if K_SLA_multi_used and K_SLA_multi_used > 0 else 1.25
+    sustained_pages_per_min = inp.lambda_online * 60.0
+    peak_pages_per_min = sustained_pages_per_min * k_sla_for_quota
+    ocr_peak_rpm_val = peak_pages_per_min if pipeline == "ocr_gpu" else 0.0
+    llm_peak_rpm_val = peak_pages_per_min
+    llm_peak_tpm_input_val = llm_peak_rpm_val * sl_pf_llm
+    llm_peak_tpm_output_val = llm_peak_rpm_val * sl_dec_llm
+    llm_peak_tpm_val = llm_peak_tpm_input_val + llm_peak_tpm_output_val
+    llm_sustained_rpm_val = llm_peak_rpm_val / k_sla_for_quota
+    llm_sustained_tpm_val = llm_peak_tpm_val / k_sla_for_quota
+
     return OCRSizingOutput(
         pipeline_used=pipeline,
         t_ocr=round(t_ocr, 4) if t_ocr != float("inf") else float("inf"),
@@ -496,6 +510,15 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
         sla_page_target=inp.sla_page,
         c_peak_used=inp.c_peak,
         lambda_online_used=inp.lambda_online,
+        # Section 9: Gateway quotas
+        ocr_peak_rpm=round(ocr_peak_rpm_val, 2),
+        llm_peak_rpm=round(llm_peak_rpm_val, 2),
+        llm_peak_tpm_input=round(llm_peak_tpm_input_val, 2),
+        llm_peak_tpm_output=round(llm_peak_tpm_output_val, 2),
+        llm_peak_tpm=round(llm_peak_tpm_val, 2),
+        llm_sustained_rpm=round(llm_sustained_rpm_val, 2),
+        llm_sustained_tpm=round(llm_sustained_tpm_val, 2),
+        max_parallel_requests=inp.c_peak,
         gpu_id=inp.gpu_id,
         gpu_mem_gb=inp.gpu_mem_gb,
         gpus_per_server=inp.gpus_per_server,

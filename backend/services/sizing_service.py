@@ -637,6 +637,20 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         else None
     )
 
+    # ── Section 9: Gateway quotas (LiteLLM / shared vLLM rate-limits) ──
+    # Pure demand-side: independent of GPU/server count. Values are conservative
+    # upper bounds suitable for setting tpm/rpm caps on a shared vLLM pool.
+    # See models.SizingOutput field docstrings for formula details.
+    user_request_rate_per_min = Ssim * inp.rps_per_session_R * inp.sla_reserve_KSLA * 60.0
+    peak_rpm_val = user_request_rate_per_min * k_calls
+    peak_tpm_input_val = user_request_rate_per_min * SL_pf
+    peak_tpm_output_val = user_request_rate_per_min * Tdec
+    peak_tpm_val = peak_tpm_input_val + peak_tpm_output_val
+    k_sla = float(inp.sla_reserve_KSLA) if inp.sla_reserve_KSLA > 0 else 1.0
+    sustained_rpm_val = peak_rpm_val / k_sla
+    sustained_tpm_val = peak_tpm_val / k_sla
+    max_parallel_requests_val = math.ceil(Ssim * k_sla)
+
     return SizingOutput(
         # Section 2
         Ssim_concurrent_sessions=Ssim,
@@ -724,6 +738,14 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         sla_recommendations=sla_recommendations,
         # Section 8
         servers_final=servers_final,
+        # Section 9: Gateway quotas
+        peak_rpm=round(peak_rpm_val, 2),
+        peak_tpm_input=round(peak_tpm_input_val, 2),
+        peak_tpm_output=round(peak_tpm_output_val, 2),
+        peak_tpm=round(peak_tpm_val, 2),
+        sustained_rpm=round(sustained_rpm_val, 2),
+        sustained_tpm=round(sustained_tpm_val, 2),
+        max_parallel_requests=max_parallel_requests_val,
         # Context
         gpu_id=inp.gpu_id,
         gpu_mem_gb=inp.gpu_mem_gb,

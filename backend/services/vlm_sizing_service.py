@@ -366,6 +366,17 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
                     n_gpu_multiclass_int / inp.gpus_per_server
                 )
 
+    # Section 9: Gateway quotas. Each "request" is one page; tokens split
+    # into vision+text input and structured-JSON output. K_SLA_multi (default
+    # 1.25) provides peak headroom even in single-class mode.
+    k_sla_for_quota = float(K_SLA_multi_used) if K_SLA_multi_used and K_SLA_multi_used > 0 else 1.25
+    sustained_rpm_val = inp.lambda_online * 60.0
+    peak_rpm_val = sustained_rpm_val * k_sla_for_quota
+    peak_tpm_input_val = peak_rpm_val * sl_pf_vlm
+    peak_tpm_output_val = peak_rpm_val * sl_dec_vlm
+    peak_tpm_val = peak_tpm_input_val + peak_tpm_output_val
+    sustained_tpm_val = peak_tpm_val / k_sla_for_quota
+
     return VLMSizingOutput(
         v_tok=v_tok,
         sl_pf_vlm=sl_pf_vlm,
@@ -419,6 +430,14 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
         eta_vlm_pf_used=inp.eta_vlm_pf,
         c_peak_used=inp.c_peak,
         lambda_online_used=inp.lambda_online,
+        # Section 9: Gateway quotas
+        peak_rpm=round(peak_rpm_val, 2),
+        peak_tpm_input=round(peak_tpm_input_val, 2),
+        peak_tpm_output=round(peak_tpm_output_val, 2),
+        peak_tpm=round(peak_tpm_val, 2),
+        sustained_rpm=round(sustained_rpm_val, 2),
+        sustained_tpm=round(sustained_tpm_val, 2),
+        max_parallel_requests=inp.c_peak,
         gpu_id=inp.gpu_id,
         gpu_mem_gb=inp.gpu_mem_gb,
         gpus_per_server=inp.gpus_per_server,
