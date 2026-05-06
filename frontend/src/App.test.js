@@ -15,9 +15,10 @@ jest.mock("react-joyride", () => {
     joyrideProps = props;
     return <div data-testid="joyride-mock">{props.run ? "running" : "stopped"}</div>;
   };
+  // react-joyride 3.x: `Joyride` is a named export.
   return {
     __esModule: true,
-    default: Joyride,
+    Joyride,
     STATUS: { FINISHED: "finished", SKIPPED: "skipped" },
   };
 });

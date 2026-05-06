@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import Joyride, { STATUS } from "react-joyride";
+// react-joyride 3.x exports `Joyride` as a named export rather than default.
+import { Joyride, STATUS } from "react-joyride";
 import Calculator from "./features/calculator/Calculator";
 import { GITHUB_URL } from "./config";
 import "./App.css";
