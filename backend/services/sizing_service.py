@@ -310,14 +310,65 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     # which reduces required servers. Loop converges within 3-5 iterations
     # for typical workloads; max 10 to handle compute↔memory boundary
     # oscillations.
+    #
+    # Methodology §6.2 / §6.4 step 2 treats Th_pf as **constant** during the
+    # iteration (formula written as `SL_pf/Th_pf` without (BS) argument);
+    # only Th_dec is BS-dependent. This is also what the xlsx and the
+    # reference Python implementation do. We compute Th_pf once at
+    # BS_real^(0) (the initial BS at Servers_mem) and reuse it across
+    # all 10 iterations.
     MAX_ITER = 10
 
+    bs_real_init = (
+        calc_bs_real(Ssim, NcountTP, servers_mem, bs_max=S_TP_z)
+        if servers_mem > 0
+        else 1
+    )
+    if is_moe_detailed:
+        p_eff_pf_init = calc_p_effective(
+            p_dense=float(inp.params_dense),
+            p_moe=float(inp.params_moe),
+            n_experts=int(inp.n_experts),
+            k_experts=int(inp.k_experts),
+            bs_real=bs_real_init + 1,
+        )
+    else:
+        p_eff_pf_init = p_active
+
+    if engine_mode == "continuous":
+        th_pf_mem_at_init = calc_th_prefill_cb_mem(
+            c_pf=int(inp.c_pf or 256),
+            bw_gpu_gbs=bw_gpu if bw_gpu is not None else 0.0,
+            eta_mem=inp.eta_mem,
+            p_effective_at_bs_plus_1=p_eff_pf_init,
+            b_quant=inp.bytes_per_param,
+            mkv_gb=MKV,
+            bs_real=bs_real_init,
+            o_fixed_gb=inp.o_fixed,
+        )
+        th_pf_frozen, mode_prefill_bound_frozen = select_th_prefill(
+            th_pf_compute_branch, th_pf_mem_at_init
+        )
+    else:
+        # 'static' — K_batch formula already BS-independent.
+        th_pf_mem_at_init = 0.0
+        th_pf_frozen = th_pf_compute_branch
+        mode_prefill_bound_frozen = "static"
+
+    # Empirical prefill override wins regardless of engine_mode.
+    if inp.th_prefill_empir:
+        th_pf_frozen = float(inp.th_prefill_empir)
+        mode_prefill_bound_frozen = "empirical"
+
     def _iteration_state(servers_in: int) -> dict:
-        """Compute derived state for one iteration given a server count."""
+        """Compute derived state for one iteration given a server count.
+
+        Per methodology §6.2 / §6.4: Th_pf is frozen across iterations
+        (computed once at BS_real_init); only Th_dec is BS-dependent.
+        """
         bs_r = calc_bs_real(Ssim, NcountTP, servers_in, bs_max=S_TP_z)
-        # P_effective grows with BS for MoE (broader expert coverage).
-        # For prefill in continuous mode: P_eff(BS_real+1) — new prefill
-        # request joins the BS_real decoders.
+        # P_effective grows with BS for MoE (broader expert coverage) —
+        # used in the decode mem-branch denominator.
         if is_moe_detailed:
             p_eff_local = calc_p_effective(
                 p_dense=float(inp.params_dense),
@@ -326,16 +377,8 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
                 k_experts=int(inp.k_experts),
                 bs_real=bs_r,
             )
-            p_eff_pf = calc_p_effective(
-                p_dense=float(inp.params_dense),
-                p_moe=float(inp.params_moe),
-                n_experts=int(inp.n_experts),
-                k_experts=int(inp.k_experts),
-                bs_real=bs_r + 1,
-            )
         else:
             p_eff_local = p_active
-            p_eff_pf = p_active
         # Decode: compute branch per-session, mem branch per-session at BS
         th_dec_cmp_session = th_dec_analyt / bs_r if bs_r > 0 else th_dec_analyt
         th_dec_mem_local = calc_th_decode_mem(
@@ -355,35 +398,8 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
             dec_sel, dec_mode = select_th_decode(th_dec_cmp_session, th_dec_mem_local)
         th_dec_session = dec_sel * inp.k_spec
 
-        # Prefill: in continuous mode, a mem-bound branch competes with compute.
-        # Mem branch depends on BS_real and P_effective(BS_real+1) → must be
-        # recomputed per iteration.
-        if engine_mode == "continuous":
-            th_pf_mem_local = calc_th_prefill_cb_mem(
-                c_pf=int(inp.c_pf or 256),
-                bw_gpu_gbs=bw_gpu if bw_gpu is not None else 0.0,
-                eta_mem=inp.eta_mem,
-                p_effective_at_bs_plus_1=p_eff_pf,
-                b_quant=inp.bytes_per_param,
-                mkv_gb=MKV,
-                bs_real=bs_r,
-                o_fixed_gb=inp.o_fixed,
-            )
-            pf_sel, pf_mode = select_th_prefill(th_pf_compute_branch, th_pf_mem_local)
-        else:
-            # 'static' — no mem branch; legacy K_batch formula stands
-            th_pf_mem_local = 0.0
-            pf_sel = th_pf_compute_branch
-            pf_mode = "static"
-        # Empirical prefill override
-        if inp.th_prefill_empir:
-            th_pf_local = inp.th_prefill_empir
-            pf_mode = "empirical"
-        else:
-            th_pf_local = pf_sel
-
         # C_model with BS_real (uses SL_pf_eff per §7.1)
-        cm = calc_Cmodel(SL_pf_eff, th_pf_local, Tdec, th_dec_session, bs_real=bs_r)
+        cm = calc_Cmodel(SL_pf_eff, th_pf_frozen, Tdec, th_dec_session, bs_real=bs_r)
         th_srv = calc_th_server_comp(NcountTP, cm)
         # P8: amplified rps because each user-session triggers K_calls
         # LLM invocations. effective_R = R · K_calls.
@@ -399,9 +415,9 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
             "th_dec": th_dec_session,
             "mode_decode_bound": dec_mode,
             "th_pf_compute": th_pf_compute_branch,
-            "th_pf_mem": th_pf_mem_local,
-            "th_pf": th_pf_local,
-            "mode_prefill_bound": pf_mode,
+            "th_pf_mem": th_pf_mem_at_init,
+            "th_pf": th_pf_frozen,
+            "mode_prefill_bound": mode_prefill_bound_frozen,
             "cmodel": cm,
             "th_server_comp": th_srv,
             "servers_comp": sc,
