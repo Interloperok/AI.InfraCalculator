@@ -2,6 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens (semantic colours) ──────────────────────────────────── */
+/* All values are RGB triplets without the rgb() wrapper so Tailwind utility
+   classes (`bg-surface`, `text-fg/80`, …) can compose with opacity modifiers. */
+:root {
+  --color-bg: 248 250 252; /* slate-50 — page background */
+  --color-surface: 255 255 255; /* white — cards */
+  --color-elevated: 255 255 255; /* elevated surface */
+  --color-fg: 15 23 42; /* slate-900 — primary text */
+  --color-muted: 71 85 105; /* slate-600 — secondary text */
+  --color-subtle: 148 163 184; /* slate-400 — tertiary / disabled */
+  --color-border: 226 232 240; /* slate-200 — hairlines */
+  --color-border-strong: 203 213 225; /* slate-300 — emphasised borders */
+  --color-accent: 79 70 229; /* indigo-600 — primary accent */
+  --color-accent-fg: 255 255 255; /* text on accent surfaces */
+  --color-accent-soft: 238 242 255; /* indigo-50 — accent backgrounds */
+  --color-success: 5 150 105; /* emerald-600 */
+  --color-success-soft: 209 250 229; /* emerald-100 */
+  --color-warning: 217 119 6; /* amber-600 */
+  --color-warning-soft: 254 243 199; /* amber-100 */
+  --color-danger: 220 38 38; /* red-600 */
+  --color-danger-soft: 254 226 226; /* red-100 */
+  --color-info: 14 165 233; /* sky-500 */
+  --color-info-soft: 224 242 254; /* sky-100 */
+}
+
+.dark {
+  --color-bg: 9 11 19; /* near-black — page background */
+  --color-surface: 17 22 33; /* slate-900-ish — cards */
+  --color-elevated: 24 30 44; /* one level above surface */
+  --color-fg: 241 245 249; /* slate-100 — primary text */
+  --color-muted: 148 163 184; /* slate-400 — secondary text */
+  --color-subtle: 100 116 139; /* slate-500 — tertiary */
+  --color-border: 30 41 59; /* slate-800 — hairlines */
+  --color-border-strong: 51 65 85; /* slate-700 */
+  --color-accent: 129 140 248; /* indigo-400 — primary accent */
+  --color-accent-fg: 15 23 42; /* dark text on accent for legibility */
+  --color-accent-soft: 30 27 75; /* indigo-950 */
+  --color-success: 52 211 153; /* emerald-400 */
+  --color-success-soft: 6 78 59; /* emerald-900 */
+  --color-warning: 251 191 36; /* amber-400 */
+  --color-warning-soft: 120 53 15; /* amber-900 */
+  --color-danger: 248 113 113; /* red-400 */
+  --color-danger-soft: 127 29 29; /* red-900 */
+  --color-info: 56 189 248; /* sky-400 */
+  --color-info-soft: 12 74 110; /* sky-900 */
+}
+
+html {
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-fg));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-fg));
+}
+
+/* Smooth theme transitions but exclude properties that would jitter */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 /* Custom styles for sliders - unified height and appearance */
 input[type="range"] {
   -webkit-appearance: none;
@@ -18,7 +89,7 @@ input[type="range"]::-webkit-slider-runnable-track {
   width: 100%;
   height: 8px;
   border-radius: 4px;
-  background: #bfdbfe; /* bg-blue-200 */
+  background: rgb(var(--color-border-strong));
   cursor: pointer;
 }
 
@@ -29,7 +100,7 @@ input[type="range"]::-webkit-slider-thumb {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #2563eb; /* accent-blue-600 */
+  background: rgb(var(--color-accent));
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   margin-top: -6px; /* Centers thumb on track */
@@ -40,7 +111,7 @@ input[type="range"]::-moz-range-track {
   width: 100%;
   height: 8px;
   border-radius: 4px;
-  background: #bfdbfe; /* bg-blue-200 */
+  background: rgb(var(--color-border-strong));
   cursor: pointer;
   border: none;
 }
@@ -50,7 +121,7 @@ input[type="range"]::-moz-range-thumb {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #2563eb; /* accent-blue-600 */
+  background: rgb(var(--color-accent));
   cursor: pointer;
   border: none;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);

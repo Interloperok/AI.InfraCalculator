@@ -1,8 +1,18 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 // react-joyride 3.x exports `Joyride` as a named export rather than default.
 import { Joyride, STATUS } from "react-joyride";
+import {
+  BookOpen,
+  Compass,
+  Cpu,
+  Github,
+  Star,
+} from "lucide-react";
 import Calculator from "./features/calculator/Calculator";
 import { GITHUB_URL } from "./config";
+import LanguageToggle from "./components/LanguageToggle";
+import ThemeToggle from "./components/ThemeToggle";
+import { useT } from "./contexts/I18nContext";
 import "./App.css";
 
 const APP_VERSION = "1.3.0";
@@ -374,6 +384,7 @@ const TOUR_STYLES_MOBILE = {
 };
 
 function App() {
+  const t = useT();
   const [runTour, setRunTour] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
   // Tour mode is set when the tour starts, based on the active calculator mode
@@ -543,8 +554,20 @@ function App() {
     day: "numeric",
   });
 
+  const startTour = () => {
+    const calcMode = getStoredCalculatorMode();
+    setTourMode(calcMode);
+    setTourStepIndex(0);
+    setRunTour(true);
+    if (isMobileTour) {
+      document
+        .querySelector(".swipe-panels")
+        ?.scrollTo({ left: 0, behavior: "smooth" });
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+    <div className="min-h-screen bg-bg text-fg flex flex-col">
       <Joyride
         steps={(() => {
           if (tourMode === "vlm")
@@ -572,132 +595,83 @@ function App() {
         }}
       />
 
-      {/* Main content */}
-      <div className="container mx-auto px-4 py-8 flex-1">
-        <header className="mb-12 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 mb-4 header-icon">
-            <svg
-              className="w-8 h-8 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
-              />
-            </svg>
-          </div>
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">AI Infrastructure Calculator</h1>
-          <p className="text-lg text-gray-500 mb-4">
-            Find out how many servers and GPUs you need for your AI models
-          </p>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 sm:gap-3 max-w-xs sm:max-w-none mx-auto">
-            {/* 1 — Take a Tour (per-mode tour: LLM by default, VLM in VLM mode) */}
-            <button
-              onClick={() => {
-                const calcMode = getStoredCalculatorMode();
-                setTourMode(calcMode);
-                setTourStepIndex(0);
-                setRunTour(true);
-                if (isMobileTour) {
-                  document
-                    .querySelector(".swipe-panels")
-                    ?.scrollTo({ left: 0, behavior: "smooth" });
-                }
-              }}
-              className="tour-btn-pulse inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium rounded-lg border border-indigo-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-200 whitespace-nowrap"
-            >
-              <svg
-                className="w-4 h-4 shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+      {/* Sticky top bar — modern compact layout, brand + mode toggles + theme/lang */}
+      <header className="sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-bg/75 bg-bg border-b border-border">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="flex h-14 items-center justify-between gap-3">
+            {/* Brand */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-accent-fg shadow-sm">
+                <Cpu className="h-4 w-4" strokeWidth={2.25} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold leading-tight text-fg truncate">
+                  {t("app.title")}
+                </p>
+                <p className="text-[11px] leading-tight text-muted truncate hidden sm:block">
+                  {t("app.subtitle")}
+                </p>
+              </div>
+            </div>
+
+            {/* Action group */}
+            <div className="flex items-center gap-1.5 sm:gap-2.5">
+              <button
+                onClick={startTour}
+                title={t("app.tour.start")}
+                className="hidden sm:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full border border-border bg-surface text-muted hover:text-fg hover:border-border-strong text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                />
-              </svg>
-              <span>Take a Tour</span>
-            </button>
-            {/* 2 — Star on GitHub */}
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-tour="github-btn"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 group whitespace-nowrap"
-            >
-              <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"
-                />
-              </svg>
-              <svg
-                className="w-4 h-4 text-amber-400 group-hover:scale-125 transition-transform duration-200 shrink-0"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
-              <span>Star on GitHub</span>
-            </a>
-            {/* 3 — Documentation: on mobile → external link, on desktop → drawer */}
-            {isMobile ? (
+                <Compass className="h-3.5 w-3.5" strokeWidth={2.25} />
+                <span>{t("app.tour.start")}</span>
+              </button>
+
+              {isMobile ? (
+                <a
+                  href={GOOGLE_DOCS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-tour="docs-btn"
+                  title={t("app.docs")}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-muted hover:text-fg hover:border-border-strong transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  <BookOpen className="h-3.5 w-3.5" strokeWidth={2.25} />
+                </a>
+              ) : (
+                <button
+                  onClick={() => setDocsOpen(true)}
+                  data-tour="docs-btn"
+                  title={t("app.docs")}
+                  className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full border border-border bg-surface text-muted hover:text-fg hover:border-border-strong text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  <BookOpen className="h-3.5 w-3.5" strokeWidth={2.25} />
+                  <span>{t("app.docs")}</span>
+                </button>
+              )}
+
               <a
-                href={GOOGLE_DOCS_URL}
+                href={GITHUB_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                data-tour="docs-btn"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-600 text-sm font-medium rounded-lg border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200 whitespace-nowrap"
+                data-tour="github-btn"
+                title={t("app.github")}
+                className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full border border-border bg-surface text-muted hover:text-fg hover:border-border-strong text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent group"
               >
-                <svg
-                  className="w-4 h-4 shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                  />
-                </svg>
-                <span>Documentation</span>
+                <Github className="h-3.5 w-3.5" strokeWidth={2.25} />
+                <span className="hidden sm:inline">{t("app.github")}</span>
+                <Star className="h-3 w-3 text-warning fill-warning opacity-70 group-hover:opacity-100 transition-opacity hidden sm:inline" />
               </a>
-            ) : (
-              <button
-                onClick={() => setDocsOpen(true)}
-                data-tour="docs-btn"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-600 text-sm font-medium rounded-lg border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200 whitespace-nowrap"
-              >
-                <svg
-                  className="w-4 h-4 shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                  />
-                </svg>
-                <span>Documentation</span>
-              </button>
-            )}
-          </div>
-        </header>
 
+              <span className="hidden sm:block h-6 w-px bg-border" aria-hidden />
+
+              <LanguageToggle />
+              <ThemeToggle />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-10 flex-1">
         <div className="max-w-7xl mx-auto">
           <Calculator />
         </div>
@@ -708,7 +682,7 @@ function App() {
         <div className="fixed inset-0 z-[9999] pointer-events-none">
           {/* Panel — only this receives clicks */}
           <div
-            className="absolute right-0 top-0 h-full bg-white shadow-2xl flex flex-col docs-drawer pointer-events-auto"
+            className="absolute right-0 top-0 h-full bg-surface text-fg shadow-elevated flex flex-col docs-drawer pointer-events-auto"
             style={{ width: Math.min(drawerWidth, window.innerWidth * 0.92) }}
           >
             {/* Drag handle — left edge */}
@@ -717,36 +691,23 @@ function App() {
               className="absolute left-0 top-0 h-full w-2 cursor-col-resize z-10 group"
               title="Drag to resize"
             >
-              <div className="absolute left-0 top-0 h-full w-1 bg-transparent group-hover:bg-indigo-400/50 transition-colors" />
+              <div className="absolute left-0 top-0 h-full w-1 bg-transparent group-hover:bg-accent/50 transition-colors" />
             </div>
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
               <div className="flex items-center gap-2">
-                <svg
-                  className="w-5 h-5 text-emerald-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                  />
-                </svg>
-                <h2 className="text-lg font-semibold text-gray-800">Documentation</h2>
+                <BookOpen className="h-4 w-4 text-accent" strokeWidth={2.25} />
+                <h2 className="text-base font-semibold text-fg">{t("app.docs")}</h2>
               </div>
               <div className="flex items-center gap-2">
-                {/* Open in Google Docs */}
                 <a
                   href={GOOGLE_DOCS_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted hover:text-accent hover:bg-accent-soft rounded-md transition-colors"
                   title="Open in Google Docs"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -756,13 +717,13 @@ function App() {
                   </svg>
                   <span>Open in Google Docs</span>
                 </a>
-                {/* Close */}
                 <button
                   onClick={() => setDocsOpen(false)}
-                  className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="p-1.5 rounded-md text-muted hover:text-fg hover:bg-elevated transition-colors"
                   title="Close (Esc)"
+                  aria-label="Close"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -788,51 +749,30 @@ function App() {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white/60 backdrop-blur-sm mt-12">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-            {/* Left side */}
+      {/* Footer — minimal, semantic tokens */}
+      <footer className="border-t border-border bg-bg/60 backdrop-blur-sm mt-12">
+        <div className="container mx-auto px-4 sm:px-6 py-5">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted">
             <div className="flex items-center gap-2">
-              <span>&copy; {currentYear} AI Infrastructure Calculator</span>
-              <span className="text-gray-300">|</span>
-              <span className="px-1.5 py-0.5 bg-gray-200 text-gray-600 text-xs font-mono rounded">
+              <span>&copy; {currentYear} {t("app.title")}</span>
+              <span className="text-subtle">·</span>
+              <span className="px-1.5 py-0.5 bg-elevated text-muted text-[11px] font-mono rounded">
                 v{APP_VERSION}
               </span>
-              <span className="text-gray-300">|</span>
-              <span>{buildDate}</span>
+              <span className="text-subtle hidden sm:inline">·</span>
+              <span className="hidden sm:inline">{buildDate}</span>
             </div>
-
-            {/* Center */}
-            <div className="flex items-center gap-1 text-gray-400">
-              <span>Built with</span>
-              <svg className="w-4 h-4 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>using React & Tailwind</span>
-            </div>
-
-            {/* Right side — GitHub link */}
             <div className="flex items-center gap-3">
+              <span className="hidden sm:inline text-subtle">{t("app.footer.builtWith")}</span>
               <a
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-800 transition-colors"
-                title="View on GitHub"
+                className="inline-flex items-center gap-1.5 hover:text-fg transition-colors"
+                title={t("app.github")}
               >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"
-                  />
-                </svg>
-                <span className="text-sm">GitHub</span>
+                <Github className="h-3.5 w-3.5" strokeWidth={2.25} />
+                <span>{t("app.github")}</span>
               </a>
             </div>
           </div>
