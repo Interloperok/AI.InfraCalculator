@@ -116,18 +116,20 @@ EXCEL_EXPECTED = dict(
     # Section 6
     FPS=64_000_000_000.0,  # 2 × 32 × 10⁹
     Tdec=400.0,  # A + MRT = 400 + 0
-    Fcount_model_tflops=312.0,  # 1 × 312
-    # P7: engine_mode='continuous' default (vLLM/SGLang/TGI), no K_batch boost on prefill.
-    # th_pf_continuous = 944.06 vs th_pf_static_with_kbatch = 8563.06 (9.36× ratio).
-    th_prefill=944.0648819483175,
-    th_dec_compute_instance=6402.657929509471,  # raw analytical compute branch (instance-level)
-    th_decode=112.32733209665739,  # per-session at converged BS=57
-    BS_real=57,  # min(S_TP_z=57, ceil(2500/(2*22))=57) — memory-tight
+    # P14: F_count_model = gpu_per_inst · flops_gpu = (Z·GPUcount_model)·gpu_tflops
+    # = 4·1·312 = 1248 TFLOPS per TP-model instance (matches xlsx llm_calc/sizing.py:402
+    # and methodology §6.1 row 70). Earlier the web used GPUcount_model alone
+    # (no Z multiplier), understating throughput by Z×.
+    Fcount_model_tflops=1248.0,
+    # P7+P14: engine_mode='continuous' default; F_count now Z-multiplied.
+    th_prefill=3776.25952779327,
+    th_dec_compute_instance=25610.6317,  # raw compute branch at TP-instance
+    th_decode=449.30932838662955,  # per-session at converged BS=57
+    BS_real=57,  # min(S_TP_z=57, ceil(2500/(2·22))=57) — memory-tight
     iteration_count=2,
-    # P4+P7: Cmodel shifts because Th_pf dropped (less compute headroom for prefill in cb mode)
-    Cmodel=10.036060155414875,
-    th_server_comp=20.07212031082975,  # NcountTP=2 × Cmodel
-    Servers_comp=4,  # ceil(2500 × 0.02 × 1.25 / 20.07) = ceil(3.11) = 4
+    Cmodel=40.1442406216595,
+    th_server_comp=80.288481243319,  # NcountTP=2 × Cmodel
+    Servers_comp=1,  # ceil(2500 × 0.02 × 1.25 / 80.29) = ceil(0.78) = 1
     # Section 8
     Servers_final=22,
 )
@@ -245,19 +247,20 @@ class TestSection6Compute:
     def test_th_prefill_analyt(self):
         # calc_th_prefill_analyt is the static-batching form (with K_batch).
         # With engine_mode='continuous' (default in the pipeline), this isn't used.
-        # Tests that the formula itself produces the expected v2 value (8563.06).
-        Fcount_flops = 312 * 1e12 * 1  # 312 TFLOPS × 1 GPU
+        # P14: F_count = gpu_per_inst · gpu_tflops = (Z·GPUcount_model)·gpu_tflops
+        # = 4·1·312·1e12 (matches xlsx llm_calc/sizing.py:402, methodology §6.1).
+        Fcount_flops = 312 * 1e12 * 4  # 312 TFLOPS × Z·GPUcount_model = 4 GPUs
         result = calc_th_prefill_analyt(
             Fcount_flops, 0.20, EXCEL_EXPECTED["Kbatch"], 64e9, 64, 4096, 4000
         )
-        # Pre-P7 EXCEL_EXPECTED["th_prefill"] used to be 8563; now it's 944 (continuous).
-        # The static formula independently still gives 8563.06.
-        assert result == pytest.approx(8563.064721739373, rel=1e-4)
+        # Static formula gives 4× the per-instance value: 4·8563.06 ≈ 34252.26.
+        assert result == pytest.approx(34252.25888695749, rel=1e-4)
 
     def test_th_decode_analyt(self):
-        # calc_th_decode_analyt is the instance-level compute branch (raw).
+        # calc_th_decode_analyt is the TP-instance compute branch (raw).
         # Per-session (used in C_model post-P4) divides this by BS_real.
-        Fcount_flops = 312 * 1e12 * 1
+        # P14: F_count Z-multiplied per methodology §6.1.
+        Fcount_flops = 312 * 1e12 * 4
         result = calc_th_decode_analyt(
             Fcount_flops, 0.15, EXCEL_EXPECTED["Kbatch"], 64e9, 64, 4096, 4000, 400
         )

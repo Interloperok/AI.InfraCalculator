@@ -232,11 +232,17 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     FPS = calc_FPS(p_active)
     Tdec = calc_Tdec(inp.answer_tokens_A, inp.reasoning_tokens_MRT)
 
-    # Определяем Fcount_model (FLOPS для GPU, выделенных под 1 экземпляр модели)
+    # Determine Fcount_model — peak FLOPS per TP-model instance (methodology §6.1
+    # row 70 "пиковая производительность GPU с учётом их количества на 1
+    # экземпляр модели"). Per the xlsx (llm_calc/sizing.py:402) and the
+    # reference Python implementation, this is `gpu_per_inst · flops_gpu`
+    # where `gpu_per_inst = Z · GPUcount_model`. Earlier the web used
+    # just `GPUcount_model` (per-instance pre-TP) — that understated
+    # throughput by Z× for TP>1 deployments.
     gpu_tflops = inp.gpu_flops_Fcount
     if gpu_tflops is None:
         gpu_tflops = lookup_gpu_tflops(inp.gpu_id, inp.gpu_mem_gb)
-    Fcount_model_flops = gpu_tflops * 1e12 * GPUcount_model if gpu_tflops > 0 else 0.0
+    Fcount_model_flops = gpu_tflops * 1e12 * GPUcount_z if gpu_tflops > 0 else 0.0
 
     # Аналитические throughput
     # P7: Engine mode determines prefill compute branch.
@@ -661,7 +667,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         servers_by_memory=servers_mem,
         # Section 6
         gpu_tflops_used=gpu_tflops,
-        Fcount_model_tflops=gpu_tflops * GPUcount_model if gpu_tflops > 0 else 0.0,
+        Fcount_model_tflops=gpu_tflops * GPUcount_z if gpu_tflops > 0 else 0.0,
         FPS_flops_per_token=FPS,
         p_active_used=p_active,
         p_effective_used=round(p_effective, 4),
