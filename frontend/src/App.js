@@ -444,9 +444,10 @@ function App() {
         }
       };
 
-      // Joyride 3.x can emit `type: "tour:end"` and / or `action: "skip"|"reset"|"close"`
-      // before the status flips to FINISHED/SKIPPED — handle all of them so the
-      // overlay doesn't get stuck dimming the page.
+      // Reset only on terminal events. `action === "reset"` is also fired
+      // by Joyride right after `run: true` flips on (it clears state from
+      // the previous run) — closing on that would tear the tour down
+      // immediately and the user would see nothing.
       const closeTour = () => {
         setRunTour(false);
         setTourStepIndex(0);
@@ -455,19 +456,13 @@ function App() {
         restoreSwipe();
       };
 
-      if (
-        [STATUS.FINISHED, STATUS.SKIPPED, "skipped", "finished", "paused"].includes(status) ||
-        type === "tour:end" ||
-        action === "skip" ||
-        action === "reset" ||
-        action === "close"
-      ) {
+      if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status) || type === "tour:end") {
         closeTour();
         return;
       }
 
       if (type === "step:after") {
-        if (action === "close") {
+        if (action === "close" || action === "skip") {
           closeTour();
           return;
         }

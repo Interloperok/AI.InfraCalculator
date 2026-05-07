@@ -1379,17 +1379,19 @@ const CalculatorForm = ({
 
     return (
       <div className={`mb-6 ${disabled ? "opacity-50 pointer-events-none" : ""}`} key={name}>
-        <div className="flex justify-between items-center mb-2">
-          <label className="block text-sm font-medium text-fg flex items-center">
-            {label}
+        <div className="flex justify-between items-center gap-3 mb-2">
+          <label className="text-sm font-medium text-fg flex items-center min-w-0">
+            <span className="truncate">{label}</span>
             {disabled && (
-              <span className="ml-1.5 text-xs text-warning bg-warning-soft px-1.5 py-0.5 rounded font-normal">
-                auto
+              <span className="ml-1.5 text-xs text-warning bg-warning-soft px-1.5 py-0.5 rounded font-normal shrink-0">
+                {t("form.input.auto")}
               </span>
             )}
             {tooltip && <InfoTooltip text={tooltip} />}
           </label>
-          <div className="flex items-center space-x-2">
+          {/* Fixed-width input slot: every row's number box renders at the
+              same x-axis position regardless of label length or unit suffix. */}
+          <div className="flex items-center gap-1.5 shrink-0 w-[120px] justify-end">
             <input
               type="number"
               min={min}
@@ -1398,11 +1400,15 @@ const CalculatorForm = ({
               value={value}
               onChange={handleInputChange}
               disabled={disabled}
-              className={`px-2 py-1 text-sm border border-border-strong rounded-md text-right bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent ${max >= 1000000 ? "w-32" : max >= 10000 ? "w-28" : "w-20"} ${disabled ? "bg-elevated text-subtle" : ""}`}
+              className={`px-2 py-1 text-sm border border-border-strong rounded-md text-right bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent w-full ${disabled ? "bg-elevated text-subtle" : ""}`}
               inputMode={isInteger ? "numeric" : "decimal"}
               placeholder="0"
             />
-            <span className="text-sm text-muted font-medium">{unit}</span>
+            {unit && (
+              <span className="text-xs text-muted font-medium w-7 shrink-0 text-left">
+                {unit}
+              </span>
+            )}
           </div>
         </div>
         <input
