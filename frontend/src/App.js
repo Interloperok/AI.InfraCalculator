@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-// react-joyride 3.x exports `Joyride` as a named export rather than default.
-import { Joyride, STATUS } from "react-joyride";
+import Joyride, { STATUS } from "react-joyride";
 import {
   BookOpen,
   Compass,
