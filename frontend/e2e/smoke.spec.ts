@@ -114,7 +114,13 @@ test("smoke: open app and run single sizing calculation", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: "Calculation Results" })).toBeVisible();
   await expect(page.getByText("Infrastructure Required")).toBeVisible();
-  await expect(page.getByText(/max\(mem:/)).toContainText("22");
+  // Infrastructure tile carries the mem/compute breakdown in its native
+  // browser title attribute (hover tooltip) — assert against that, not
+  // visible text.
+  await expect(page.locator('[title^="max(mem:"]').first()).toHaveAttribute(
+    "title",
+    /22/,
+  );
 });
 
 test("smoke: auto-optimize mode renders optimization table", async ({ page }) => {

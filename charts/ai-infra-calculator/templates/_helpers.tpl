@@ -72,4 +72,3 @@ Frontend full name (release-scoped).
 {{- define "ai-infra-calculator.frontendFullname" -}}
 {{- printf "%s-frontend" (include "ai-infra-calculator.fullname" .) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
-
