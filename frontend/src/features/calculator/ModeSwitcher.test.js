@@ -8,11 +8,11 @@ describe("ModeSwitcher", () => {
     render(<ModeSwitcher mode="llm" onChange={onChange} />);
 
     expect(screen.getByText("LLM")).toBeInTheDocument();
-    expect(screen.getByText("VLM")).toBeInTheDocument();
+    expect(screen.getByText("OCR (VLM)")).toBeInTheDocument();
     expect(screen.getByText("OCR + LLM")).toBeInTheDocument();
 
     const llmButton = screen.getByRole("button", { name: /^LLM$/ });
-    const vlmButton = screen.getByRole("button", { name: /^VLM$/ });
+    const vlmButton = screen.getByRole("button", { name: "OCR (VLM)" });
     expect(llmButton).toHaveAttribute("aria-pressed", "true");
     expect(vlmButton).toHaveAttribute("aria-pressed", "false");
   });
@@ -21,7 +21,7 @@ describe("ModeSwitcher", () => {
     const onChange = jest.fn();
     render(<ModeSwitcher mode="llm" onChange={onChange} />);
 
-    fireEvent.click(screen.getByText("VLM"));
+    fireEvent.click(screen.getByText("OCR (VLM)"));
     expect(onChange).toHaveBeenCalledWith("vlm");
 
     fireEvent.click(screen.getByText("OCR + LLM"));

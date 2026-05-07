@@ -279,10 +279,10 @@ const AGENTIC_PRESETS = [
 // ── Presets ──
 const PRESETS = [
   {
-    id: "excel_32b_500k",
-    name: "32B / 500K users",
+    id: "excel_32b_100k",
+    name: "32B / 100K users",
     subtitle: "A100 80GB  |  Z = 4",
-    description: "Reference example from Excel calculator (MRT=0, 23 servers)",
+    description: "Reference example from Excel calculator (MRT=0)",
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -306,8 +306,8 @@ const PRESETS = [
       cores: 6912,
     },
     data: {
-      internal_users: 500000,
-      penetration_internal: 0.1,
+      internal_users: 100000,
+      penetration_internal: 0.5,
       concurrency_internal: 0.05,
       external_users: 0,
       penetration_external: 0.0,

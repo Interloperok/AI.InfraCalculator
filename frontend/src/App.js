@@ -12,7 +12,7 @@ import Calculator from "./features/calculator/Calculator";
 import { GITHUB_URL } from "./config";
 import LanguageToggle from "./components/LanguageToggle";
 import ThemeToggle from "./components/ThemeToggle";
-import { useT } from "./contexts/I18nContext";
+import { useI18n, useT } from "./contexts/I18nContext";
 import "./App.css";
 
 const APP_VERSION = "1.3.0";
@@ -385,6 +385,7 @@ const TOUR_STYLES_MOBILE = {
 
 function App() {
   const t = useT();
+  const { locale } = useI18n();
   const [runTour, setRunTour] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
   // Tour mode is set when the tour starts, based on the active calculator mode
@@ -596,17 +597,21 @@ function App() {
         showSkipButton
         showProgress
         scrollToFirstStep
-        disableOverlayClose
+        // Don't dim the page. The dimming overlay sometimes refuses to
+        // unmount in Joyride 3.x, leaving the UI un-clickable until refresh
+        // — we never need it for this product anyway, the tooltip alone is
+        // enough to walk the user through.
+        disableOverlay
+        disableScrolling
+        spotlightClicks
         disableScrollParentFix
         callback={handleTourCallback}
         styles={isMobileTour ? TOUR_STYLES_MOBILE : TOUR_STYLES}
-        locale={{
-          back: "Back",
-          close: "Close",
-          last: "Finish",
-          next: "Next",
-          skip: "Skip tour",
-        }}
+        locale={
+          locale === "ru"
+            ? { back: "Назад", close: "Закрыть", last: "Готово", next: "Далее", skip: "Пропустить" }
+            : { back: "Back", close: "Close", last: "Finish", next: "Next", skip: "Skip tour" }
+        }
       />
 
       {/* Sticky top bar — modern compact layout, brand + mode toggles + theme/lang */}

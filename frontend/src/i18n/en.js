@@ -26,8 +26,8 @@ const en = {
   "mode.label": "Calculator mode",
   "mode.llm": "LLM",
   "mode.llm.subtitle": "Chat & completion",
-  "mode.vlm": "VLM",
-  "mode.vlm.subtitle": "Image → structured JSON",
+  "mode.vlm": "OCR (VLM)",
+  "mode.vlm.subtitle": "Image → JSON",
   "mode.ocr": "OCR + LLM",
   "mode.ocr.subtitle": "Two-pass extraction",
 

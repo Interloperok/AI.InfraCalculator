@@ -22,7 +22,7 @@ const ru = {
   "mode.label": "Режим калькулятора",
   "mode.llm": "LLM",
   "mode.llm.subtitle": "Чат / completion",
-  "mode.vlm": "VLM",
+  "mode.vlm": "OCR (VLM)",
   "mode.vlm.subtitle": "Картинка → JSON",
   "mode.ocr": "OCR + LLM",
   "mode.ocr.subtitle": "Двухстадийный",

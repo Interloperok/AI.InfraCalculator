@@ -151,34 +151,29 @@ const SelectInput = ({ name, label, value, options, onChange }) => (
   </div>
 );
 
-const SECTION_STYLES = {
-  blue: {
-    container: "rounded-lg p-4 border bg-info-soft border-info/30",
-    heading: "text-sm font-semibold text-info mb-3 uppercase tracking-wider",
-  },
-  emerald: {
-    container: "rounded-lg p-4 border bg-success-soft border-success/30",
-    heading: "text-sm font-semibold text-success mb-3 uppercase tracking-wider",
-  },
-  purple: {
-    container: "rounded-lg p-4 border bg-accent-soft border-accent/30",
-    heading: "text-sm font-semibold text-accent mb-3 uppercase tracking-wider",
-  },
-  amber: {
-    container: "rounded-lg p-4 border bg-warning-soft border-warning/30",
-    heading: "text-sm font-semibold text-warning mb-3 uppercase tracking-wider",
-  },
-  rose: {
-    container: "rounded-lg p-4 border bg-danger-soft border-danger/30",
-    heading: "text-sm font-semibold text-danger mb-3 uppercase tracking-wider",
-  },
+// Section ID picks a coloured dot accent only — card body is neutral so
+// contrast works in both light and dark modes. Visual language matches
+// the LLM CalculatorForm sections (single row of dot + uppercase muted
+// heading on a bg-surface card).
+const SECTION_DOTS = {
+  blue: "bg-info",
+  emerald: "bg-success",
+  purple: "bg-accent",
+  amber: "bg-warning",
+  rose: "bg-danger",
 };
 
 const Section = ({ title, color = "blue", dataTour, children }) => {
-  const styles = SECTION_STYLES[color] || SECTION_STYLES.blue;
+  const dot = SECTION_DOTS[color] || SECTION_DOTS.blue;
   return (
-    <div className={styles.container} data-tour={dataTour}>
-      <h4 className={styles.heading}>{title}</h4>
+    <div
+      className="rounded-xl p-5 border border-border bg-surface shadow-card"
+      data-tour={dataTour}
+    >
+      <h4 className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-3">
+        <span className={`h-2 w-2 rounded-full ${dot}`} aria-hidden />
+        {title}
+      </h4>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{children}</div>
     </div>
   );

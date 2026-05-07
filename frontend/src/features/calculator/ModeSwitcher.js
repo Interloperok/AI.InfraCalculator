@@ -12,7 +12,7 @@ export const CALCULATOR_MODES = [
   },
   {
     id: "vlm",
-    label: "VLM",
+    label: "OCR (VLM)",
     subtitle: "Image → structured JSON",
     description:
       "Single-pass vision-language model. Sizing driven by pages/sec and per-page SLA.",
