@@ -197,9 +197,7 @@ const ru = {
     "Найдите модель в Hugging Face для автозаполнения параметров архитектуры — или задайте их вручную во вкладке «Расширенные».",
   "form.section.kv": "KV-кэш",
   "form.section.hardware": "Оборудование",
-  "form.section.compute": "Вычисления",
   "form.section.sla": "SLA",
-  "form.section.agentic": "Агентный / RAG",
   "form.preset.select": "Выбрать пресет",
   "form.search.model": "Поиск модели в Hugging Face",
   "form.search.placeholder": "Поиск модели (например, llama, gpt и т. п.)",
@@ -368,6 +366,25 @@ const ru = {
   "vlmForm.promptTokens": "Токены промпта (текст)",
   "vlmForm.modelTitle": "VLM-модель",
   "vlmForm.submit": "Рассчитать сайзинг VLM",
+  // Подсказки полей
+  "vmForm.pagesPerSecond.tooltip":
+    "Средняя нагрузка на извлечение (страниц в секунду), которую система должна устойчиво держать на длинном горизонте.",
+  "vmForm.peakConcurrent.tooltip":
+    "Пик одновременно обрабатываемых страниц — всплеск, который система должна выдержать без выхода за SLA.",
+  "vmForm.slaPerPage.tooltip":
+    "Целевая латентность на страницу (p95). Весь конвейер должен вернуть JSON одной страницы за это время.",
+  "vlmForm.imageWidth.tooltip":
+    "Ширина изображения страницы в пикселях в том разрешении, в котором её получает VLM. Больше страница — больше визуальных токенов — медленнее prefill.",
+  "vlmForm.imageHeight.tooltip":
+    "Высота изображения страницы в пикселях. Вместе с шириной и patch size определяет число визуальных токенов от энкодера.",
+  "vlmForm.patchSize.tooltip":
+    "Сторона патча (в пикселях), который vision-encoder делает одним токеном. Число визуальных токенов = ⌈W/patch⌉·⌈H/patch⌉. По умолчанию ≈ 28 для Qwen2.5-VL; точное значение — в processor_config модели.",
+  "vlmForm.promptTokens.tooltip":
+    "Токены текстового промпта, отправляемого вместе с изображением (system-инструкция + схема извлечения). Добавляются к длине prefill.",
+  "vmForm.jsonFields.tooltip":
+    "Сколько полей модель извлекает на страницу в JSON-ответе. Больше полей — длиннее ответ — больше времени на decode.",
+  "vmForm.tokensPerField.tooltip":
+    "Среднее число токенов на поле в ответе. Умножается на количество полей для оценки общей длины decode.",
 
   // ── OCR form ────────────────────────────────────────────────────────
   "ocrForm.pipelineTitle": "OCR-конвейер",
@@ -396,6 +413,48 @@ const ru = {
   "ocrForm.errOcrCore":
     "Для конвейера ocr_cpu обязательна пропускная способность OCR-ядра (страниц/с/ядро)",
   "ocrForm.errOcrCores": "Для конвейера ocr_cpu число CPU-ядер OCR должно быть ≥ 1",
+  // Подсказки полей OCR
+  "ocrForm.throughputGpu.tooltip":
+    "Сколько страниц в секунду способен обрабатывать один OCR-GPU процесс (по эмпирическим замерам PaddleOCR-GPU / EasyOCR-GPU). Определяет размер OCR-пула.",
+  "ocrForm.poolUtilisation.tooltip":
+    "Целевая средняя загрузка OCR-GPU пула. 0.7–0.85 оставляет запас на пики; ближе к 1.0 — риск очередей и срыва SLA.",
+  "ocrForm.throughputCore.tooltip":
+    "Сколько страниц в секунду OCRит одно CPU-ядро (например, Tesseract). Определяет число CPU-ядер для конвейера ocr_cpu.",
+  "ocrForm.cpuCores.tooltip":
+    "Число CPU-ядер, выделенных на OCR-этап. Для режима ocr_cpu должно быть ≥ 1.",
+  "ocrForm.handoff.tooltip":
+    "Фиксированное время передачи результата OCR на LLM-этап (сетевой round-trip, сериализация JSON, очередь). Вычитается из бюджета SLA на страницу.",
+  "ocrForm.charsPerPage.tooltip":
+    "Среднее число распознанных символов на страницу. Вместе с символов/токен даёт длину входа на LLM-этап.",
+  "ocrForm.charsPerToken.tooltip":
+    "Степень компрессии токенизатора (символов на токен). Типично: ≈4 для английского, ≈2.8 для русского, 3.5 для смешанного текста.",
+  "ocrForm.sysPromptTokens.tooltip":
+    "Статический system-prompt, добавляемый ко входу LLM на каждой странице. Добавляется к длине LLM prefill.",
+
+  // ── LLM, вкладка Advanced: заголовки секций + подсказки ─────────────
+  "form.section.modelArch": "Архитектура модели",
+  "form.section.modelArchTooltip":
+    "Базовые параметры архитектуры, определяющие, сколько памяти модель занимает на GPU.",
+  "form.section.userBehavior": "Поведение пользователей",
+  "form.section.userBehaviorTooltip":
+    "Сколько пользователей одновременно активны и как они формируют нагрузку.",
+  "form.section.tokenBudget": "Бюджет токенов",
+  "form.section.tokenBudgetTooltip":
+    "Размеры токенов, описывающие типичный запрос и диалог. Определяют требования к памяти и вычислениям.",
+  "form.section.agentic": "Agentic / RAG / Tool-Use",
+  "form.section.agenticTooltip":
+    "Многовызовные архитектуры: ReAct, RAG, function calling, мульти-агент. Задаёт K_calls, оверхед инструментов и RAG-контекст. При K_calls=1 и нулевых оверхедах сводится к одношаговому диалогу.",
+  "form.section.kvCache": "KV-кеш",
+  "form.section.kvCacheTooltip":
+    "KV-кеш хранит состояния attention для каждой сессии. Больше контекст и больше сессий — больше памяти GPU.",
+  "form.section.compute": "Вычисления и пропускная способность",
+  "form.section.computeTooltip":
+    "Оценка вычислительной мощности GPU и пропускной способности. Определяет, сколько запросов держит один сервер.",
+  "form.section.slaLoad": "SLA и нагрузка",
+  "form.section.slaLoadTooltip":
+    "Цели по SLA и нагрузка на сессию. Используется при проверке SLA и в коэффициенте запаса при сайзинге.",
+  "form.section.hardwareTooltip":
+    "Выберите GPU-ускоритель и компоновку сервера. Память и TFLOPS подставляются из каталога GPU.",
 
   // ── Подсказки: карточки результатов LLM ─────────────────────────────
   "results.concurrentSessions.tooltip":

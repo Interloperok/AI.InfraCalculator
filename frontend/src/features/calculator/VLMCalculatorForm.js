@@ -1,5 +1,34 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { Info } from "lucide-react";
 import { useT } from "../../contexts/I18nContext";
+
+// Hover-revealed tooltip styled identically to the LLM ResultsDisplay
+// InfoTooltip — used on form-field labels.
+const FieldTooltip = ({ text, align = "center" }) => (
+  <span className="relative group/tip inline-flex items-center align-middle ml-1">
+    <Info className="h-3 w-3 text-subtle cursor-help" strokeWidth={2.25} />
+    <span
+      className={`invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full ${
+        align === "right"
+          ? "right-0"
+          : align === "left"
+            ? "left-0"
+            : "left-1/2 -translate-x-1/2"
+      } mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-slate-900 dark:bg-slate-800 rounded-md shadow-elevated w-60 text-center leading-relaxed pointer-events-none`}
+    >
+      {text}
+      <span
+        className={`absolute top-full ${
+          align === "right"
+            ? "right-3"
+            : align === "left"
+              ? "left-3"
+              : "left-1/2 -translate-x-1/2"
+        } border-4 border-transparent border-t-slate-900 dark:border-t-slate-800`}
+      />
+    </span>
+  </span>
+);
 
 const QUANTIZATION_OPTIONS = [
   { label: "FP16 / BF16 (2 B/param)", value: 2 },
@@ -117,11 +146,12 @@ export const VLM_PRESETS = [
   },
 ];
 
-const NumberInput = ({ name, label, value, onChange, min, max, step, suffix, hint }) => (
+const NumberInput = ({ name, label, value, onChange, min, max, step, suffix, hint, tooltip }) => (
   <div>
     <label className="block text-xs font-medium text-muted mb-1" htmlFor={`vlm-${name}`}>
       {label}
       {hint && <span className="ml-1 text-subtle font-normal">· {hint}</span>}
+      {tooltip && <FieldTooltip text={tooltip} />}
     </label>
     <div className="relative">
       <input
@@ -306,6 +336,7 @@ const VLMCalculatorForm = ({
           min={0}
           step="0.1"
           suffix="pps"
+          tooltip={t("vmForm.pagesPerSecond.tooltip")}
         />
         <NumberInput
           name="c_peak"
@@ -314,6 +345,7 @@ const VLMCalculatorForm = ({
           onChange={handleFieldChange}
           min={1}
           step="1"
+          tooltip={t("vmForm.peakConcurrent.tooltip")}
         />
         <NumberInput
           name="sla_page"
@@ -323,6 +355,7 @@ const VLMCalculatorForm = ({
           min={0}
           step="0.1"
           suffix="sec"
+          tooltip={t("vmForm.slaPerPage.tooltip")}
         />
       </Section>
 
@@ -336,6 +369,7 @@ const VLMCalculatorForm = ({
           min={1}
           step="1"
           suffix="px"
+          tooltip={t("vlmForm.imageWidth.tooltip")}
         />
         <NumberInput
           name="h_px"
@@ -345,6 +379,7 @@ const VLMCalculatorForm = ({
           min={1}
           step="1"
           suffix="px"
+          tooltip={t("vlmForm.imageHeight.tooltip")}
         />
         <NumberInput
           name="patch_eff"
@@ -354,6 +389,7 @@ const VLMCalculatorForm = ({
           min={1}
           step="1"
           hint={t("vlmForm.patchHint")}
+          tooltip={t("vlmForm.patchSize.tooltip")}
         />
         <NumberInput
           name="n_prompt_txt"
@@ -362,6 +398,7 @@ const VLMCalculatorForm = ({
           onChange={handleFieldChange}
           min={0}
           step="1"
+          tooltip={t("vlmForm.promptTokens.tooltip")}
         />
         <NumberInput
           name="n_fields"
@@ -370,6 +407,7 @@ const VLMCalculatorForm = ({
           onChange={handleFieldChange}
           min={1}
           step="1"
+          tooltip={t("vmForm.jsonFields.tooltip")}
         />
         <NumberInput
           name="tok_field"
@@ -379,6 +417,7 @@ const VLMCalculatorForm = ({
           min={1}
           step="1"
           hint={t("vmForm.tokensPerFieldHint")}
+          tooltip={t("vmForm.tokensPerField.tooltip")}
         />
       </Section>
 

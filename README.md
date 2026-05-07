@@ -3,7 +3,7 @@ AI Infrastructure Calculator
 
 Welcome to **AI Infrastructure Calculator** – an open‑source toolkit for sizing GPU clusters for your AI workloads.
 This project helps you move from hand‑wavy guesses to transparent, reproducible capacity planning for LLM inference.
-<img width="1303" height="1438" alt="image" src="https://github.com/user-attachments/assets/8e07a823-d470-4d24-9860-1078f26b42b2" />
+![AI Infrastructure Calculator — UI screenshot](docs/images/screenshot.png)
 
 ## What is this project?
 
@@ -151,16 +151,10 @@ cd backend  && docker build -t ai-infra-calculator/backend:<tag> .
 cd frontend && docker build -t ai-infra-calculator/frontend:<tag> .
 ```
 
-For local clusters that don't pull from a registry (kind, k3d), load
-each image into the cluster after building:
-
-```bash
-kind load docker-image ai-infra-calculator/backend:<tag>
-kind load docker-image ai-infra-calculator/frontend:<tag>
-```
-
-Docker Desktop's Kubernetes shares the host docker daemon's image
-store and doesn't need an explicit load step.
+Push the images to the registry your cluster pulls from, or set
+`backend.image.pullPolicy=Always` and override
+`backend.image.repository` / `frontend.image.repository` to point at
+your registry.
 
 ### Install / upgrade
 
@@ -231,29 +225,6 @@ With ingress enabled, hit the host directly:
 
 ```bash
 curl https://calc.example.com/healthz
-```
-
-### Image-tag rotation gotcha (local Kubernetes)
-
-Containerd caches images by digest. Rebuilding `:dev` (or any tag)
-locally produces a new digest, but pods that already pulled the old
-digest under the same tag won't notice.
-
-**Workaround:** use a unique tag per build (`:p1`, `:p2`, …) and pass
-it to `helm upgrade --set <component>.image.tag=...`. Verify the
-rolled-out image matches the host build:
-
-```bash
-kubectl get pod -n calc -l app.kubernetes.io/component=frontend \
-  -o jsonpath='{.items[0].status.containerStatuses[0].imageID}'
-docker image inspect ai-infra-calculator/frontend:<tag> --format '{{.Id}}'
-# The two digests must match.
-```
-
-If they don't match, force-recreate the pod:
-
-```bash
-kubectl delete pod -n calc -l app.kubernetes.io/component=frontend
 ```
 
 ***

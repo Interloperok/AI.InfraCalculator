@@ -201,9 +201,7 @@ const en = {
     "Search for a model on Hugging Face to auto-fill architecture parameters, or set them manually in the Advanced tab.",
   "form.section.kv": "KV-cache",
   "form.section.hardware": "Hardware",
-  "form.section.compute": "Compute",
   "form.section.sla": "SLA",
-  "form.section.agentic": "Agentic / RAG",
   "form.preset.select": "Choose a preset",
   "form.search.model": "Search model on Hugging Face",
   "form.search.placeholder": "Search for a model (e.g., llama, gpt, etc.)",
@@ -372,6 +370,25 @@ const en = {
   "vlmForm.promptTokens": "Prompt tokens (text)",
   "vlmForm.modelTitle": "VLM model",
   "vlmForm.submit": "Calculate VLM Sizing",
+  // Field-level tooltips
+  "vmForm.pagesPerSecond.tooltip":
+    "Average page-extraction load (pages per second) the system needs to keep up with on a long-term basis.",
+  "vmForm.peakConcurrent.tooltip":
+    "Peak concurrent in-flight pages — the burst the system must hold without queueing past the SLA target.",
+  "vmForm.slaPerPage.tooltip":
+    "Per-page latency target (p95). The whole pipeline must return JSON for one page within this many seconds.",
+  "vlmForm.imageWidth.tooltip":
+    "Page image width in pixels at the resolution the VLM receives. Larger pages = more visual tokens = slower prefill.",
+  "vlmForm.imageHeight.tooltip":
+    "Page image height in pixels. Together with width and patch size, defines how many visual tokens the encoder produces.",
+  "vlmForm.patchSize.tooltip":
+    "Side length of the image patch (in pixels) that the vision encoder treats as one token. The number of visual tokens scales as ⌈W/patch⌉·⌈H/patch⌉. Default ≈ 28 for Qwen2.5-VL; check your model's processor_config for the exact value.",
+  "vlmForm.promptTokens.tooltip":
+    "Tokens in the text prompt sent alongside the image (system instruction + extraction schema). Adds to prefill length.",
+  "vmForm.jsonFields.tooltip":
+    "How many fields the model must extract per page in the JSON response. More fields = longer output = more decode time.",
+  "vmForm.tokensPerField.tooltip":
+    "Average tokens emitted per field in the response. Multiplied by the number of fields to estimate total decode length.",
 
   // ── OCR form ────────────────────────────────────────────────────────
   "ocrForm.pipelineTitle": "OCR pipeline",
@@ -398,6 +415,48 @@ const en = {
   "ocrForm.errOcrGpu": "OCR-GPU throughput (pages/s/GPU) is required for ocr_gpu pipeline",
   "ocrForm.errOcrCore": "OCR-core throughput (pages/s/core) is required for ocr_cpu pipeline",
   "ocrForm.errOcrCores": "Number of OCR CPU cores must be ≥ 1 for ocr_cpu pipeline",
+  // Field-level tooltips (OCR-specific)
+  "ocrForm.throughputGpu.tooltip":
+    "Pages per second one OCR-GPU process can handle, measured empirically (PaddleOCR-GPU / EasyOCR-GPU). Drives the OCR-pool size.",
+  "ocrForm.poolUtilisation.tooltip":
+    "Target average load on the OCR-GPU pool. 0.7–0.85 leaves headroom for spikes; closer to 1.0 risks queueing past the SLA.",
+  "ocrForm.throughputCore.tooltip":
+    "Pages per second one CPU core can OCR (e.g. Tesseract). Drives the CPU-core count for ocr_cpu pipelines.",
+  "ocrForm.cpuCores.tooltip":
+    "Number of CPU cores reserved for the OCR stage. Must be ≥ 1 in ocr_cpu mode.",
+  "ocrForm.handoff.tooltip":
+    "Fixed time spent passing OCR output to the LLM stage (network round-trip, JSON serialisation, queueing). Subtracted from the per-page SLA budget.",
+  "ocrForm.charsPerPage.tooltip":
+    "Average characters of recognised text per page. Combined with chars-per-token, gives the LLM stage's input length.",
+  "ocrForm.charsPerToken.tooltip":
+    "Tokenizer compression ratio (chars per token). Typical: ≈4 for English, ≈2.8 for Russian, 3.5 for mixed text.",
+  "ocrForm.sysPromptTokens.tooltip":
+    "Static instruction prompt prepended to the LLM input on every page. Adds to LLM prefill length.",
+
+  // ── LLM Advanced tab: collapsible section titles + tooltips ─────────
+  "form.section.modelArch": "Model Architecture",
+  "form.section.modelArchTooltip":
+    "Core architecture parameters that determine the model's memory footprint on GPU.",
+  "form.section.userBehavior": "User Behavior",
+  "form.section.userBehaviorTooltip":
+    "Controls how many users are active simultaneously and how they generate load.",
+  "form.section.tokenBudget": "Token Budget",
+  "form.section.tokenBudgetTooltip":
+    "Token counts that define a typical request and conversation. These determine memory and compute requirements.",
+  "form.section.agentic": "Agentic / RAG / Tool-Use",
+  "form.section.agenticTooltip":
+    "Multi-call architectures: ReAct, RAG, function calling, multi-agent. Sets K_calls, tool overhead, and RAG context. Reduces to single-turn at K_calls=1 with all overheads at 0.",
+  "form.section.kvCache": "KV-Cache",
+  "form.section.kvCacheTooltip":
+    "Key-Value cache stores attention states for each session. Larger contexts and more sessions require more GPU memory.",
+  "form.section.compute": "Compute & Throughput",
+  "form.section.computeTooltip":
+    "GPU compute capacity and throughput estimation. Determines how many requests each server can handle.",
+  "form.section.slaLoad": "SLA & Load",
+  "form.section.slaLoadTooltip":
+    "Service-level targets and per-session load. Drives the SLA validation and the safety margin used during sizing.",
+  "form.section.hardwareTooltip":
+    "Choose the GPU accelerator and server layout. Memory and TFLOPS are auto-filled from the GPU catalog.",
 
   // ── Plain-language tooltips: LLM result cards ───────────────────────
   "results.concurrentSessions.tooltip":

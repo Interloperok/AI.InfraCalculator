@@ -1,5 +1,4 @@
 # Default values for ai-infra-calculator chart.
-# Tuned for local kind cluster testing.
 # For production: copy and override image.repository/tag, ingress.host, resources.
 
 nameOverride: ""
@@ -10,7 +9,7 @@ backend:
   image:
     repository: ai-infra-calculator/backend
     tag: dev
-    pullPolicy: IfNotPresent  # IfNotPresent works with `kind load docker-image`
+    pullPolicy: IfNotPresent
   replicaCount: 1
   service:
     type: ClusterIP
@@ -20,7 +19,7 @@ backend:
   env:
     AI_SC_ENV: "k8s"
     AI_SC_LOG_LEVEL: "INFO"
-    AI_SC_DISABLE_SCHEDULER: "1"  # default: disable hourly GPU scrape in local k8s
+    AI_SC_DISABLE_SCHEDULER: "1"  # default: disable hourly GPU scrape
     # Calibration overrides (uncomment to override methodology defaults):
     # AI_SC_ETA_PF: "0.167"
     # AI_SC_ETA_DEC: "0.20"
@@ -59,7 +58,7 @@ backend:
 # ── Frontend ─────────────────────────────────────────────────
 # IMPORTANT: REACT_APP_API_URL is a BUILD-time variable for CRA, not runtime.
 # To change the backend URL, rebuild the frontend image with a different
-# `--build-arg REACT_APP_API_URL=...` value. See README.md for kind workflow.
+# `--build-arg REACT_APP_API_URL=...` value.
 frontend:
   image:
     repository: ai-infra-calculator/frontend
@@ -96,9 +95,8 @@ frontend:
   affinity: {}
 
 # ── Ingress ──────────────────────────────────────────────────
-# Disabled by default. Use port-forward workflow first; enable when comfortable.
-# Requires nginx-ingress controller on kind:
-#   helm install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx
+# Disabled by default. Requires an ingress-nginx (or compatible) controller
+# in the cluster. See chart README for installing a controller.
 ingress:
   enabled: false
   className: nginx

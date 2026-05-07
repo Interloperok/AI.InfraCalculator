@@ -1,5 +1,33 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { Info } from "lucide-react";
 import { useT } from "../../contexts/I18nContext";
+
+// Hover-revealed tooltip on form-field labels.
+const FieldTooltip = ({ text, align = "center" }) => (
+  <span className="relative group/tip inline-flex items-center align-middle ml-1">
+    <Info className="h-3 w-3 text-subtle cursor-help" strokeWidth={2.25} />
+    <span
+      className={`invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full ${
+        align === "right"
+          ? "right-0"
+          : align === "left"
+            ? "left-0"
+            : "left-1/2 -translate-x-1/2"
+      } mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-slate-900 dark:bg-slate-800 rounded-md shadow-elevated w-60 text-center leading-relaxed pointer-events-none`}
+    >
+      {text}
+      <span
+        className={`absolute top-full ${
+          align === "right"
+            ? "right-3"
+            : align === "left"
+              ? "left-3"
+              : "left-1/2 -translate-x-1/2"
+        } border-4 border-transparent border-t-slate-900 dark:border-t-slate-800`}
+      />
+    </span>
+  </span>
+);
 
 const QUANTIZATION_OPTIONS = [
   { label: "FP16 / BF16 (2 B/param)", value: 2 },
@@ -103,11 +131,12 @@ export const OCR_PRESETS = [
   },
 ];
 
-const NumberInput = ({ name, label, value, onChange, min, max, step, suffix, hint }) => (
+const NumberInput = ({ name, label, value, onChange, min, max, step, suffix, hint, tooltip }) => (
   <div>
     <label className="block text-xs font-medium text-muted mb-1" htmlFor={`ocr-${name}`}>
       {label}
       {hint && <span className="ml-1 text-subtle font-normal">· {hint}</span>}
+      {tooltip && <FieldTooltip text={tooltip} />}
     </label>
     <div className="relative">
       <input
@@ -368,6 +397,7 @@ const OCRCalculatorForm = ({
           min={0}
           step="0.1"
           suffix="pps"
+          tooltip={t("vmForm.pagesPerSecond.tooltip")}
         />
         <NumberInput
           name="c_peak"
@@ -376,6 +406,7 @@ const OCRCalculatorForm = ({
           onChange={handleFieldChange}
           min={1}
           step="1"
+          tooltip={t("vmForm.peakConcurrent.tooltip")}
         />
         <NumberInput
           name="sla_page"
@@ -385,6 +416,7 @@ const OCRCalculatorForm = ({
           min={0}
           step="0.1"
           suffix="sec"
+          tooltip={t("vmForm.slaPerPage.tooltip")}
         />
       </Section>
 
@@ -402,6 +434,7 @@ const OCRCalculatorForm = ({
               step="0.1"
               suffix="pps/GPU"
               hint={t("ocrForm.empirical")}
+              tooltip={t("ocrForm.throughputGpu.tooltip")}
             />
             <NumberInput
               name="eta_ocr"
@@ -412,6 +445,7 @@ const OCRCalculatorForm = ({
               max={1.0}
               step="0.01"
               hint={t("ocrForm.poolUtilHint")}
+              tooltip={t("ocrForm.poolUtilisation.tooltip")}
             />
           </>
         ) : (
@@ -424,6 +458,7 @@ const OCRCalculatorForm = ({
               min={0}
               step="0.05"
               suffix="pps/core"
+              tooltip={t("ocrForm.throughputCore.tooltip")}
             />
             <NumberInput
               name="n_ocr_cores"
@@ -432,6 +467,7 @@ const OCRCalculatorForm = ({
               onChange={handleFieldChange}
               min={1}
               step="1"
+              tooltip={t("ocrForm.cpuCores.tooltip")}
             />
           </>
         )}
@@ -444,6 +480,7 @@ const OCRCalculatorForm = ({
           step="0.01"
           suffix="sec"
           hint={t("ocrForm.handoffHint")}
+          tooltip={t("ocrForm.handoff.tooltip")}
         />
       </Section>
 
@@ -456,6 +493,7 @@ const OCRCalculatorForm = ({
           onChange={handleFieldChange}
           min={1}
           step="50"
+          tooltip={t("ocrForm.charsPerPage.tooltip")}
         />
         <NumberInput
           name="c_token"
@@ -465,6 +503,7 @@ const OCRCalculatorForm = ({
           min={0.1}
           step="0.1"
           hint={t("ocrForm.charsPerTokenHint")}
+          tooltip={t("ocrForm.charsPerToken.tooltip")}
         />
         <NumberInput
           name="n_prompt_sys"
@@ -473,6 +512,7 @@ const OCRCalculatorForm = ({
           onChange={handleFieldChange}
           min={0}
           step="50"
+          tooltip={t("ocrForm.sysPromptTokens.tooltip")}
         />
         <NumberInput
           name="n_fields"
@@ -481,6 +521,7 @@ const OCRCalculatorForm = ({
           onChange={handleFieldChange}
           min={1}
           step="1"
+          tooltip={t("vmForm.jsonFields.tooltip")}
         />
         <NumberInput
           name="tok_field"
@@ -489,6 +530,7 @@ const OCRCalculatorForm = ({
           onChange={handleFieldChange}
           min={1}
           step="1"
+          tooltip={t("vmForm.tokensPerField.tooltip")}
         />
       </Section>
 

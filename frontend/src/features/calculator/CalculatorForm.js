@@ -139,9 +139,9 @@ const TooltipBubble = ({ text, anchorRef, visible, width = 240 }) => {
         pointerEvents: "none",
       }}
     >
-      <div className="px-3 py-2 text-xs font-normal text-white bg-fg rounded-lg shadow-elevated text-center leading-relaxed">
+      <div className="px-3 py-2 text-xs font-normal text-white bg-slate-900 dark:bg-slate-800 rounded-lg shadow-elevated text-center leading-relaxed">
         {text}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-fg" />
+        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900 dark:border-t-slate-800" />
       </div>
     </div>,
     document.body,
@@ -1631,7 +1631,7 @@ const CalculatorForm = ({
       <div className="bg-surface rounded-xl p-5 border border-border shadow-card" data-tour="gpu-search">
         <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-accent before:content-['']">
           {t("form.section.hardware")}
-          <SectionTooltip text="Choose the GPU accelerator and server layout. Memory and TFLOPS are auto-filled from the GPU catalog." />
+          <SectionTooltip text={t("form.section.hardwareTooltip")} />
         </h3>
 
         {/* GPU Selection with Search — or GPU Filter in autoMode */}
@@ -1899,7 +1899,7 @@ const CalculatorForm = ({
       {/* Model Section */}
       {renderCollapsibleSection(
         "model",
-        "Model Architecture",
+        t("form.section.modelArch"),
         <>
           {renderSliderInput(
             "params_billions",
@@ -1973,13 +1973,13 @@ const CalculatorForm = ({
           )}
         </>,
         expandedSections.model,
-        "Core architecture parameters that determine the model's memory footprint on GPU.",
+        t("form.section.modelArchTooltip"),
       )}
 
       {/* Users & Behavior */}
       {renderCollapsibleSection(
         "users",
-        "User Behavior",
+        t("form.section.userBehavior"),
         <>
           {renderSliderInput(
             "penetration_internal",
@@ -2013,13 +2013,13 @@ const CalculatorForm = ({
           )}
         </>,
         expandedSections.users,
-        "Controls how many users are active simultaneously and how they generate load.",
+        t("form.section.userBehaviorTooltip"),
       )}
 
       {/* Tokens Section */}
       {renderCollapsibleSection(
         "tokens",
-        "Token Budget",
+        t("form.section.tokenBudget"),
         <>
           {renderSliderInput(
             "system_prompt_tokens_SP",
@@ -2073,13 +2073,13 @@ const CalculatorForm = ({
           )}
         </>,
         expandedSections.tokens,
-        "Token counts that define a typical request and conversation. These determine memory and compute requirements.",
+        t("form.section.tokenBudgetTooltip"),
       )}
 
       {/* Agentic / RAG / Tool-Use Section */}
       {renderCollapsibleSection(
         "agentic",
-        "Agentic / RAG / Tool-Use",
+        t("form.section.agentic"),
         <>
           {/* Architecture pattern presets — Appendix В Table В.1 */}
           <div>
@@ -2242,13 +2242,13 @@ const CalculatorForm = ({
           </div>
         </>,
         expandedSections.agentic,
-        "Multi-call architectures: ReAct, RAG, function calling, multi-agent. Sets K_calls, tool overhead, and RAG context. Reduces to single-turn at K_calls=1 with all overheads at 0.",
+        t("form.section.agenticTooltip"),
       )}
 
       {/* KV-Cache Section */}
       {renderCollapsibleSection(
         "kv",
-        "KV-Cache",
+        t("form.section.kvCache"),
         <>
           {renderSliderInput(
             "num_kv_heads",
@@ -2312,13 +2312,13 @@ const CalculatorForm = ({
           )}
         </>,
         expandedSections.kv,
-        "Key-Value cache stores attention states for each session. Larger contexts and more sessions require more GPU memory.",
+        t("form.section.kvCacheTooltip"),
       )}
 
       {/* Compute Section */}
       {renderCollapsibleSection(
         "compute",
-        "Compute & Throughput",
+        t("form.section.compute"),
         <>
           {renderSliderInput(
             "gpu_flops_Fcount",
@@ -2389,13 +2389,13 @@ const CalculatorForm = ({
           )}
         </>,
         expandedSections.compute,
-        "GPU compute capacity and throughput estimation. Determines how many requests each server can handle.",
+        t("form.section.computeTooltip"),
       )}
 
       {/* SLA Section */}
       {renderCollapsibleSection(
         "sla",
-        "SLA & Load",
+        t("form.section.slaLoad"),
         <>
           {renderSliderInput(
             "rps_per_session_R",
@@ -2419,7 +2419,7 @@ const CalculatorForm = ({
           )}
         </>,
         expandedSections.sla,
-        "Service-level parameters that add safety margin to the final server count.",
+        t("form.section.slaLoadTooltip"),
       )}
     </div>
   );
