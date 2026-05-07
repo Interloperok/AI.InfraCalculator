@@ -271,7 +271,7 @@ const VLMCalculatorForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 flex-1">
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 flex-1">
       {/* Presets */}
       <div data-tour="vlm-presets">
         <label className="block text-sm font-medium text-muted mb-2">Quick Presets</label>

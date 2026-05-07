@@ -2395,7 +2395,11 @@ const CalculatorForm = ({
   );
 
   return (
-    <form onSubmit={handleSubmit} className="gap-6 flex flex-col flex-1">
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      className="gap-6 flex flex-col flex-1"
+    >
       {/* Header with toggle switch */}
       <div className="flex items-center justify-between gap-2 mb-2">
         <h2 className="text-lg sm:text-2xl font-semibold text-fg min-w-0 truncate">
