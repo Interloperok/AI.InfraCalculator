@@ -17,6 +17,10 @@ const ru = {
   "app.footer.version": "Версия",
   "app.footer.builtWith": "На FastAPI + React",
   "app.tour.start": "Запустить тур",
+  "app.docs.download": "Скачать .docx",
+  "app.docs.close": "Закрыть (Esc)",
+  "app.docs.loading": "Загрузка методологии…",
+  "app.docs.error": "Не удалось загрузить методологию",
 
   // ── Calculator modes ─────────────────────────────────────────────────
   "mode.label": "Режим калькулятора",
@@ -143,23 +147,23 @@ const ru = {
   "results.gateway.title": "Квоты для шлюза",
   "results.gateway.subtitle": "Для LiteLLM / shared vLLM",
   "results.gateway.peakRpmTooltip":
-    "Пиковый rpm с учётом K_SLA. Настраивайте как `rpm`-лимит тенанта на общем шлюзе (LiteLLM / vLLM). 'Устойчивый' ниже — долгосрочное среднее без headroom.",
+    "Сколько вызовов модели в минуту шлюз получает на пике. Используйте как потолок rate-limit на шлюзе инференса (например, LiteLLM rpm, NGINX limit_req). Строка «устойчивый» ниже — среднее значение без SLA-запаса.",
   "results.gateway.peakTpmTooltip":
-    "Суммарные tokens-per-minute (вход+выход) с K_SLA. Лимит `tpm` в LiteLLM. Не зависит от K_calls — агентность увеличивает число запросов, не токенов.",
+    "Суммарный поток токенов в минуту (вход — promt + ответ модели) через шлюз на пике. Это то, что считают биллинг и токеновые квоты на тенанта. Используйте для tpm-лимита на шлюзе.",
   "results.gateway.tpmSplitTooltip":
-    "Разбивка Peak TPM на вход (system prompt + Prp + RAG-контекст) и выход (ответ модели).",
+    "Те же Peak TPM, но раздельно: вход (system + user + RAG/история), который шлюз передаёт модели, и выход — токены, которые модель генерирует. Нужно, когда вход и выход тарифицируются или ограничиваются по отдельности.",
   "results.gateway.maxParallelTooltip":
-    "Лимит конкурентных запросов. Настраивайте как `max_parallel_requests` (LiteLLM) или `max_num_seqs` (vLLM).",
+    "Сколько запросов одновременно может обрабатываться на пике. Настройте как лимит конкурентности на шлюзе (LiteLLM max_parallel_requests, vLLM max_num_seqs), чтобы новые запросы вставали в очередь, а не перегружали движок и не ломали SLA.",
   "results.gateway.ocrPeakRpmTooltip":
-    "Пиковые pages-per-minute на OCR-пул. Ноль для ocr_cpu (CPU-стадия не идёт через шлюз).",
+    "Сколько страниц в минуту приходит на OCR-этап на пике. Ноль, если OCR работает на CPU (CPU-этап не идёт через шлюз).",
   "results.gateway.llmPeakRpmTooltip":
-    "Пиковые LLM-calls-per-minute на LLM-пул. Каждая страница — один вызов.",
+    "Сколько вызовов в минуту приходит на LLM-этап на пике — один вызов на страницу. Используйте как потолок rate-limit для LLM-пула на шлюзе.",
   "results.gateway.llmPeakTpmTooltip":
-    "Пиковые tokens-per-minute на LLM-пул (system prompt + OCR-текст + JSON-выход).",
+    "Суммарный поток токенов в минуту на LLM-пуле на пике (system prompt + распознанный текст + JSON-ответ модели). Используйте для tpm-лимита LLM-пула.",
   "results.gateway.peakRpm": "Пиковый RPM",
   "results.gateway.peakTpm": "Пиковый TPM",
-  "results.gateway.tpmSplit": "TPM по сторонам",
-  "results.gateway.maxParallel": "Конкурентность",
+  "results.gateway.tpmSplit": "TPM (вход/выход)",
+  "results.gateway.maxParallel": "Макс. одновр.",
   "results.gateway.sustained": "устойчивый",
   "results.gateway.in": "вход",
   "results.gateway.out": "выход",
@@ -240,8 +244,8 @@ const ru = {
   "vlm.peakRpmSub": "устойчиво {value} страниц/мин",
   "vlm.peakTpm": "Пиковый TPM",
   "vlm.peakTpmSub": "устойчиво {value}",
-  "vlm.tpmSplit": "TPM по сторонам",
-  "vlm.maxParallel": "Конкурентность",
+  "vlm.tpmSplit": "TPM (вход/выход)",
+  "vlm.maxParallel": "Макс. одновр.",
   "vlm.concurrentPages": "одновр. страниц",
   "vlm.memoryTitle": "Память GPU на экземпляр",
   "vlm.memModel": "Веса модели",
@@ -295,7 +299,7 @@ const ru = {
   "ocr.llmPeakRpmSub": "устойчиво {value}",
   "ocr.llmPeakTpm": "Пиковый TPM LLM",
   "ocr.llmPeakTpmSub": "вход {input} · выход {output}",
-  "ocr.maxParallel": "Конкурентность",
+  "ocr.maxParallel": "Макс. одновр.",
   "ocr.concurrentPages": "одновр. страниц",
   "ocr.memoryTitle": "Память GPU на LLM-экземпляр",
   "ocr.memModel": "Веса модели",
@@ -328,11 +332,274 @@ const ru = {
   "mig.estimateOnly":
     "Только оценка — учёт MIG в расчёте пропускной способности ещё не реализован в бэкенде. Используйте как подсказку при планировании. Максимум {max} слайсов на GPU.",
 
+  // ── VLM / OCR form: shared (workload, model, hardware) ──────────────
+  "vmForm.quickPresets": "Быстрые пресеты",
+  "vmForm.workloadOnline": "Нагрузка (онлайн)",
+  "vmForm.pagesPerSecond": "Страниц в секунду (λ)",
+  "vmForm.peakConcurrent": "Пик одновременных страниц",
+  "vmForm.slaPerPage": "SLA на страницу (p95)",
+  "vmForm.parameters": "Параметры",
+  "vmForm.quantization": "Квантизация",
+  "vmForm.layers": "Слоёв (L)",
+  "vmForm.hiddenSize": "Скрытая размерность (H)",
+  "vmForm.kvHeads": "KV-головы (Nkv)",
+  "vmForm.attnHeads": "Attention-головы",
+  "vmForm.maxContext": "Макс. длина контекста",
+  "vmForm.tokensSuffix": "токенов",
+  "vmForm.jsonFields": "Полей JSON на ответ",
+  "vmForm.tokensPerField": "Токенов на поле",
+  "vmForm.tokensPerFieldHint": "обычно 30-100",
+  "vmForm.hardware": "Оборудование",
+  "vmForm.gpuModel": "Модель GPU",
+  "vmForm.gpuPickPrompt": "Нажмите, чтобы выбрать GPU…",
+  "vmForm.gpuMemory": "Память GPU",
+  "vmForm.gpuTflops": "TFLOPS GPU",
+  "vmForm.gpusPerServer": "GPU на сервер",
+  "vmForm.tp": "Тензорный параллелизм (Z)",
+  "vmForm.tpHint": "1 = один GPU",
+  "vmForm.invalidValue": "Отсутствует или некорректное значение: {field}",
+
+  // ── VLM form ────────────────────────────────────────────────────────
+  "vlmForm.imageTokenProfile": "Профиль изображения и токенов",
+  "vlmForm.imageWidth": "Ширина изображения",
+  "vlmForm.imageHeight": "Высота изображения",
+  "vlmForm.patchSize": "Эффективный размер патча",
+  "vlmForm.patchHint": "Qwen2.5-VL ≈ 28",
+  "vlmForm.promptTokens": "Токены промпта (текст)",
+  "vlmForm.modelTitle": "VLM-модель",
+  "vlmForm.submit": "Рассчитать сайзинг VLM",
+
+  // ── OCR form ────────────────────────────────────────────────────────
+  "ocrForm.pipelineTitle": "OCR-конвейер",
+  "ocrForm.pipelineLabel": "OCR-конвейер",
+  "ocrForm.pipelineOnGpu": "OCR на GPU",
+  "ocrForm.pipelineOnGpuHint": "PaddleOCR-GPU, EasyOCR-GPU",
+  "ocrForm.pipelineOnCpu": "OCR на CPU",
+  "ocrForm.pipelineOnCpuHint": "Tesseract; CPU-пул, без сайзинга GPU",
+  "ocrForm.throughputGpu": "Пропускная способность OCR на GPU",
+  "ocrForm.empirical": "эмпирически",
+  "ocrForm.poolUtilisation": "Утилизация OCR-пула (η_OCR)",
+  "ocrForm.poolUtilHint": "0.7-0.85",
+  "ocrForm.throughputCore": "Пропускная способность OCR на ядро",
+  "ocrForm.cpuCores": "CPU-ядер на OCR",
+  "ocrForm.handoff": "Накладные расходы передачи",
+  "ocrForm.handoffHint": "Передача OCR → LLM",
+  "ocrForm.textProfile": "Текстовый профиль OCR",
+  "ocrForm.charsPerPage": "Символов на страницу",
+  "ocrForm.charsPerToken": "Символов на токен",
+  "ocrForm.charsPerTokenHint": "3.5 смешанный · 4.0 EN · 2.8 RU",
+  "ocrForm.sysPromptTokens": "Токены system prompt",
+  "ocrForm.modelTitle": "LLM-модель",
+  "ocrForm.submit": "Рассчитать сайзинг OCR + LLM",
+  "ocrForm.errOcrGpu":
+    "Для конвейера ocr_gpu обязательна пропускная способность OCR-GPU (страниц/с/GPU)",
+  "ocrForm.errOcrCore":
+    "Для конвейера ocr_cpu обязательна пропускная способность OCR-ядра (страниц/с/ядро)",
+  "ocrForm.errOcrCores": "Для конвейера ocr_cpu число CPU-ядер OCR должно быть ≥ 1",
+
+  // ── Подсказки: карточки результатов LLM ─────────────────────────────
+  "results.concurrentSessions.tooltip":
+    "Сколько пользовательских сессий могут идти одновременно на пике нагрузки.",
+  "results.sessionContext.tooltip":
+    "Сколько токенов истории диалога хранит каждая сессия в памяти (системный промпт + сообщения пользователя + ответы модели). Больше контекст — больше памяти на сессию.",
+  "results.infrastructure.tooltip":
+    "Сколько физических серверов нужно. Итог — максимум из двух проверок: хватает памяти на KV-кеш и хватает вычислений, чтобы держать SLA. На карточке есть всплывающая разбивка.",
+  "results.sessions.tooltip":
+    "Сколько одновременных сессий может держать один сервер до того, как закончится KV-кеш или упрётся пропускная способность.",
+  "results.gpuPerServer.tooltip":
+    "Сколько GPU установлено в одном физическом сервере (1 / 2 / 4 / 6 / 8). Зависит от целевой платформы.",
+  "results.sla.ttft.tooltip":
+    "Time To First Token — сколько пользователь ждёт между нажатием «Отправить» и появлением первого символа ответа. Меньше — лучше; методология по умолчанию ставит цель 1 секунда.",
+  "results.sla.e2e.tooltip":
+    "End-to-end latency — полное время от запроса до последнего токена ответа. Включает prefill, decode и накладные расходы. По умолчанию цель — 2 секунды.",
+
+  // ── Подсказки: карточки результатов VLM ─────────────────────────────
+  "vlm.infraRequired.tooltip":
+    "Сколько серверов и GPU нужно для VLM-нагрузки на пике. Размерены так, чтобы памяти хватило на модель + KV-кеш для пиковой пачки, а вычислений — чтобы латентность на страницу укладывалась в SLA.",
+  "vlm.slaPerPage.tooltip":
+    "Соблюдается ли целевая латентность на страницу (p95) для выбранных модели, GPU и конкурентности. Если падает — снизьте конкурентность, возьмите более быстрый GPU или ослабьте SLA.",
+  "vlm.throughput.tooltip":
+    "Prefill-пропускная на один VLM-экземпляр — сколько токенов в секунду модель обрабатывает из изображения и промпта. Чем больше — тем меньше латентность на страницу. Под ним — скорость генерации ответа (decode).",
+  "vlm.bsRealStar.tooltip":
+    "Эффективный размер пачки внутри движка — сколько страниц идут в одном prefill. Большая пачка повышает пропускную, но увеличивает память и латентность на страницу.",
+  "vlm.replicas.tooltip":
+    "Сколько параллельных копий VLM запущено в кластере. Больше реплик — больше пропускная, но и больше GPU.",
+  "vlm.visualTokens.tooltip":
+    "Токены, которые vision-encoder делает из одной страницы. Зависят от размера изображения и patch size модели. Большие страницы — много визуальных токенов — медленнее prefill.",
+  "vlm.prefillLength.tooltip":
+    "Общая длина prefill на страницу = визуальные токены + текстовый промпт. Длиннее prefill — больше вычислений и больше KV.",
+  "vlm.diag.gpusPerInstance.tooltip":
+    "Сколько GPU выделено одной запущенной копии VLM (степень тензорного параллелизма).",
+  "vlm.diag.sTpZ.tooltip":
+    "Сколько одновременных страниц может обрабатывать один экземпляр VLM, не выходя из SLA.",
+  "vlm.diag.instanceMem.tooltip":
+    "Суммарная память GPU, доступная одному экземпляру VLM, по всем выделенным ему GPU.",
+  "vlm.diag.gpuTflops.tooltip":
+    "Эффективная вычислительная мощность одного GPU, которой оперирует калькулятор (FP16/BF16 tensor TFLOPS).",
+  "vlm.diag.slPfEff.tooltip":
+    "Эффективная длина prefill, которой оперирует движок — визуальные + промпт-токены после округления под гранулярность пакетирования.",
+  "vlm.diag.slDec.tooltip":
+    "Сколько токенов модель генерирует на страницу (длина JSON-ответа).",
+  "vlm.diag.kvPerPage.tooltip":
+    "Память GPU, занятая KV-кешем под одну страницу в работе. Умножается на число одновременных страниц на экземпляр.",
+  "vlm.diag.modelWeights.tooltip":
+    "Память GPU под загруженные веса модели — без KV-кеша и runtime-оверхеда.",
+  "vlm.diag.slaTarget.tooltip":
+    "Заданная пользователем цель по латентности на страницу (p95), относительно которой проверяется конфигурация.",
+
+  // ── Подсказки: карточки результатов OCR + LLM ───────────────────────
+  "ocr.infraRequired.tooltip":
+    "Суммарное число серверов и GPU на оба этапа (OCR + LLM). Подзаголовок снизу показывает сколько GPU тратит каждый этап; для OCR-на-CPU стоит «—», потому что CPU-этап не сайзится в GPU.",
+  "ocr.slaPerPage.tooltip":
+    "Укладывается ли сквозная латентность на страницу в целевой SLA. В подписи показано фактическое время OCR + время LLM; остаток бюджета — оверхед и передача между этапами.",
+  "ocr.throughput.tooltip":
+    "Prefill-пропускная одного экземпляра LLM — сколько токенов в секунду этап LLM обрабатывает из распознанного OCR-текста. Под ним — скорость генерации ответа (decode).",
+  "ocr.ocrPool.tooltip":
+    "Ресурсы, выделенные на этап OCR. Для ocr_gpu — число GPU; для ocr_cpu — число CPU-ядер (этап OCR полностью на CPU).",
+  "ocr.llmPool.tooltip":
+    "GPU, выделенные на этап LLM, который обрабатывает распознанный текст и выдаёт JSON-ответ.",
+  "ocr.bsRealStar.tooltip":
+    "Эффективный размер пачки на этапе LLM — сколько страниц идут в одном prefill на LLM.",
+  "ocr.replicas.tooltip":
+    "Параллельные копии LLM в LLM-пуле. Больше реплик — больше пропускная.",
+  "ocr.diag.pipeline.tooltip":
+    "Какой OCR-стек учитывал калькулятор: ocr_gpu (PaddleOCR/EasyOCR на GPU) или ocr_cpu (Tesseract на CPU).",
+  "ocr.diag.tOcr.tooltip":
+    "Сколько времени на страницу занимает этап OCR. Вычитается из бюджета SLA на страницу; остаток достаётся LLM.",
+  "ocr.diag.llmBudget.tooltip":
+    "Бюджет времени на этап LLM на страницу — то, что осталось от SLA после OCR и оверхеда передачи.",
+  "ocr.diag.lText.tooltip":
+    "Сколько токенов попадает в LLM — системный промпт плюс распознанный текст одной страницы.",
+  "ocr.diag.slPfEff.tooltip":
+    "Эффективная длина prefill на этапе LLM после округления под гранулярность пакетирования.",
+  "ocr.diag.slDec.tooltip":
+    "Сколько токенов LLM генерирует на страницу (длина JSON-ответа).",
+  "ocr.diag.gpusPerInstance.tooltip":
+    "Сколько GPU выделено одной запущенной копии LLM (степень тензорного параллелизма в LLM-пуле).",
+  "ocr.diag.sessionsPerInstance.tooltip":
+    "Сколько одновременных страниц может держать один экземпляр LLM в пределах бюджета времени LLM.",
+  "ocr.diag.kvPerSession.tooltip":
+    "Память GPU под KV-кеш одной страницы в работе на этапе LLM.",
+  "ocr.diag.modelWeights.tooltip":
+    "Память GPU под загруженные веса LLM — без KV-кеша и runtime-оверхеда.",
+  "ocr.diag.gpuTflops.tooltip":
+    "Эффективная вычислительная мощность одного GPU LLM-пула (FP16/BF16 tensor TFLOPS).",
+  "ocr.diag.handoff.tooltip":
+    "Фиксированный оверхед на передачу от OCR к LLM (сетевой round-trip, сериализация JSON, очередь). Вычитается из бюджета на страницу.",
+
   // ── Errors / loading ─────────────────────────────────────────────────
   "error.title": "Ошибка",
   "error.network": "Сетевая ошибка: бэкенд недоступен.",
   "error.retry": "Повторить",
   "loading.calculating": "Идёт расчёт…",
+
+  // ── Guided tour: Joyride locale ──────────────────────────────────────
+  "tour.locale.back": "Назад",
+  "tour.locale.close": "Закрыть",
+  "tour.locale.last": "Готово",
+  "tour.locale.next": "Далее",
+  "tour.locale.nextProgress": "Далее (Шаг {step} из {steps})",
+  "tour.locale.skip": "Пропустить тур",
+
+  // ── Guided tour: LLM (desktop) ───────────────────────────────────────
+  "tour.llm.github":
+    "Заходите к нам на GitHub — поставьте звезду и следите за обновлениями проекта.",
+  "tour.llm.docs":
+    "Здесь — документация по методологии. Откройте её в боковой панели, не уходя из калькулятора.",
+  "tour.llm.presets":
+    "Начните быстро: выберите пресет с предзаполненной моделью, GPU и параметрами нагрузки.",
+  "tour.llm.basicTab":
+    "Базовые настройки покрывают пользователей, выбор модели и оборудование — этого достаточно для быстрой оценки.",
+  "tour.llm.advancedTab":
+    "Здесь точно настраиваются токены, KV-кеш, тензорный параллелизм, эффективность вычислений и SLA.",
+  "tour.llm.modelSearch":
+    "Найдите вашу модель в Hugging Face. Параметры архитектуры (размер, число слоёв и т.д.) подставляются автоматически.",
+  "tour.llm.gpuSearch":
+    "Выберите GPU из встроенного каталога или загрузите свой. Память и TFLOPS подставятся автоматически.",
+  "tour.llm.slaTargets":
+    "Задайте цели по TTFT и e2e задержке (по умолчанию 1 с и 2 с). Калькулятор проверит конфигурацию против этих SLA.",
+  "tour.llm.calculate":
+    "Нажмите «Рассчитать», чтобы запустить движок сайзинга, или «Найти лучшие конфиги» в авто-режиме для сравнения вариантов.",
+  "tour.llm.costEstimate":
+    "Оценка стоимости GPU-оборудования по текущим рыночным ценам для выбранной конфигурации.",
+  "tour.llm.sessionCards":
+    "Сколько одновременных сессий поддержит инфраструктура и какова длина контекста каждой сессии.",
+  "tour.llm.resultCards":
+    "Главные результаты: всего серверов и GPU (можно сравнить с имеющейся ёмкостью), сессий на сервер и пропускная способность.",
+  "tour.llm.donutChart":
+    "Визуальная разбивка памяти GPU на один экземпляр модели — веса модели против доступного места под KV-кеш.",
+  "tour.llm.detailToggle":
+    "Переключайтесь между путём по памяти и путём по вычислениям, чтобы увидеть детали расчёта.",
+  "tour.llm.downloadReport":
+    "Скачайте подробный Excel-отчёт со всеми входами, промежуточными значениями и итогом.",
+  "tour.llm.autoOptimize":
+    "Включите Auto-Optimize, чтобы движок перебрал GPU, уровни квантования и степени TP и нашёл лучшую конфигурацию автоматически.",
+  "tour.llm.optimizeMode":
+    "Выберите стратегию оптимизации: минимум серверов, минимум стоимости, лучший баланс или максимум пропускной способности.",
+  "tour.llm.optimizeResults":
+    "Результаты оптимизатора появятся в этой боковой панели. Раскройте её, чтобы сравнить конфигурации.",
+
+  // ── Guided tour: LLM (mobile) ────────────────────────────────────────
+  "tour.llmMobile.github": "Заходите к нам на GitHub — поставьте звезду.",
+  "tour.llmMobile.docs": "Нажмите, чтобы открыть документацию методологии в новой вкладке.",
+  "tour.llmMobile.presets":
+    "Выберите пресет, чтобы быстро заполнить модель, GPU и параметры нагрузки.",
+  "tour.llmMobile.modelSearch":
+    "Найдите вашу AI-модель в Hugging Face — параметры подставятся автоматически.",
+  "tour.llmMobile.gpuSearch":
+    "Выберите GPU из каталога. Память и TFLOPS подставятся автоматически.",
+  "tour.llmMobile.calculate":
+    "Нажмите «Рассчитать», чтобы запустить движок и увидеть результаты.",
+
+  // ── Guided tour: VLM (desktop) ───────────────────────────────────────
+  "tour.vlm.github":
+    "Заходите к нам на GitHub — поставьте звезду и следите за обновлениями проекта.",
+  "tour.vlm.docs":
+    "Документация методологии. Приложение И описывает однопроходный онлайн-сайзинг VLM.",
+  "tour.vlm.modeSwitcher":
+    "Сейчас вы в режиме VLM — однопроходный сайзинг «картинка → JSON». Переключайтесь на LLM или OCR+LLM здесь.",
+  "tour.vlm.presets":
+    "Выберите пресет — нагрузка, профиль изображений, модель и оборудование заполнятся в один клик.",
+  "tour.vlm.workload":
+    "VLM считается в страницах/с, а не в пользовательских сессиях. Задайте среднее число страниц/с, пиковую конкурентность и SLA на страницу.",
+  "tour.vlm.hardware":
+    "Выберите GPU и степень тензорного параллелизма. VLM обычно работают при TP=1, кроме очень больших моделей.",
+  "tour.vlm.calculate":
+    "Нажмите, чтобы запустить движок и получить число серверов и GPU под нагрузку.",
+  "tour.vlm.results":
+    "Три главных карточки: инфраструктура (сервера и GPU), результат проверки SLA и пропускная способность prefill/decode на экземпляр.",
+
+  // ── Guided tour: VLM (mobile) ────────────────────────────────────────
+  "tour.vlmMobile.github": "Поставьте звезду на GitHub.",
+  "tour.vlmMobile.modeSwitcher": "Переключайтесь между LLM, VLM и OCR+LLM здесь.",
+  "tour.vlmMobile.presets": "Нажмите пресет, чтобы заполнить все поля.",
+  "tour.vlmMobile.calculate": "Нажмите «Рассчитать», чтобы запустить движок.",
+
+  // ── Guided tour: OCR + LLM (desktop) ─────────────────────────────────
+  "tour.ocr.github":
+    "Заходите к нам на GitHub — поставьте звезду и следите за обновлениями проекта.",
+  "tour.ocr.docs":
+    "Документация методологии. Приложение И.4.2 описывает двухпроходный онлайн-сайзинг OCR+LLM с двумя пулами.",
+  "tour.ocr.modeSwitcher":
+    "Сейчас вы в режиме OCR + LLM — двухстадийная экстракция. Переключайтесь между LLM, VLM и OCR+LLM здесь.",
+  "tour.ocr.presets":
+    "Выберите пресет — нагрузка, OCR-конвейер, текстовый профиль, модель и оборудование заполнятся в один клик.",
+  "tour.ocr.workload":
+    "Семантика нагрузки как у VLM: страниц/с, пиковая конкурентность, SLA на страницу. SLA-бюджет делится между этапами OCR и LLM.",
+  "tour.ocr.pipeline":
+    "Выберите OCR на GPU (PaddleOCR/EasyOCR) для высокой нагрузки или OCR на CPU (Tesseract), если в GPU-пуле должна быть только LLM. Это меняет деление SLA-бюджета.",
+  "tour.ocr.hardware": "Выберите GPU и степень тензорного параллелизма для этапа LLM.",
+  "tour.ocr.calculate":
+    "Запустите сайзинг — бэкенд вернёт отдельные пулы GPU под этапы OCR и LLM.",
+  "tour.ocr.results":
+    "Три карточки: общая инфраструктура с разбивкой на пулы OCR+LLM, проверка SLA с разложением t_OCR и пропускная способность этапа LLM.",
+
+  // ── Guided tour: OCR + LLM (mobile) ──────────────────────────────────
+  "tour.ocrMobile.github": "Поставьте звезду на GitHub.",
+  "tour.ocrMobile.modeSwitcher": "Переключайтесь между LLM, VLM и OCR+LLM здесь.",
+  "tour.ocrMobile.presets": "Нажмите пресет, чтобы заполнить все поля.",
+  "tour.ocrMobile.pipeline": "Выберите OCR на GPU или CPU.",
+  "tour.ocrMobile.calculate": "Нажмите «Рассчитать».",
 };
 
 export default ru;

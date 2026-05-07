@@ -44,6 +44,10 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "ai-infra-calculator.backendFullname" . }}-config
+            {{- if and .Values.proxy .Values.proxy.enabled .Values.proxy.secretName }}
+            - secretRef:
+                name: {{ .Values.proxy.secretName }}
+            {{- end }}
           {{- with .Values.backend.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

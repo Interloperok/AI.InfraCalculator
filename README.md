@@ -40,9 +40,29 @@ docker compose up --build
 
 Services:
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- OpenAPI docs: http://localhost:8000/docs
+- Frontend (UI + reverse-proxied API): http://localhost:3000
+- Backend API (direct): http://localhost:8000
+- OpenAPI docs: http://localhost:3000/docs (via frontend) or http://localhost:8000/docs (direct)
+- ReDoc: http://localhost:3000/redoc
+
+The frontend container reverse-proxies `/v1/*`, `/healthz`, `/docs`,
+`/redoc`, and `/openapi.json` to the backend Service. In Kubernetes
+this collapses to a single ingress rule on one host (see the Helm
+section below).
+
+## Air-gapped / offline mode
+
+The methodology document is bundled into the frontend image
+(`frontend/public/llm-methodology.docx`) and rendered in-browser via
+mammoth — no outbound traffic to Google Docs.
+
+The LLM source mode toggle (in the model picker) supports `Auto` /
+`HuggingFace` / `Curated`. Set it to `Curated` to run fully offline:
+the calculator pulls model architecture from `llm_data.json` (a copy
+of the parent repo's `llm_catalog.json`) instead of probing
+huggingface.co.
+
+For enterprise proxies see the Helm proxy section below.
 
 ***
 
@@ -109,6 +129,51 @@ Full API schema: http://localhost:8000/docs
 - Backend details: `backend/README.md`
 - Frontend details: `frontend/README.md`
 - Contributing guide: `CONTRIBUTING.md`
+
+***
+
+## Helm: outbound HTTP/HTTPS proxy
+
+The Helm chart can route the backend's outbound traffic (e.g. the GPU-catalog
+scrape, model-config lookups) through an enterprise proxy. The chart never sees
+plaintext credentials — they live in a single Kubernetes Secret you manage out
+of band.
+
+**Step 1 — create the Secret.** The keys you set become env vars on the
+backend container; recognized names: `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`
+(and lowercase `http_proxy` / `https_proxy` / `no_proxy`). Embed credentials
+directly in the URL value — URL-encode `:`, `@`, `/`, and spaces inside the
+user/password. Example with auth:
+
+```bash
+kubectl create secret generic calc-proxy -n <release-namespace> \
+  --from-literal=HTTPS_PROXY='http://USER:PASS@proxy.corp:3128' \
+  --from-literal=HTTP_PROXY='http://USER:PASS@proxy.corp:3128' \
+  --from-literal=NO_PROXY='localhost,127.0.0.1,.svc,.cluster.local'
+```
+
+For a proxy without auth, drop the `USER:PASS@` segment.
+
+**Step 2 — point the chart at it.** Two values, both required when the proxy
+is in use:
+
+```yaml
+proxy:
+  enabled: true
+  secretName: calc-proxy
+```
+
+Or via `--set`:
+
+```bash
+helm upgrade calc charts/ai-infra-calculator -n <ns> \
+  --reuse-values --set proxy.enabled=true --set proxy.secretName=calc-proxy
+```
+
+When `proxy.enabled` is `false` (default), no proxy env vars are injected and
+the Secret is not referenced. Rotating credentials is a `kubectl edit secret
+calc-proxy` away — re-create or restart the backend pod afterwards so it picks
+up the new env values.
 
 ***
 

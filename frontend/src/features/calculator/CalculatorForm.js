@@ -720,8 +720,14 @@ const CalculatorForm = ({
   }, []);
 
   // Probe HuggingFace reachability once on mount; downstream effective-source
-  // logic uses this to decide between HF live and curated fallback.
+  // logic uses this to decide between HF live and curated fallback. Skipped
+  // entirely in 'curated' mode — air-gapped deployments must not emit any
+  // outbound traffic to huggingface.co.
   useEffect(() => {
+    if (llmSourceMode === "curated") {
+      setHfReachable(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
       const ok = await probeHuggingFace();
@@ -730,7 +736,7 @@ const CalculatorForm = ({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [llmSourceMode]);
 
   // Persist user's chosen source mode across sessions
   useEffect(() => {
@@ -1746,9 +1752,9 @@ const CalculatorForm = ({
                   )}
                   <InfoTooltip text="Number of GPU accelerators installed in each physical server. Allowed: 1, 2, 4, 6, 8." />
                 </label>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center w-[120px] justify-end">
                   <span
-                    className={`px-2 py-1 text-sm border border-border-strong rounded-md text-right w-20 inline-block text-center font-medium ${gpuLocked ? "bg-elevated text-subtle" : "bg-surface text-fg"}`}
+                    className={`px-2 py-1 text-sm border border-border-strong rounded-md text-center font-medium w-full ${gpuLocked ? "bg-elevated text-subtle" : "bg-surface text-fg"}`}
                   >
                     {displayVal}
                   </span>
@@ -1819,9 +1825,9 @@ const CalculatorForm = ({
                   )}
                   <InfoTooltip text="Number of GPUs across which the model is split. Z=1 means no parallelism; higher even values increase memory per instance but add inter-GPU communication." />
                 </label>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center w-[120px] justify-end">
                   <span
-                    className={`px-2 py-1 text-sm border border-border-strong rounded-md text-right w-20 inline-block text-center font-medium ${tpLocked ? "bg-elevated text-subtle" : "bg-surface text-fg"}`}
+                    className={`px-2 py-1 text-sm border border-border-strong rounded-md text-center font-medium w-full ${tpLocked ? "bg-elevated text-subtle" : "bg-surface text-fg"}`}
                   >
                     {formData.tp_multiplier_Z}
                   </span>

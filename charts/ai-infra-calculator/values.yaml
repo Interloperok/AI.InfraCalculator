@@ -116,3 +116,21 @@ ingress:
 podSecurityContext: {}
 securityContext: {}
 imagePullSecrets: []
+
+# ── Outbound HTTP/HTTPS proxy (optional) ─────────────────────
+# References a single user-managed Kubernetes Secret containing the proxy
+# configuration. Keys in the Secret are loaded directly as env vars on the
+# backend container. Recognized keys (any subset):
+#   HTTP_PROXY, HTTPS_PROXY, NO_PROXY  (and/or lowercase: http_proxy, ...)
+# Embed credentials directly in the URL value, e.g.
+#   HTTPS_PROXY=http://USER:PASS@proxy.corp:3128
+# (URL-encode `:`, `@`, and spaces in USER/PASS). The chart never sees the
+# plaintext — credentials live only in the Secret.
+proxy:
+  enabled: false
+  # Name of the existing Secret in the release namespace. Required when
+  # enabled=true. Create it out-of-band, e.g.:
+  #   kubectl create secret generic calc-proxy -n <ns> \
+  #     --from-literal=HTTPS_PROXY='http://user:pass@proxy.corp:3128' \
+  #     --from-literal=NO_PROXY='localhost,127.0.0.1,.svc,.cluster.local'
+  secretName: ""

@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tooling, offline mode, and i18n polish
+
+UI/UX, offline-readiness, and Helm-chart improvements on top of the
+v1.3.0 v3-corrections backend.
+
+**Frontend / UX**
+
+- All result-card metrics across LLM, OCR (VLM), and OCR + LLM modes
+  now have plain-language hover tooltips. Diagnostics rows in VLM and
+  OCR results carry tooltips too. Gateway-quota tooltips were rewritten
+  to drop jargon ("K_SLA headroom", "tenant tpm cap") and explain what
+  each metric is and what to set it as.
+- VLM and OCR forms (Quick Presets, Workload, Image / Token Profile,
+  OCR Pipeline, Hardware, etc.) translate to Russian. ~50 new
+  `vmForm.*` / `vlmForm.*` / `ocrForm.*` i18n keys with mirrored
+  Russian translations.
+- Guided tour content is fully bilingual. The Joyride step counter
+  ("Next (Step 10 of 18)") now reads as "Далее (Шаг 10 из 18)" in
+  Russian via Joyride's `nextLabelWithProgress` locale field.
+- Tightened Russian translations: "TPM по сторонам" → "TPM (вход/выход)",
+  "Конкурентность" → "Макс. одновр.". Slider-input boxes for
+  GPUs-per-Server, TP, Usable Memory Fraction, and Saturation
+  Coefficient now share the same fixed `w-[120px]` slot.
+- Three secondary metric tiles (GPUs/Server, GPUs/Instance,
+  Instances/Server) replaced `truncate` with `leading-tight
+  break-words` so labels wrap instead of clipping to "...".
+
+**Offline-first methodology browser**
+
+- The Documentation drawer now bundles `llm_methodology.docx` into the
+  frontend image and renders it in-browser via `mammoth` (no Google
+  Docs iframe, no outbound traffic). The "Download .docx" button serves
+  the bundled file. Calculator works fully air-gapped.
+
+**Curated LLM catalog refresh**
+
+- Verified `Qwen3.5-27B`, `Qwen3.5-35B-A3B` against live
+  `huggingface.co/.../config.json` and corrected fields: Qwen3.5-35B-A3B
+  is now `is_moe: true` with verified `params_dense_b` / `params_moe_b`
+  / `n_experts: 256` / `k_moe: 8`.
+- Added new entries: `Qwen3.5-122B-A10B`, `Qwen3.6-27B`,
+  `Qwen3.6-35B-A3B`. All flagged with a `comment` documenting hybrid
+  attention (only ~25% of layers are full-attention; uniform-transformer
+  KV sizing overestimates ~4×). Backend `llm_data.json` synced.
+
+**Helm chart — single ingress + outbound proxy**
+
+- Single-ingress single-host routing: ingress now points at the
+  frontend service only. Frontend nginx reverse-proxies `/v1/*`,
+  `/healthz`, `/docs`, `/redoc`, `/openapi.json` to the backend
+  Service. UI + REST + FastAPI introspection (Swagger / ReDoc /
+  OpenAPI spec) all served from one host.
+- Outbound HTTP/HTTPS proxy support via a user-managed Secret. New
+  `proxy:` block in values.yaml accepts `enabled` and `secretName`.
+  When enabled, the Secret's keys (`HTTP_PROXY` / `HTTPS_PROXY` /
+  `NO_PROXY` and lowercase variants) load onto the backend container
+  via `envFrom: secretRef`. Credentials never live in plaintext values
+  — embed them directly in the URL inside the Secret.
+
 ### v1.3.0 — Methodology v3 parity (P0–P11)
 
 Brings the calculator from methodology v2 to v3 across calibration,

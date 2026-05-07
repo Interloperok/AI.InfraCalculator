@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import Joyride, { STATUS } from "react-joyride";
 import {
   BookOpen,
@@ -15,283 +15,146 @@ import { useT } from "./contexts/I18nContext";
 import "./App.css";
 
 const APP_VERSION = "1.3.0";
-const GOOGLE_DOCS_URL =
-  "https://docs.google.com/document/d/1_H4QWAda19SFJbaHD4oHycYAh5TdECCr/edit?usp=sharing&ouid=114772934094426194553&rtpof=true&sd=true";
+// Methodology docx is bundled into the frontend image; served from the SPA
+// root so the app stays usable in air-gapped / offline environments.
+const METHODOLOGY_DOCX_URL = "/llm-methodology.docx";
 
 const DOCS_STEP_INDEX = 1;
 const PRESETS_STEP_INDEX = 2;
 const CALCULATE_STEP_INDEX = 7;
 const AUTO_OPTIMIZE_STEP_INDEX = 14;
 
-const TOUR_STEPS = [
-  {
-    target: '[data-tour="github-btn"]',
-    content: "Visit us on GitHub — star the repo to stay updated and learn more about the project.",
-    disableBeacon: true,
-  },
-  {
-    target: '[data-tour="docs-btn"]',
-    content:
-      "Here is the methodology documentation — browse it in a side panel without leaving the calculator.",
-    disableOverlay: true,
-  },
-  {
-    target: '[data-tour="presets"]',
-    content:
-      "Start quickly by picking a preset configuration with pre-filled model, GPU, and load parameters.",
-  },
-  {
-    target: '[data-tour="basic-tab"]',
-    content:
-      "Basic settings cover users, model selection, and hardware — enough for a quick estimate.",
-  },
-  {
-    target: '[data-tour="advanced-tab"]',
-    content:
-      "Fine-tune token budgets, KV-cache, tensor parallelism, compute efficiency, and SLA parameters here.",
-  },
-  {
-    target: '[data-tour="model-search"]',
-    content:
-      "Search Hugging Face to find your AI model. Architecture parameters like size and layers are filled automatically.",
-  },
-  {
-    target: '[data-tour="gpu-search"]',
-    content:
-      "Pick a GPU from the built-in catalog or upload your own. Memory and TFLOPS specs are filled in for you.",
-  },
-  {
-    target: '[data-tour="sla-targets"]',
-    content:
-      "Set TTFT and end-to-end latency targets (default 1s and 2s). The calculator validates your configuration against these SLA limits.",
-  },
-  {
-    target: '[data-tour="calculate-btn"]',
-    content:
-      "Hit Calculate to run the sizing engine, or Find Best Configs in auto mode to compare multiple options.",
-  },
-  {
-    target: '[data-tour="cost-estimate"]',
-    content:
-      "Estimated GPU hardware cost based on current market prices for the selected configuration.",
-  },
-  {
-    target: '[data-tour="session-cards"]',
-    content:
-      "Total concurrent sessions the infrastructure supports and the token length of each session context.",
-  },
-  {
-    target: '[data-tour="result-cards"]',
-    content:
-      "Key results at a glance: total servers and GPUs (so you can match against existing capacity), sessions per server, and throughput capacity.",
-  },
-  {
-    target: '[data-tour="donut-chart"]',
-    content:
-      "Visual breakdown of GPU memory per model instance — model weights vs. available KV-cache space.",
-  },
-  {
-    target: '[data-tour="detail-toggle"]',
-    content: "Switch between Memory Path and Compute Path to see the full calculation details.",
-  },
-  {
-    target: '[data-tour="download-report"]',
-    content:
-      "Download a detailed Excel report with all inputs, intermediate values, and final results.",
-  },
-  {
-    target: '[data-tour="auto-optimize"]',
-    content:
-      "Toggle Auto-Optimize to let the engine search across GPUs, quantization levels, and TP degrees to find the best hardware configuration automatically.",
-  },
-  {
-    target: '[data-tour="optimize-mode"]',
-    content:
-      "Choose an optimization strategy: minimize servers, minimize cost, find the best balance, or maximize throughput.",
-  },
-  {
-    target: '[data-tour="optimize-results"]',
-    content:
-      "After running the optimizer, results appear in this side panel. Click to expand it and compare configurations side by side.",
-  },
+// Tour step definitions — content is resolved via t(contentKey) inside the
+// component so the tour follows the active language.
+const TOUR_DEFS = [
+  { target: '[data-tour="github-btn"]', contentKey: "tour.llm.github", disableBeacon: true },
+  { target: '[data-tour="docs-btn"]', contentKey: "tour.llm.docs", disableOverlay: true },
+  { target: '[data-tour="presets"]', contentKey: "tour.llm.presets" },
+  { target: '[data-tour="basic-tab"]', contentKey: "tour.llm.basicTab" },
+  { target: '[data-tour="advanced-tab"]', contentKey: "tour.llm.advancedTab" },
+  { target: '[data-tour="model-search"]', contentKey: "tour.llm.modelSearch" },
+  { target: '[data-tour="gpu-search"]', contentKey: "tour.llm.gpuSearch" },
+  { target: '[data-tour="sla-targets"]', contentKey: "tour.llm.slaTargets" },
+  { target: '[data-tour="calculate-btn"]', contentKey: "tour.llm.calculate" },
+  { target: '[data-tour="cost-estimate"]', contentKey: "tour.llm.costEstimate" },
+  { target: '[data-tour="session-cards"]', contentKey: "tour.llm.sessionCards" },
+  { target: '[data-tour="result-cards"]', contentKey: "tour.llm.resultCards" },
+  { target: '[data-tour="donut-chart"]', contentKey: "tour.llm.donutChart" },
+  { target: '[data-tour="detail-toggle"]', contentKey: "tour.llm.detailToggle" },
+  { target: '[data-tour="download-report"]', contentKey: "tour.llm.downloadReport" },
+  { target: '[data-tour="auto-optimize"]', contentKey: "tour.llm.autoOptimize" },
+  { target: '[data-tour="optimize-mode"]', contentKey: "tour.llm.optimizeMode" },
+  { target: '[data-tour="optimize-results"]', contentKey: "tour.llm.optimizeResults" },
 ];
 
-const TOUR_STEPS_MOBILE = [
+const TOUR_DEFS_MOBILE = [
   {
     target: '[data-tour="github-btn"]',
-    content: "Visit us on GitHub — star the repo to stay updated.",
+    contentKey: "tour.llmMobile.github",
     disableBeacon: true,
     placement: "bottom",
   },
   {
     target: '[data-tour="docs-btn"]',
-    content: "Tap to open the methodology documentation in a new tab.",
+    contentKey: "tour.llmMobile.docs",
     placement: "bottom",
   },
   {
     target: '[data-tour="presets"]',
-    content: "Pick a preset to quickly fill in model, GPU, and load parameters.",
+    contentKey: "tour.llmMobile.presets",
     placement: "bottom",
   },
   {
     target: '[data-tour="model-search"]',
-    content: "Search Hugging Face for your AI model — parameters are filled automatically.",
+    contentKey: "tour.llmMobile.modelSearch",
     placement: "bottom",
   },
   {
     target: '[data-tour="gpu-search"]',
-    content: "Choose a GPU from the catalog. Memory and TFLOPS are filled in for you.",
+    contentKey: "tour.llmMobile.gpuSearch",
     placement: "top",
   },
   {
     target: '[data-tour="calculate-btn"]',
-    content: "Tap Calculate to run the sizing engine and see your results.",
+    contentKey: "tour.llmMobile.calculate",
     placement: "top",
   },
 ];
 
 const M_PRESETS_STEP = 2;
 
-// ── VLM tour (per-mode tour requested in P12c) ──
-const TOUR_STEPS_VLM = [
-  {
-    target: '[data-tour="github-btn"]',
-    content: "Visit us on GitHub — star the repo to stay updated and learn more about the project.",
-    disableBeacon: true,
-  },
-  {
-    target: '[data-tour="docs-btn"]',
-    content: "Methodology documentation. Appendix И covers VLM single-pass online sizing.",
-    disableOverlay: true,
-  },
-  {
-    target: '[data-tour="mode-switcher"]',
-    content:
-      "You're in VLM mode — single-pass image-to-JSON sizing. Switch to LLM or OCR+LLM here when needed.",
-  },
-  {
-    target: '[data-tour="vlm-presets"]',
-    content:
-      "Pick a preset to populate workload, image profile, model, and hardware in one click.",
-  },
-  {
-    target: '[data-tour="vlm-workload"]',
-    content:
-      "VLM is sized in pages/sec, not user sessions. Set average pages/sec, peak concurrency, and the per-page SLA target.",
-  },
-  {
-    target: '[data-tour="vlm-hardware"]',
-    content:
-      "Pick a GPU and tensor parallelism degree. VLMs are typically run at TP=1 unless the model is very large.",
-  },
-  {
-    target: '[data-tour="vlm-calculate-btn"]',
-    content: "Click to run the sizing engine and get servers + GPUs needed for your workload.",
-  },
-  {
-    target: '[data-tour="vlm-result-cards"]',
-    content:
-      "Three headline cards: infrastructure (servers + GPUs), SLA pass/fail, and per-instance prefill/decode throughput.",
-  },
+const TOUR_DEFS_VLM = [
+  { target: '[data-tour="github-btn"]', contentKey: "tour.vlm.github", disableBeacon: true },
+  { target: '[data-tour="docs-btn"]', contentKey: "tour.vlm.docs", disableOverlay: true },
+  { target: '[data-tour="mode-switcher"]', contentKey: "tour.vlm.modeSwitcher" },
+  { target: '[data-tour="vlm-presets"]', contentKey: "tour.vlm.presets" },
+  { target: '[data-tour="vlm-workload"]', contentKey: "tour.vlm.workload" },
+  { target: '[data-tour="vlm-hardware"]', contentKey: "tour.vlm.hardware" },
+  { target: '[data-tour="vlm-calculate-btn"]', contentKey: "tour.vlm.calculate" },
+  { target: '[data-tour="vlm-result-cards"]', contentKey: "tour.vlm.results" },
 ];
 
-const TOUR_STEPS_VLM_MOBILE = [
+const TOUR_DEFS_VLM_MOBILE = [
   {
     target: '[data-tour="github-btn"]',
-    content: "Star the repo on GitHub.",
+    contentKey: "tour.vlmMobile.github",
     disableBeacon: true,
     placement: "bottom",
   },
   {
     target: '[data-tour="mode-switcher"]',
-    content: "Switch between LLM, VLM, and OCR+LLM modes here.",
+    contentKey: "tour.vlmMobile.modeSwitcher",
     placement: "bottom",
   },
   {
     target: '[data-tour="vlm-presets"]',
-    content: "Tap a preset to fill all fields.",
+    contentKey: "tour.vlmMobile.presets",
     placement: "bottom",
   },
   {
     target: '[data-tour="vlm-calculate-btn"]',
-    content: "Tap Calculate to run the sizing engine.",
+    contentKey: "tour.vlmMobile.calculate",
     placement: "top",
   },
 ];
 
-// ── OCR + LLM tour ──
-const TOUR_STEPS_OCR = [
-  {
-    target: '[data-tour="github-btn"]',
-    content: "Visit us on GitHub — star the repo to stay updated and learn more about the project.",
-    disableBeacon: true,
-  },
-  {
-    target: '[data-tour="docs-btn"]',
-    content:
-      "Methodology documentation. Appendix И.4.2 covers OCR+LLM two-pass online sizing with two-pool deployments.",
-    disableOverlay: true,
-  },
-  {
-    target: '[data-tour="mode-switcher"]',
-    content:
-      "You're in OCR + LLM mode — two-pass extraction. Switch between LLM, VLM, and OCR+LLM here.",
-  },
-  {
-    target: '[data-tour="ocr-presets"]',
-    content:
-      "Pick a preset to populate workload, OCR pipeline, text profile, model, and hardware.",
-  },
-  {
-    target: '[data-tour="ocr-workload"]',
-    content:
-      "Same workload semantics as VLM: pages/sec, peak concurrency, per-page SLA. The SLA budget is split between OCR and LLM stages.",
-  },
-  {
-    target: '[data-tour="ocr-pipeline"]',
-    content:
-      "Pick OCR-on-GPU (PaddleOCR/EasyOCR) for high-volume cases, or OCR-on-CPU (Tesseract) when the GPU pool should hold only the LLM. The choice changes how the SLA budget is split.",
-  },
-  {
-    target: '[data-tour="ocr-hardware"]',
-    content: "Pick a GPU and tensor parallelism degree for the LLM stage.",
-  },
-  {
-    target: '[data-tour="ocr-calculate-btn"]',
-    content: "Run sizing — backend returns separate GPU pools for OCR and LLM stages.",
-  },
-  {
-    target: '[data-tour="ocr-result-cards"]',
-    content:
-      "Three cards: total infrastructure with the OCR+LLM pool split below, SLA pass/fail with t_OCR breakdown, and LLM-stage throughput.",
-  },
+const TOUR_DEFS_OCR = [
+  { target: '[data-tour="github-btn"]', contentKey: "tour.ocr.github", disableBeacon: true },
+  { target: '[data-tour="docs-btn"]', contentKey: "tour.ocr.docs", disableOverlay: true },
+  { target: '[data-tour="mode-switcher"]', contentKey: "tour.ocr.modeSwitcher" },
+  { target: '[data-tour="ocr-presets"]', contentKey: "tour.ocr.presets" },
+  { target: '[data-tour="ocr-workload"]', contentKey: "tour.ocr.workload" },
+  { target: '[data-tour="ocr-pipeline"]', contentKey: "tour.ocr.pipeline" },
+  { target: '[data-tour="ocr-hardware"]', contentKey: "tour.ocr.hardware" },
+  { target: '[data-tour="ocr-calculate-btn"]', contentKey: "tour.ocr.calculate" },
+  { target: '[data-tour="ocr-result-cards"]', contentKey: "tour.ocr.results" },
 ];
 
-const TOUR_STEPS_OCR_MOBILE = [
+const TOUR_DEFS_OCR_MOBILE = [
   {
     target: '[data-tour="github-btn"]',
-    content: "Star the repo on GitHub.",
+    contentKey: "tour.ocrMobile.github",
     disableBeacon: true,
     placement: "bottom",
   },
   {
     target: '[data-tour="mode-switcher"]',
-    content: "Switch between LLM, VLM, and OCR+LLM modes here.",
+    contentKey: "tour.ocrMobile.modeSwitcher",
     placement: "bottom",
   },
   {
     target: '[data-tour="ocr-presets"]',
-    content: "Tap a preset to fill all fields.",
+    contentKey: "tour.ocrMobile.presets",
     placement: "bottom",
   },
   {
     target: '[data-tour="ocr-pipeline"]',
-    content: "Choose OCR on GPU or CPU.",
+    contentKey: "tour.ocrMobile.pipeline",
     placement: "bottom",
   },
   {
     target: '[data-tour="ocr-calculate-btn"]',
-    content: "Tap Calculate.",
+    contentKey: "tour.ocrMobile.calculate",
     placement: "top",
   },
 ];
@@ -391,6 +254,9 @@ function App() {
   const [docsOpen, setDocsOpen] = useState(false);
   const [drawerWidth, setDrawerWidth] = useState(820);
   const [isResizing, setIsResizing] = useState(false);
+  const [docsHtml, setDocsHtml] = useState(null);
+  const [docsLoadError, setDocsLoadError] = useState(null);
+  const [docsLoading, setDocsLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== "undefined" && window.innerWidth < 640,
   );
@@ -520,6 +386,33 @@ function App() {
     return () => document.removeEventListener("keydown", handleKey);
   }, [docsOpen]);
 
+  // Lazy-load the methodology docx and convert to HTML via mammoth on first
+  // open. Fully offline: the docx is bundled into the frontend at
+  // /llm-methodology.docx; mammoth runs entirely in the browser.
+  useEffect(() => {
+    if (!docsOpen || docsHtml || docsLoadError) return;
+    let cancelled = false;
+    setDocsLoading(true);
+    (async () => {
+      try {
+        const resp = await fetch(METHODOLOGY_DOCX_URL);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
+        const arrayBuffer = await resp.arrayBuffer();
+        const mammothMod = await import("mammoth/mammoth.browser");
+        const mammoth = mammothMod.default ?? mammothMod;
+        const result = await mammoth.convertToHtml({ arrayBuffer });
+        if (!cancelled) setDocsHtml(result.value);
+      } catch (e) {
+        if (!cancelled) setDocsLoadError(e.message || String(e));
+      } finally {
+        if (!cancelled) setDocsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [docsOpen, docsHtml, docsLoadError]);
+
   // Drawer resize via drag
   const handleDragStart = useCallback(
     (e) => {
@@ -565,16 +458,20 @@ function App() {
     }
   };
 
+  // Resolve tour step content via the active language. Recomputes when the
+  // mode (LLM/VLM/OCR), viewport (mobile vs desktop), or t() identity changes.
+  const tourSteps = useMemo(() => {
+    let defs;
+    if (tourMode === "vlm") defs = isMobileTour ? TOUR_DEFS_VLM_MOBILE : TOUR_DEFS_VLM;
+    else if (tourMode === "ocr") defs = isMobileTour ? TOUR_DEFS_OCR_MOBILE : TOUR_DEFS_OCR;
+    else defs = isMobileTour ? TOUR_DEFS_MOBILE : TOUR_DEFS;
+    return defs.map(({ contentKey, ...rest }) => ({ ...rest, content: t(contentKey) }));
+  }, [tourMode, isMobileTour, t]);
+
   return (
     <div className="min-h-screen bg-bg text-fg flex flex-col">
       <Joyride
-        steps={(() => {
-          if (tourMode === "vlm")
-            return isMobileTour ? TOUR_STEPS_VLM_MOBILE : TOUR_STEPS_VLM;
-          if (tourMode === "ocr")
-            return isMobileTour ? TOUR_STEPS_OCR_MOBILE : TOUR_STEPS_OCR;
-          return isMobileTour ? TOUR_STEPS_MOBILE : TOUR_STEPS;
-        })()}
+        steps={tourSteps}
         run={runTour}
         stepIndex={tourStepIndex}
         continuous
@@ -586,11 +483,12 @@ function App() {
         callback={handleTourCallback}
         styles={isMobileTour ? TOUR_STYLES_MOBILE : TOUR_STYLES}
         locale={{
-          back: "Back",
-          close: "Close",
-          last: "Finish",
-          next: "Next",
-          skip: "Skip tour",
+          back: t("tour.locale.back"),
+          close: t("tour.locale.close"),
+          last: t("tour.locale.last"),
+          next: t("tour.locale.next"),
+          nextLabelWithProgress: t("tour.locale.nextProgress"),
+          skip: t("tour.locale.skip"),
         }}
       />
 
@@ -626,9 +524,8 @@ function App() {
 
               {isMobile ? (
                 <a
-                  href={GOOGLE_DOCS_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={METHODOLOGY_DOCX_URL}
+                  download="llm-methodology.docx"
                   data-tour="docs-btn"
                   title={t("app.docs")}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-muted hover:text-fg hover:border-border-strong transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
@@ -700,27 +597,26 @@ function App() {
               </div>
               <div className="flex items-center gap-2">
                 <a
-                  href={GOOGLE_DOCS_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={METHODOLOGY_DOCX_URL}
+                  download="llm-methodology.docx"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted hover:text-accent hover:bg-accent-soft rounded-md transition-colors"
-                  title="Open in Google Docs"
+                  title={t("app.docs.download")}
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"
                     />
                   </svg>
-                  <span>Open in Google Docs</span>
+                  <span>{t("app.docs.download")}</span>
                 </a>
                 <button
                   onClick={() => setDocsOpen(false)}
                   className="p-1.5 rounded-md text-muted hover:text-fg hover:bg-elevated transition-colors"
-                  title="Close (Esc)"
-                  aria-label="Close"
+                  title={t("app.docs.close")}
+                  aria-label={t("app.docs.close")}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -733,15 +629,21 @@ function App() {
                 </button>
               </div>
             </div>
-            {/* Iframe */}
-            <div className="relative flex-1">
-              <iframe
-                src="https://docs.google.com/document/d/1_H4QWAda19SFJbaHD4oHycYAh5TdECCr/preview?usp=sharing&ouid=114772934094426194553&rtpof=true&sd=true"
-                //src="https://docs.google.com/document/d/e/2PACX-1vRKlgJr0CsZhTEObcFnpBxWlAmHA1hscr0w6GDSnbcJRW-eCqhwkQOuP9pecS735w/pub?embedded=true"
-                title="Documentation"
-                className="absolute inset-0 w-full h-full border-0"
-              />
-              {/* Transparent overlay during resize to prevent iframe from stealing events */}
+            {/* Rendered docx */}
+            <div className="relative flex-1 overflow-y-auto">
+              {docsLoadError ? (
+                <div className="px-6 py-8 text-sm text-danger">
+                  {t("app.docs.error")}: {docsLoadError}
+                </div>
+              ) : docsLoading || !docsHtml ? (
+                <div className="px-6 py-8 text-sm text-muted">{t("app.docs.loading")}</div>
+              ) : (
+                <div
+                  className="docs-rendered px-6 py-6 text-fg"
+                  dangerouslySetInnerHTML={{ __html: docsHtml }}
+                />
+              )}
+              {/* Transparent overlay during resize to prevent inner content from stealing events */}
               {isResizing && <div className="absolute inset-0" />}
             </div>
           </div>

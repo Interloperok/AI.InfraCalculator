@@ -21,6 +21,10 @@ const en = {
   "app.footer.version": "Version",
   "app.footer.builtWith": "Built with FastAPI + React",
   "app.tour.start": "Take a Tour",
+  "app.docs.download": "Download .docx",
+  "app.docs.close": "Close (Esc)",
+  "app.docs.loading": "Loading methodology…",
+  "app.docs.error": "Failed to load methodology",
 
   // ── Calculator modes ─────────────────────────────────────────────────
   "mode.label": "Calculator mode",
@@ -147,19 +151,19 @@ const en = {
   "results.gateway.title": "Gateway quotas",
   "results.gateway.subtitle": "For LiteLLM / shared vLLM rate-limits",
   "results.gateway.peakRpmTooltip":
-    "Peak requests-per-minute across all sessions, with K_SLA headroom. Set this as the per-tenant `rpm` cap on a shared inference gateway (LiteLLM / vLLM). The 'sustained' value below is the long-term average without headroom.",
+    "How many model calls per minute hit the gateway at peak load. Use this as the rate-limit ceiling on your inference gateway (e.g. LiteLLM rpm, NGINX limit_req). The 'sustained' line below is the steady-state average without the SLA safety margin.",
   "results.gateway.peakTpmTooltip":
-    "Peak total tokens-per-minute (input + output) the solution will push through the gateway, with K_SLA headroom. Use this as the LiteLLM `tpm` cap. Independent of K_calls — agentic workloads add more requests, not more tokens.",
+    "Total tokens per minute (prompt tokens going in + tokens the model generates) flowing through the gateway at peak. This is what billing dashboards and per-tenant token quotas count. Use it to size the gateway's tpm budget.",
   "results.gateway.tpmSplitTooltip":
-    "Breakdown of the Peak TPM into input tokens (system prompt + user prompt + RAG context) the gateway sees on every call vs. output tokens (model response) it returns.",
+    "Same Peak TPM, separated into the prompt (input — system + user + RAG/history) the gateway forwards to the model, and the response (output) the model streams back. Useful when input and output are billed or rate-limited separately.",
   "results.gateway.maxParallelTooltip":
-    "Concurrent in-flight requests. Set as LiteLLM `max_parallel_requests` or vLLM `max_num_seqs` so the engine doesn't accept more sessions than it can serve under SLA.",
+    "How many requests can be in flight at the same time at peak. Set this as the gateway's concurrency cap (LiteLLM max_parallel_requests, vLLM max_num_seqs) so it queues new arrivals instead of overloading the engine and blowing the SLA.",
   "results.gateway.ocrPeakRpmTooltip":
-    "Peak pages-per-minute hitting the OCR pool. Zero for ocr_cpu pipelines (CPU stage isn't gateway-routed).",
+    "Pages per minute reaching the OCR stage at peak. Zero when the OCR pipeline runs on CPU (the CPU stage doesn't go through the gateway).",
   "results.gateway.llmPeakRpmTooltip":
-    "Peak LLM-calls-per-minute hitting the LLM pool. Each page is one LLM call.",
+    "Calls per minute reaching the LLM stage at peak — one call per page. Use this as the rate-limit ceiling for the LLM pool on the gateway.",
   "results.gateway.llmPeakTpmTooltip":
-    "Peak total tokens-per-minute on the LLM pool (system prompt + OCR text + JSON output).",
+    "Total tokens per minute on the LLM pool at peak (system prompt + OCR'd text + JSON the model emits). Use this for the LLM-pool tpm budget.",
   "results.gateway.peakRpm": "Peak RPM",
   "results.gateway.peakTpm": "Peak TPM",
   "results.gateway.tpmSplit": "TPM split",
@@ -332,11 +336,269 @@ const en = {
   "mig.estimateOnly":
     "Estimate only — backend MIG-aware sizing (compute throughput at slice fraction) is not yet implemented. Use this as a capacity-planning hint against existing infrastructure. Max {max} slices per physical GPU.",
 
+  // ── VLM / OCR form: shared (workload, model, hardware) ──────────────
+  "vmForm.quickPresets": "Quick Presets",
+  "vmForm.workloadOnline": "Workload (online)",
+  "vmForm.pagesPerSecond": "Pages per second (λ)",
+  "vmForm.peakConcurrent": "Peak concurrent pages",
+  "vmForm.slaPerPage": "SLA per page (p95)",
+  "vmForm.parameters": "Parameters",
+  "vmForm.quantization": "Quantization",
+  "vmForm.layers": "Layers (L)",
+  "vmForm.hiddenSize": "Hidden size (H)",
+  "vmForm.kvHeads": "KV heads (Nkv)",
+  "vmForm.attnHeads": "Attention heads",
+  "vmForm.maxContext": "Max context window",
+  "vmForm.tokensSuffix": "tokens",
+  "vmForm.jsonFields": "JSON fields per response",
+  "vmForm.tokensPerField": "Tokens per field",
+  "vmForm.tokensPerFieldHint": "typically 30-100",
+  "vmForm.hardware": "Hardware",
+  "vmForm.gpuModel": "GPU model",
+  "vmForm.gpuPickPrompt": "Click to choose a GPU…",
+  "vmForm.gpuMemory": "GPU memory",
+  "vmForm.gpuTflops": "GPU TFLOPS",
+  "vmForm.gpusPerServer": "GPUs per server",
+  "vmForm.tp": "Tensor parallelism (Z)",
+  "vmForm.tpHint": "1 = single GPU",
+  "vmForm.invalidValue": "Missing or invalid value for {field}",
+
+  // ── VLM form ────────────────────────────────────────────────────────
+  "vlmForm.imageTokenProfile": "Image & token profile",
+  "vlmForm.imageWidth": "Image width",
+  "vlmForm.imageHeight": "Image height",
+  "vlmForm.patchSize": "Effective patch size",
+  "vlmForm.patchHint": "Qwen2.5-VL ≈ 28",
+  "vlmForm.promptTokens": "Prompt tokens (text)",
+  "vlmForm.modelTitle": "VLM model",
+  "vlmForm.submit": "Calculate VLM Sizing",
+
+  // ── OCR form ────────────────────────────────────────────────────────
+  "ocrForm.pipelineTitle": "OCR pipeline",
+  "ocrForm.pipelineLabel": "OCR pipeline",
+  "ocrForm.pipelineOnGpu": "OCR on GPU",
+  "ocrForm.pipelineOnGpuHint": "PaddleOCR-GPU, EasyOCR-GPU",
+  "ocrForm.pipelineOnCpu": "OCR on CPU",
+  "ocrForm.pipelineOnCpuHint": "Tesseract; CPU pool, no GPU sizing",
+  "ocrForm.throughputGpu": "OCR throughput per GPU",
+  "ocrForm.empirical": "empirical",
+  "ocrForm.poolUtilisation": "OCR pool utilisation (η_OCR)",
+  "ocrForm.poolUtilHint": "0.7-0.85",
+  "ocrForm.throughputCore": "OCR throughput per core",
+  "ocrForm.cpuCores": "CPU cores for OCR",
+  "ocrForm.handoff": "Handoff overhead",
+  "ocrForm.handoffHint": "OCR → LLM handoff",
+  "ocrForm.textProfile": "OCR text profile",
+  "ocrForm.charsPerPage": "Characters per page",
+  "ocrForm.charsPerToken": "Chars per token",
+  "ocrForm.charsPerTokenHint": "3.5 mixed · 4.0 EN · 2.8 RU",
+  "ocrForm.sysPromptTokens": "System prompt tokens",
+  "ocrForm.modelTitle": "LLM model",
+  "ocrForm.submit": "Calculate OCR + LLM Sizing",
+  "ocrForm.errOcrGpu": "OCR-GPU throughput (pages/s/GPU) is required for ocr_gpu pipeline",
+  "ocrForm.errOcrCore": "OCR-core throughput (pages/s/core) is required for ocr_cpu pipeline",
+  "ocrForm.errOcrCores": "Number of OCR CPU cores must be ≥ 1 for ocr_cpu pipeline",
+
+  // ── Plain-language tooltips: LLM result cards ───────────────────────
+  "results.concurrentSessions.tooltip":
+    "How many user chat sessions can run at the same time on the deployed cluster at peak load.",
+  "results.sessionContext.tooltip":
+    "How many tokens of conversation history each session keeps in memory (system prompt + user messages + model replies). Bigger context = more memory per session.",
+  "results.infrastructure.tooltip":
+    "How many physical servers the workload needs. Final count is max of two checks: enough memory for KV-cache, and enough compute to keep up under SLA. Hover the tile for the breakdown.",
+  "results.sessions.tooltip":
+    "How many concurrent user sessions one server can hold before either KV-cache memory or compute throughput is exhausted.",
+  "results.gpuPerServer.tooltip":
+    "Number of GPU accelerators in each physical server (1 / 2 / 4 / 6 / 8). Driven by the chassis you're targeting.",
+  "results.sla.ttft.tooltip":
+    "Time To First Token — how long the user waits between hitting Send and seeing the first character of the reply. Lower is better; methodology default target is 1 second.",
+  "results.sla.e2e.tooltip":
+    "End-to-end latency — total time from request to the final token of the reply. Includes prefill, decode, and overhead. Methodology default target is 2 seconds.",
+
+  // ── Plain-language tooltips: VLM result cards ───────────────────────
+  "vlm.infraRequired.tooltip":
+    "Servers and GPUs the VLM workload needs at peak. Sized so memory holds the model + KV-cache for the peak batch and compute keeps the per-page latency under SLA.",
+  "vlm.slaPerPage.tooltip":
+    "Whether the per-page latency target (p95) is met for the chosen model + GPU + concurrency. If it fails, lower concurrency, pick a faster GPU, or relax the SLA.",
+  "vlm.throughput.tooltip":
+    "Prefill throughput per VLM instance — tokens per second the model processes from the image + prompt. Big number = small latency per page. The decode line below is the response generation rate.",
+  "vlm.bsRealStar.tooltip":
+    "Effective batch size used inside the engine — how many pages share one prefill pass. Larger batches improve throughput but raise memory + per-page latency.",
+  "vlm.replicas.tooltip":
+    "How many parallel copies of the VLM are running across the cluster. More replicas = more throughput but more GPUs needed.",
+  "vlm.visualTokens.tooltip":
+    "Tokens the vision encoder produces from one page image. Scales with image size and the patch size of the model. Large pages = many visual tokens = slower prefill.",
+  "vlm.prefillLength.tooltip":
+    "Total prefill sequence length per page = visual tokens + text prompt tokens. Longer prefill = more compute + more KV memory.",
+  "vlm.diag.gpusPerInstance.tooltip":
+    "Number of GPUs allocated to a single running copy of the VLM (tensor parallelism degree).",
+  "vlm.diag.sTpZ.tooltip":
+    "How many concurrent pages a single VLM instance can handle while staying under the SLA.",
+  "vlm.diag.instanceMem.tooltip":
+    "Total GPU memory available to one VLM instance, summed across the GPUs it's allocated.",
+  "vlm.diag.gpuTflops.tooltip":
+    "Effective compute capacity of one GPU used by the calculator (FP16/BF16 tensor TFLOPS).",
+  "vlm.diag.slPfEff.tooltip":
+    "Effective prefill sequence length used by the engine — visual tokens + prompt tokens, after rounding to the engine's batching granularity.",
+  "vlm.diag.slDec.tooltip":
+    "How many tokens the model generates on decode per page (length of the JSON response).",
+  "vlm.diag.kvPerPage.tooltip":
+    "GPU memory the KV-cache holds for one in-flight page. Multiplies by the number of concurrent pages per instance.",
+  "vlm.diag.modelWeights.tooltip":
+    "GPU memory taken by the loaded model weights, before any KV-cache or runtime overhead.",
+  "vlm.diag.slaTarget.tooltip":
+    "User-set per-page latency target (p95) the calculator validates against.",
+
+  // ── Plain-language tooltips: OCR + LLM result cards ─────────────────
+  "ocr.infraRequired.tooltip":
+    "Total servers and GPUs needed for both stages combined (OCR + LLM). The pool split below shows how many GPUs each stage uses; OCR-on-CPU shows '—' because the CPU stage isn't sized in GPUs.",
+  "ocr.slaPerPage.tooltip":
+    "Whether end-to-end per-page latency stays under the SLA target. The detail line shows OCR time + LLM time used; the rest of the budget is overhead and the handoff between stages.",
+  "ocr.throughput.tooltip":
+    "Prefill throughput per LLM instance — tokens per second the LLM stage processes from the OCR'd text. Decode line below is response-token generation rate.",
+  "ocr.ocrPool.tooltip":
+    "Resources allocated to the OCR stage. GPU pool count for ocr_gpu pipelines, CPU core count for ocr_cpu pipelines (where the OCR stage runs entirely on CPU).",
+  "ocr.llmPool.tooltip":
+    "GPUs allocated to the LLM stage that consumes the OCR'd text and emits the JSON response.",
+  "ocr.bsRealStar.tooltip":
+    "Effective batch size on the LLM stage — how many pages share one prefill pass on the LLM.",
+  "ocr.replicas.tooltip":
+    "Parallel copies of the LLM running across the LLM pool. More replicas = more throughput.",
+  "ocr.diag.pipeline.tooltip":
+    "Which OCR stack the calculator sized for: ocr_gpu (PaddleOCR/EasyOCR on GPU) or ocr_cpu (Tesseract on CPU).",
+  "ocr.diag.tOcr.tooltip":
+    "Time the OCR stage spends per page. Subtracted from the per-page SLA budget; the LLM stage gets what's left.",
+  "ocr.diag.llmBudget.tooltip":
+    "Time budget the LLM stage has per page after OCR time and the handoff overhead are subtracted from the SLA target.",
+  "ocr.diag.lText.tooltip":
+    "Tokens the LLM stage receives — system prompt plus the OCR'd text from one page.",
+  "ocr.diag.slPfEff.tooltip":
+    "Effective prefill length on the LLM stage after rounding to the engine's batching granularity.",
+  "ocr.diag.slDec.tooltip":
+    "Tokens the LLM generates per page (the JSON response length).",
+  "ocr.diag.gpusPerInstance.tooltip":
+    "GPUs allocated to one running copy of the LLM (tensor parallelism degree on the LLM pool).",
+  "ocr.diag.sessionsPerInstance.tooltip":
+    "How many concurrent pages one LLM instance can hold while staying under the LLM-stage time budget.",
+  "ocr.diag.kvPerSession.tooltip":
+    "GPU memory the KV-cache holds for one in-flight page on the LLM stage.",
+  "ocr.diag.modelWeights.tooltip":
+    "GPU memory taken by loaded LLM weights, before KV-cache or runtime overhead.",
+  "ocr.diag.gpuTflops.tooltip":
+    "Effective compute capacity of one LLM-pool GPU used by the calculator (FP16/BF16 tensor TFLOPS).",
+  "ocr.diag.handoff.tooltip":
+    "Fixed overhead added between OCR finishing and the LLM starting (network round-trip, JSON marshal, queueing). Subtracted from the per-page budget.",
+
   // ── Errors / loading ─────────────────────────────────────────────────
   "error.title": "Error",
   "error.network": "Network error: unable to reach the backend.",
   "error.retry": "Retry",
   "loading.calculating": "Running calculation…",
+
+  // ── Guided tour: Joyride locale ──────────────────────────────────────
+  "tour.locale.back": "Back",
+  "tour.locale.close": "Close",
+  "tour.locale.last": "Finish",
+  "tour.locale.next": "Next",
+  "tour.locale.nextProgress": "Next (Step {step} of {steps})",
+  "tour.locale.skip": "Skip tour",
+
+  // ── Guided tour: LLM (desktop) ───────────────────────────────────────
+  "tour.llm.github":
+    "Visit us on GitHub — star the repo to stay updated and learn more about the project.",
+  "tour.llm.docs":
+    "Here is the methodology documentation — browse it in a side panel without leaving the calculator.",
+  "tour.llm.presets":
+    "Start quickly by picking a preset configuration with pre-filled model, GPU, and load parameters.",
+  "tour.llm.basicTab":
+    "Basic settings cover users, model selection, and hardware — enough for a quick estimate.",
+  "tour.llm.advancedTab":
+    "Fine-tune token budgets, KV-cache, tensor parallelism, compute efficiency, and SLA parameters here.",
+  "tour.llm.modelSearch":
+    "Search Hugging Face to find your AI model. Architecture parameters like size and layers are filled automatically.",
+  "tour.llm.gpuSearch":
+    "Pick a GPU from the built-in catalog or upload your own. Memory and TFLOPS specs are filled in for you.",
+  "tour.llm.slaTargets":
+    "Set TTFT and end-to-end latency targets (default 1s and 2s). The calculator validates your configuration against these SLA limits.",
+  "tour.llm.calculate":
+    "Hit Calculate to run the sizing engine, or Find Best Configs in auto mode to compare multiple options.",
+  "tour.llm.costEstimate":
+    "Estimated GPU hardware cost based on current market prices for the selected configuration.",
+  "tour.llm.sessionCards":
+    "Total concurrent sessions the infrastructure supports and the token length of each session context.",
+  "tour.llm.resultCards":
+    "Key results at a glance: total servers and GPUs (so you can match against existing capacity), sessions per server, and throughput capacity.",
+  "tour.llm.donutChart":
+    "Visual breakdown of GPU memory per model instance — model weights vs. available KV-cache space.",
+  "tour.llm.detailToggle":
+    "Switch between Memory Path and Compute Path to see the full calculation details.",
+  "tour.llm.downloadReport":
+    "Download a detailed Excel report with all inputs, intermediate values, and final results.",
+  "tour.llm.autoOptimize":
+    "Toggle Auto-Optimize to let the engine search across GPUs, quantization levels, and TP degrees to find the best hardware configuration automatically.",
+  "tour.llm.optimizeMode":
+    "Choose an optimization strategy: minimize servers, minimize cost, find the best balance, or maximize throughput.",
+  "tour.llm.optimizeResults":
+    "After running the optimizer, results appear in this side panel. Click to expand it and compare configurations side by side.",
+
+  // ── Guided tour: LLM (mobile) ────────────────────────────────────────
+  "tour.llmMobile.github": "Visit us on GitHub — star the repo to stay updated.",
+  "tour.llmMobile.docs": "Tap to open the methodology documentation in a new tab.",
+  "tour.llmMobile.presets":
+    "Pick a preset to quickly fill in model, GPU, and load parameters.",
+  "tour.llmMobile.modelSearch":
+    "Search Hugging Face for your AI model — parameters are filled automatically.",
+  "tour.llmMobile.gpuSearch":
+    "Choose a GPU from the catalog. Memory and TFLOPS are filled in for you.",
+  "tour.llmMobile.calculate": "Tap Calculate to run the sizing engine and see your results.",
+
+  // ── Guided tour: VLM (desktop) ───────────────────────────────────────
+  "tour.vlm.github":
+    "Visit us on GitHub — star the repo to stay updated and learn more about the project.",
+  "tour.vlm.docs": "Methodology documentation. Appendix И covers VLM single-pass online sizing.",
+  "tour.vlm.modeSwitcher":
+    "You're in VLM mode — single-pass image-to-JSON sizing. Switch to LLM or OCR+LLM here when needed.",
+  "tour.vlm.presets":
+    "Pick a preset to populate workload, image profile, model, and hardware in one click.",
+  "tour.vlm.workload":
+    "VLM is sized in pages/sec, not user sessions. Set average pages/sec, peak concurrency, and the per-page SLA target.",
+  "tour.vlm.hardware":
+    "Pick a GPU and tensor parallelism degree. VLMs are typically run at TP=1 unless the model is very large.",
+  "tour.vlm.calculate":
+    "Click to run the sizing engine and get servers + GPUs needed for your workload.",
+  "tour.vlm.results":
+    "Three headline cards: infrastructure (servers + GPUs), SLA pass/fail, and per-instance prefill/decode throughput.",
+
+  // ── Guided tour: VLM (mobile) ────────────────────────────────────────
+  "tour.vlmMobile.github": "Star the repo on GitHub.",
+  "tour.vlmMobile.modeSwitcher": "Switch between LLM, VLM, and OCR+LLM modes here.",
+  "tour.vlmMobile.presets": "Tap a preset to fill all fields.",
+  "tour.vlmMobile.calculate": "Tap Calculate to run the sizing engine.",
+
+  // ── Guided tour: OCR + LLM (desktop) ─────────────────────────────────
+  "tour.ocr.github":
+    "Visit us on GitHub — star the repo to stay updated and learn more about the project.",
+  "tour.ocr.docs":
+    "Methodology documentation. Appendix И.4.2 covers OCR+LLM two-pass online sizing with two-pool deployments.",
+  "tour.ocr.modeSwitcher":
+    "You're in OCR + LLM mode — two-pass extraction. Switch between LLM, VLM, and OCR+LLM here.",
+  "tour.ocr.presets":
+    "Pick a preset to populate workload, OCR pipeline, text profile, model, and hardware.",
+  "tour.ocr.workload":
+    "Same workload semantics as VLM: pages/sec, peak concurrency, per-page SLA. The SLA budget is split between OCR and LLM stages.",
+  "tour.ocr.pipeline":
+    "Pick OCR-on-GPU (PaddleOCR/EasyOCR) for high-volume cases, or OCR-on-CPU (Tesseract) when the GPU pool should hold only the LLM. The choice changes how the SLA budget is split.",
+  "tour.ocr.hardware": "Pick a GPU and tensor parallelism degree for the LLM stage.",
+  "tour.ocr.calculate": "Run sizing — backend returns separate GPU pools for OCR and LLM stages.",
+  "tour.ocr.results":
+    "Three cards: total infrastructure with the OCR+LLM pool split below, SLA pass/fail with t_OCR breakdown, and LLM-stage throughput.",
+
+  // ── Guided tour: OCR + LLM (mobile) ──────────────────────────────────
+  "tour.ocrMobile.github": "Star the repo on GitHub.",
+  "tour.ocrMobile.modeSwitcher": "Switch between LLM, VLM, and OCR+LLM modes here.",
+  "tour.ocrMobile.presets": "Tap a preset to fill all fields.",
+  "tour.ocrMobile.pipeline": "Choose OCR on GPU or CPU.",
+  "tour.ocrMobile.calculate": "Tap Calculate.",
 };
 
 export default en;

@@ -5,10 +5,31 @@ Frontend UI for AI/LLM sizing calculator.
 ## Stack
 
 - React 18 (Create React App)
+- Tailwind CSS 3 (semantic colour tokens, light / dark / system theme)
+- React context i18n (en / ru)
+- Recharts (donuts, charts), lucide-react (icons), react-joyride (tour)
+- mammoth (in-browser docx → HTML for the bundled methodology drawer)
 - Axios API client
 - ESLint + Prettier
 - TypeScript checks via `tsc --noEmit`
 - Jest unit tests + Playwright smoke tests
+
+## Offline-first
+
+The methodology document is bundled into the image at
+`public/llm-methodology.docx`. The Documentation drawer fetches it
+locally and renders it via mammoth — no Google Docs iframe, no
+outbound traffic. Combined with the `proxy.enabled=false` default and
+the curated LLM catalog (selectable as the LLM source mode), the
+calculator runs in fully air-gapped environments.
+
+## Single-ingress topology
+
+The bundled `nginx.conf.template` reverse-proxies the full backend API
+surface (`/v1/*`, `/healthz`, `/docs`, `/redoc`, `/openapi.json`) to
+the in-cluster backend Service. A single port-forward (or single
+ingress rule) against the frontend Service exposes the UI plus all
+backend endpoints on the same host.
 
 ## Local run
 

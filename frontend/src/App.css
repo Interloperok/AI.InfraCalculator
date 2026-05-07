@@ -230,6 +230,77 @@ input[type="range"]::-moz-range-thumb {
   animation: drawer-slide-in 0.3s ease-out;
 }
 
+/* Rendered methodology (mammoth docx → HTML) */
+.docs-rendered {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.docs-rendered h1,
+.docs-rendered h2,
+.docs-rendered h3,
+.docs-rendered h4 {
+  font-weight: 600;
+  margin: 1.2em 0 0.5em;
+  color: rgb(var(--color-fg));
+}
+.docs-rendered h1 {
+  font-size: 1.5em;
+  border-bottom: 1px solid rgb(var(--color-border));
+  padding-bottom: 0.3em;
+}
+.docs-rendered h2 {
+  font-size: 1.25em;
+}
+.docs-rendered h3 {
+  font-size: 1.1em;
+}
+.docs-rendered p {
+  margin: 0.6em 0;
+}
+.docs-rendered ul,
+.docs-rendered ol {
+  margin: 0.6em 0;
+  padding-left: 1.5em;
+}
+.docs-rendered li {
+  margin: 0.25em 0;
+}
+.docs-rendered table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+  font-size: 0.95em;
+}
+.docs-rendered th,
+.docs-rendered td {
+  border: 1px solid rgb(var(--color-border));
+  padding: 0.4em 0.6em;
+  vertical-align: top;
+}
+.docs-rendered th {
+  background: rgb(var(--color-elevated));
+  font-weight: 600;
+  text-align: left;
+}
+.docs-rendered img {
+  max-width: 100%;
+  height: auto;
+}
+.docs-rendered strong {
+  font-weight: 600;
+}
+.docs-rendered code {
+  background: rgb(var(--color-elevated));
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+}
+.docs-rendered a {
+  color: rgb(var(--color-accent));
+  text-decoration: underline;
+}
+
 /* ── Auto-Optimize toggle ── */
 
 /* OFF state: gentle attention-grabbing shimmer (purple), no long fade */

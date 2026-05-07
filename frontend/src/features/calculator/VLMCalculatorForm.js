@@ -258,7 +258,7 @@ const VLMCalculatorForm = ({
     ];
     for (const f of requiredNumeric) {
       if (formData[f] == null || formData[f] === "" || Number(formData[f]) <= 0) {
-        setValidationError(`Missing or invalid value for ${f}`);
+        setValidationError(t("vmForm.invalidValue").replace("{field}", f));
         return;
       }
     }
@@ -270,7 +270,7 @@ const VLMCalculatorForm = ({
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 flex-1">
       {/* Presets */}
       <div data-tour="vlm-presets">
-        <label className="block text-sm font-medium text-muted mb-2">Quick Presets</label>
+        <label className="block text-sm font-medium text-muted mb-2">{t("vmForm.quickPresets")}</label>
         <div className="grid grid-cols-2 gap-2">
           {VLM_PRESETS.map((preset) => {
             const isActive = selectedPreset === preset.id;
@@ -297,10 +297,10 @@ const VLMCalculatorForm = ({
       </div>
 
       {/* Workload */}
-      <Section title="Workload (online)" color="blue" dataTour="vlm-workload">
+      <Section title={t("vmForm.workloadOnline")} color="blue" dataTour="vlm-workload">
         <NumberInput
           name="lambda_online"
-          label="Pages per second (λ)"
+          label={t("vmForm.pagesPerSecond")}
           value={formData.lambda_online}
           onChange={handleFieldChange}
           min={0}
@@ -309,7 +309,7 @@ const VLMCalculatorForm = ({
         />
         <NumberInput
           name="c_peak"
-          label="Peak concurrent pages"
+          label={t("vmForm.peakConcurrent")}
           value={formData.c_peak}
           onChange={handleFieldChange}
           min={1}
@@ -317,7 +317,7 @@ const VLMCalculatorForm = ({
         />
         <NumberInput
           name="sla_page"
-          label="SLA per page (p95)"
+          label={t("vmForm.slaPerPage")}
           value={formData.sla_page}
           onChange={handleFieldChange}
           min={0}
@@ -327,10 +327,10 @@ const VLMCalculatorForm = ({
       </Section>
 
       {/* Image / token profile */}
-      <Section title="Image & token profile" color="emerald">
+      <Section title={t("vlmForm.imageTokenProfile")} color="emerald">
         <NumberInput
           name="w_px"
-          label="Image width"
+          label={t("vlmForm.imageWidth")}
           value={formData.w_px}
           onChange={handleFieldChange}
           min={1}
@@ -339,7 +339,7 @@ const VLMCalculatorForm = ({
         />
         <NumberInput
           name="h_px"
-          label="Image height"
+          label={t("vlmForm.imageHeight")}
           value={formData.h_px}
           onChange={handleFieldChange}
           min={1}
@@ -348,16 +348,16 @@ const VLMCalculatorForm = ({
         />
         <NumberInput
           name="patch_eff"
-          label="Effective patch size"
+          label={t("vlmForm.patchSize")}
           value={formData.patch_eff}
           onChange={handleFieldChange}
           min={1}
           step="1"
-          hint="Qwen2.5-VL ≈ 28"
+          hint={t("vlmForm.patchHint")}
         />
         <NumberInput
           name="n_prompt_txt"
-          label="Prompt tokens (text)"
+          label={t("vlmForm.promptTokens")}
           value={formData.n_prompt_txt}
           onChange={handleFieldChange}
           min={0}
@@ -365,7 +365,7 @@ const VLMCalculatorForm = ({
         />
         <NumberInput
           name="n_fields"
-          label="JSON fields per response"
+          label={t("vmForm.jsonFields")}
           value={formData.n_fields}
           onChange={handleFieldChange}
           min={1}
@@ -373,20 +373,20 @@ const VLMCalculatorForm = ({
         />
         <NumberInput
           name="tok_field"
-          label="Tokens per field"
+          label={t("vmForm.tokensPerField")}
           value={formData.tok_field}
           onChange={handleFieldChange}
           min={1}
           step="1"
-          hint="typically 30-100"
+          hint={t("vmForm.tokensPerFieldHint")}
         />
       </Section>
 
       {/* Model */}
-      <Section title="VLM model" color="purple">
+      <Section title={t("vlmForm.modelTitle")} color="purple">
         <NumberInput
           name="params_billions"
-          label="Parameters"
+          label={t("vmForm.parameters")}
           value={formData.params_billions}
           onChange={handleFieldChange}
           min={0}
@@ -395,14 +395,14 @@ const VLMCalculatorForm = ({
         />
         <SelectInput
           name="bytes_per_param"
-          label="Quantization"
+          label={t("vmForm.quantization")}
           value={formData.bytes_per_param}
           options={QUANTIZATION_OPTIONS}
           onChange={handleFieldChange}
         />
         <NumberInput
           name="layers_L"
-          label="Layers (L)"
+          label={t("vmForm.layers")}
           value={formData.layers_L}
           onChange={handleFieldChange}
           min={1}
@@ -410,7 +410,7 @@ const VLMCalculatorForm = ({
         />
         <NumberInput
           name="hidden_size_H"
-          label="Hidden size (H)"
+          label={t("vmForm.hiddenSize")}
           value={formData.hidden_size_H}
           onChange={handleFieldChange}
           min={1}
@@ -418,7 +418,7 @@ const VLMCalculatorForm = ({
         />
         <NumberInput
           name="num_kv_heads"
-          label="KV heads (Nkv)"
+          label={t("vmForm.kvHeads")}
           value={formData.num_kv_heads}
           onChange={handleFieldChange}
           min={1}
@@ -426,7 +426,7 @@ const VLMCalculatorForm = ({
         />
         <NumberInput
           name="num_attention_heads"
-          label="Attention heads"
+          label={t("vmForm.attnHeads")}
           value={formData.num_attention_heads}
           onChange={handleFieldChange}
           min={1}
@@ -434,19 +434,19 @@ const VLMCalculatorForm = ({
         />
         <NumberInput
           name="max_context_window_TSmax"
-          label="Max context window"
+          label={t("vmForm.maxContext")}
           value={formData.max_context_window_TSmax}
           onChange={handleFieldChange}
           min={1}
           step="1"
-          suffix="tokens"
+          suffix={t("vmForm.tokensSuffix")}
         />
       </Section>
 
       {/* Hardware */}
-      <Section title="Hardware" color="amber" dataTour="vlm-hardware">
+      <Section title={t("vmForm.hardware")} color="amber" dataTour="vlm-hardware">
         <div className="sm:col-span-2">
-          <label className="block text-xs font-medium text-muted mb-1">GPU model</label>
+          <label className="block text-xs font-medium text-muted mb-1">{t("vmForm.gpuModel")}</label>
           <button
             type="button"
             onClick={() => onOpenGpuPicker?.(selectedGpu?.id)}
@@ -454,7 +454,7 @@ const VLMCalculatorForm = ({
           >
             {selectedGpu
               ? selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`
-              : "Click to choose a GPU…"}
+              : t("vmForm.gpuPickPrompt")}
           </button>
           {selectedGpu && (
             <p className="text-xs text-muted mt-1">
@@ -465,7 +465,7 @@ const VLMCalculatorForm = ({
         </div>
         <NumberInput
           name="gpu_mem_gb"
-          label="GPU memory"
+          label={t("vmForm.gpuMemory")}
           value={formData.gpu_mem_gb}
           onChange={handleFieldChange}
           min={1}
@@ -474,7 +474,7 @@ const VLMCalculatorForm = ({
         />
         <NumberInput
           name="gpu_flops_Fcount"
-          label="GPU TFLOPS"
+          label={t("vmForm.gpuTflops")}
           value={formData.gpu_flops_Fcount}
           onChange={handleFieldChange}
           min={1}
@@ -482,7 +482,7 @@ const VLMCalculatorForm = ({
         />
         <NumberInput
           name="gpus_per_server"
-          label="GPUs per server"
+          label={t("vmForm.gpusPerServer")}
           value={formData.gpus_per_server}
           onChange={handleFieldChange}
           min={1}
@@ -491,13 +491,13 @@ const VLMCalculatorForm = ({
         />
         <NumberInput
           name="tp_multiplier_Z"
-          label="Tensor parallelism (Z)"
+          label={t("vmForm.tp")}
           value={formData.tp_multiplier_Z}
           onChange={handleFieldChange}
           min={1}
           max={8}
           step="1"
-          hint="1 = single GPU"
+          hint={t("vmForm.tpHint")}
         />
       </Section>
 
@@ -518,7 +518,7 @@ const VLMCalculatorForm = ({
               : "bg-accent hover:bg-accent/90 hover:shadow-card-hover"
           }`}
         >
-          {loading ? t("form.calculating") : "Calculate VLM Sizing"}
+          {loading ? t("form.calculating") : t("vlmForm.submit")}
         </button>
       </div>
     </form>

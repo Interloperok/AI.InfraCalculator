@@ -12,6 +12,7 @@ import {
   Clock,
   Cpu,
   FileText,
+  Info,
   Layers,
   Server,
   XCircle,
@@ -118,6 +119,9 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
             <h3 className="text-[11px] font-semibold uppercase tracking-wider">
               {t("ocr.infraRequired")}
             </h3>
+            <span className="ml-auto">
+              <QuotaTooltip text={t("ocr.infraRequired.tooltip")} align="left" />
+            </span>
           </div>
           <div className="flex flex-wrap items-end justify-center gap-x-4 gap-y-1 mt-auto mb-auto pt-2">
             <div className="text-center">
@@ -168,6 +172,9 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
             <h3 className="text-[11px] font-semibold uppercase tracking-wider">
               {t("ocr.slaPerPage")}
             </h3>
+            <span className="ml-auto">
+              <QuotaTooltip text={t("ocr.slaPerPage.tooltip")} />
+            </span>
           </div>
           <p
             className={`text-4xl sm:text-5xl font-extrabold leading-none mt-auto mb-auto tabular-nums ${
@@ -194,6 +201,9 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
             <h3 className="text-[11px] font-semibold uppercase tracking-wider">
               {t("ocr.throughput")}
             </h3>
+            <span className="ml-auto">
+              <QuotaTooltip text={t("ocr.throughput.tooltip")} align="right" />
+            </span>
           </div>
           <p className="text-3xl sm:text-4xl font-extrabold mt-auto mb-auto tabular-nums text-fg leading-none">
             {fmt(results.th_pf_llm, 0)}
@@ -219,6 +229,8 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
               ? fmtTemplate(t("ocr.coresLine"), { count: results.n_ocr_cores_used || 0 })
               : t("ocr.gpus.label")
           }
+          tooltip={t("ocr.ocrPool.tooltip")}
+          tooltipAlign="left"
         />
         <SecondaryTile
           icon={<Server className="h-3.5 w-3.5" strokeWidth={2.25} />}
@@ -226,18 +238,22 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
           label={t("ocr.llmPool")}
           value={results.n_gpu_llm_online || 0}
           sub={t("ocr.gpus.label")}
+          tooltip={t("ocr.llmPool.tooltip")}
         />
         <SecondaryTile
           icon={<Layers className="h-3.5 w-3.5" strokeWidth={2.25} />}
           tone="success"
           label={t("ocr.bsRealStar")}
           value={results.bs_real_star || 0}
+          tooltip={t("ocr.bsRealStar.tooltip")}
         />
         <SecondaryTile
           icon={<Cpu className="h-3.5 w-3.5" strokeWidth={2.25} />}
           tone="info"
           label={t("ocr.replicas")}
           value={results.n_repl_llm || 0}
+          tooltip={t("ocr.replicas.tooltip")}
+          tooltipAlign="right"
         />
       </div>
 
@@ -254,6 +270,7 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
             value={isCpuPipeline ? "—" : fmt(results.ocr_peak_rpm, 0)}
             sub={isCpuPipeline ? t("ocr.ocrPeakRpmCpu") : t("ocr.ocrPeakRpmSub")}
             tooltip={t("results.gateway.ocrPeakRpmTooltip")}
+            tooltipAlign="left"
           />
           <QuotaCell
             tone="accent"
@@ -280,6 +297,7 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
             value={fmt(results.max_parallel_requests, 0)}
             sub={t("ocr.concurrentPages")}
             tooltip={t("results.gateway.maxParallelTooltip")}
+            tooltipAlign="right"
           />
         </div>
       </div>
@@ -358,24 +376,74 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
           </h3>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-          <Stat label={t("ocr.diag.pipeline")} value={results.pipeline_used || "—"} />
-          <Stat label={t("ocr.diag.tOcr")} value={`${fmt(results.t_ocr, 2)} s`} />
-          <Stat label={t("ocr.diag.llmBudget")} value={`${fmt(results.t_llm_target, 2)} s`} />
-          <Stat label={t("ocr.diag.lText")} value={`${fmt(results.l_text, 0)} tok`} />
-          <Stat label={t("ocr.diag.slPfEff")} value={fmt(results.sl_pf_llm_eff, 0)} />
-          <Stat label={t("ocr.diag.slDec")} value={results.sl_dec_llm} />
-          <Stat label={t("ocr.diag.gpusPerInstance")} value={results.gpus_per_instance} />
-          <Stat label={t("ocr.diag.sessionsPerInstance")} value={results.s_tp_z} />
+          <Stat
+            label={t("ocr.diag.pipeline")}
+            value={results.pipeline_used || "—"}
+            tooltip={t("ocr.diag.pipeline.tooltip")}
+            tooltipAlign="left"
+          />
+          <Stat
+            label={t("ocr.diag.tOcr")}
+            value={`${fmt(results.t_ocr, 2)} s`}
+            tooltip={t("ocr.diag.tOcr.tooltip")}
+          />
+          <Stat
+            label={t("ocr.diag.llmBudget")}
+            value={`${fmt(results.t_llm_target, 2)} s`}
+            tooltip={t("ocr.diag.llmBudget.tooltip")}
+            tooltipAlign="right"
+          />
+          <Stat
+            label={t("ocr.diag.lText")}
+            value={`${fmt(results.l_text, 0)} tok`}
+            tooltip={t("ocr.diag.lText.tooltip")}
+            tooltipAlign="left"
+          />
+          <Stat
+            label={t("ocr.diag.slPfEff")}
+            value={fmt(results.sl_pf_llm_eff, 0)}
+            tooltip={t("ocr.diag.slPfEff.tooltip")}
+          />
+          <Stat
+            label={t("ocr.diag.slDec")}
+            value={results.sl_dec_llm}
+            tooltip={t("ocr.diag.slDec.tooltip")}
+            tooltipAlign="right"
+          />
+          <Stat
+            label={t("ocr.diag.gpusPerInstance")}
+            value={results.gpus_per_instance}
+            tooltip={t("ocr.diag.gpusPerInstance.tooltip")}
+            tooltipAlign="left"
+          />
+          <Stat
+            label={t("ocr.diag.sessionsPerInstance")}
+            value={results.s_tp_z}
+            tooltip={t("ocr.diag.sessionsPerInstance.tooltip")}
+          />
           <Stat
             label={t("ocr.diag.kvPerSession")}
             value={`${fmt(results.kv_per_session_gb, 2)} GB`}
+            tooltip={t("ocr.diag.kvPerSession.tooltip")}
+            tooltipAlign="right"
           />
           <Stat
             label={t("ocr.diag.modelWeights")}
             value={`${fmt(results.model_mem_gb, 1)} GB`}
+            tooltip={t("ocr.diag.modelWeights.tooltip")}
+            tooltipAlign="left"
           />
-          <Stat label={t("ocr.diag.gpuTflops")} value={results.gpu_tflops_used} />
-          <Stat label={t("ocr.diag.handoff")} value={`${fmt(results.t_handoff_used, 2)} s`} />
+          <Stat
+            label={t("ocr.diag.gpuTflops")}
+            value={results.gpu_tflops_used}
+            tooltip={t("ocr.diag.gpuTflops.tooltip")}
+          />
+          <Stat
+            label={t("ocr.diag.handoff")}
+            value={`${fmt(results.t_handoff_used, 2)} s`}
+            tooltip={t("ocr.diag.handoff.tooltip")}
+            tooltipAlign="right"
+          />
         </div>
       </div>
     </div>
@@ -398,7 +466,7 @@ const TONE_ICON_BG = {
   danger: "bg-danger-soft text-danger",
 };
 
-const SecondaryTile = ({ icon, tone = "accent", label, value, sub }) => {
+const SecondaryTile = ({ icon, tone = "accent", label, value, sub, tooltip, tooltipAlign }) => {
   const iconClass = TONE_ICON_BG[tone] || TONE_ICON_BG.accent;
   return (
     <div className="rounded-lg border border-border bg-surface p-3 sm:p-4 shadow-card">
@@ -411,6 +479,11 @@ const SecondaryTile = ({ icon, tone = "accent", label, value, sub }) => {
         <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted">
           {label}
         </h3>
+        {tooltip && (
+          <span className="ml-auto">
+            <QuotaTooltip text={tooltip} align={tooltipAlign || "right"} />
+          </span>
+        )}
       </div>
       <p className="text-xl sm:text-2xl font-bold mt-2 text-fg tabular-nums">{value}</p>
       {sub && <p className="text-[10px] text-muted mt-0.5">{sub}</p>}
@@ -418,16 +491,25 @@ const SecondaryTile = ({ icon, tone = "accent", label, value, sub }) => {
   );
 };
 
-const QuotaCell = ({ tone = "accent", label, value, sub, tooltip }) => {
+const QuotaCell = ({
+  tone = "accent",
+  label,
+  value,
+  sub,
+  tooltip,
+  tooltipAlign = "center",
+}) => {
   const dot = TONE_DOTS[tone] || TONE_DOTS.accent;
   return (
-    <div
-      className="rounded-lg border border-border bg-elevated px-3 py-2.5"
-      title={tooltip}
-    >
+    <div className="rounded-lg border border-border bg-elevated px-3 py-2.5">
       <p className="flex items-center gap-1 text-[10px] uppercase font-semibold tracking-wider text-muted">
         <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden />
-        {label}
+        <span>{label}</span>
+        {tooltip && (
+          <span className="ml-auto">
+            <QuotaTooltip text={tooltip} align={tooltipAlign} />
+          </span>
+        )}
       </p>
       <p className="text-lg font-semibold text-fg mt-1 tabular-nums">{value}</p>
       {sub && <p className="text-[10px] mt-0.5 text-muted">{sub}</p>}
@@ -435,9 +517,40 @@ const QuotaCell = ({ tone = "accent", label, value, sub, tooltip }) => {
   );
 };
 
-const Stat = ({ label, value }) => (
+// Hover-revealed tooltip styled identically to the LLM ResultsDisplay
+// InfoTooltip. Inlined here to keep OCR results free of LLM module imports.
+const QuotaTooltip = ({ text, align = "center" }) => (
+  <span className="relative group/tip inline-flex items-center">
+    <Info className="h-3 w-3 text-subtle cursor-help" strokeWidth={2.25} />
+    <span
+      className={`invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full ${
+        align === "right"
+          ? "right-0"
+          : align === "left"
+            ? "left-0"
+            : "left-1/2 -translate-x-1/2"
+      } mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-slate-900 dark:bg-slate-800 rounded-md shadow-elevated w-56 text-center leading-relaxed pointer-events-none`}
+    >
+      {text}
+      <span
+        className={`absolute top-full ${
+          align === "right"
+            ? "right-3"
+            : align === "left"
+              ? "left-3"
+              : "left-1/2 -translate-x-1/2"
+        } border-4 border-transparent border-t-slate-900 dark:border-t-slate-800`}
+      />
+    </span>
+  </span>
+);
+
+const Stat = ({ label, value, tooltip, tooltipAlign }) => (
   <div className="flex flex-col">
-    <span className="text-[10px] uppercase tracking-wider text-muted">{label}</span>
+    <span className="text-[10px] uppercase tracking-wider text-muted flex items-center gap-1">
+      <span>{label}</span>
+      {tooltip && <QuotaTooltip text={tooltip} align={tooltipAlign || "center"} />}
+    </span>
     <span className="text-sm font-mono text-fg mt-0.5 tabular-nums">{value ?? "—"}</span>
   </div>
 );

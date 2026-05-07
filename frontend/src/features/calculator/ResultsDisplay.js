@@ -271,7 +271,13 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" data-tour="session-cards">
         <div className="bg-surface border border-border rounded-xl p-4 sm:p-5 shadow-card flex items-center justify-between gap-3 overflow-hidden">
           <div className="min-w-0">
-            <MetricLabel icon={Users}>{t("results.concurrentSessions")}</MetricLabel>
+            <MetricLabel
+              icon={Users}
+              tooltip={t("results.concurrentSessions.tooltip")}
+              tooltipAlign="left"
+            >
+              {t("results.concurrentSessions")}
+            </MetricLabel>
             <p className="text-3xl sm:text-4xl font-semibold tracking-tight text-fg mt-1.5 tabular-nums truncate">
               {fmt(results.Ssim_concurrent_sessions, 0)}
             </p>
@@ -282,7 +288,13 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
         </div>
         <div className="bg-surface border border-border rounded-xl p-4 sm:p-5 shadow-card flex items-center justify-between gap-3 overflow-hidden">
           <div className="min-w-0">
-            <MetricLabel icon={MessageSquare}>{t("results.sessionContext")}</MetricLabel>
+            <MetricLabel
+              icon={MessageSquare}
+              tooltip={t("results.sessionContext.tooltip")}
+              tooltipAlign="right"
+            >
+              {t("results.sessionContext")}
+            </MetricLabel>
             <p className="text-3xl sm:text-4xl font-semibold tracking-tight text-fg mt-1.5 tabular-nums truncate">
               {fmt(results.TS_session_context, 0)}
               <span className="text-sm font-normal text-muted ml-1.5">
@@ -308,7 +320,13 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
             comp: results.servers_by_compute || 0,
           })}
         >
-          <MetricLabel icon={Server}>{t("results.infrastructure.title")}</MetricLabel>
+          <MetricLabel
+            icon={Server}
+            tooltip={t("results.infrastructure.tooltip")}
+            tooltipAlign="left"
+          >
+            {t("results.infrastructure.title")}
+          </MetricLabel>
           <div className="mt-auto mb-auto pt-2">
             <p
               className="text-4xl sm:text-5xl font-semibold tracking-tight text-fg tabular-nums leading-none"
@@ -327,7 +345,9 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
 
         {/* Card 2 — Sessions per Server */}
         <div className="result-tile bg-surface border border-border rounded-xl p-4 sm:p-6 shadow-card flex flex-col sm:min-h-[170px] overflow-hidden">
-          <MetricLabel icon={Users}>{t("results.sessions.title")}</MetricLabel>
+          <MetricLabel icon={Users} tooltip={t("results.sessions.tooltip")}>
+            {t("results.sessions.title")}
+          </MetricLabel>
           <p className="text-4xl sm:text-5xl font-semibold tracking-tight text-fg mt-auto mb-auto tabular-nums">
             {results.sessions_per_server || 0}
           </p>
@@ -365,28 +385,35 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
 
       {/* ── Secondary metric tiles (3 small) ──────────────────────────── */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <div className="bg-surface border border-border rounded-lg p-3 sm:p-4 shadow-card overflow-hidden">
-          <div className="flex items-center gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-muted font-semibold">
-            <Cpu className="h-3 w-3 text-subtle" strokeWidth={2.25} />
-            <span className="truncate">{t("results.gpuPerServer.title")}</span>
+        <div className="bg-surface border border-border rounded-lg p-3 sm:p-4 shadow-card">
+          <div className="flex items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-muted font-semibold">
+            <Cpu className="h-3 w-3 text-subtle mt-px shrink-0" strokeWidth={2.25} />
+            <span className="leading-tight break-words">{t("results.gpuPerServer.title")}</span>
+            <span className="ml-auto shrink-0">
+              <InfoTooltip text={t("results.gpuPerServer.tooltip")} align="left" />
+            </span>
           </div>
           <p className="text-xl sm:text-2xl font-semibold text-fg mt-1.5 tabular-nums">
             {results.gpus_per_server || 0}
           </p>
         </div>
         <div className="bg-surface border border-border rounded-lg p-3 sm:p-4 shadow-card">
-          <div className="flex items-center gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-muted font-semibold">
-            <Box className="h-3 w-3 text-subtle" strokeWidth={2.25} />
-            <span className="truncate">{t("results.gpuPerInstance.title")}</span>
-            <InfoTooltip text={t("results.gpuPerInstance.tooltip")} />
+          <div className="flex items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-muted font-semibold">
+            <Box className="h-3 w-3 text-subtle mt-px shrink-0" strokeWidth={2.25} />
+            <span className="leading-tight break-words">{t("results.gpuPerInstance.title")}</span>
+            <span className="ml-auto shrink-0">
+              <InfoTooltip text={t("results.gpuPerInstance.tooltip")} />
+            </span>
           </div>
           <p className="text-xl sm:text-2xl font-semibold text-fg mt-1.5 tabular-nums">{gpusInst}</p>
         </div>
         <div className="bg-surface border border-border rounded-lg p-3 sm:p-4 shadow-card">
-          <div className="flex items-center gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-muted font-semibold">
-            <Layers className="h-3 w-3 text-subtle" strokeWidth={2.25} />
-            <span className="truncate">{t("results.instancesPerServer.title")}</span>
-            <InfoTooltip text={t("results.instancesPerServer.tooltip")} align="right" />
+          <div className="flex items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-muted font-semibold">
+            <Layers className="h-3 w-3 text-subtle mt-px shrink-0" strokeWidth={2.25} />
+            <span className="leading-tight break-words">{t("results.instancesPerServer.title")}</span>
+            <span className="ml-auto shrink-0">
+              <InfoTooltip text={t("results.instancesPerServer.tooltip")} align="right" />
+            </span>
           </div>
           <p className="text-xl sm:text-2xl font-semibold text-fg mt-1.5 tabular-nums">
             {results.instances_per_server_tp || 0}
@@ -407,14 +434,13 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
             </span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-            <div
-              className="bg-elevated border border-border rounded-lg py-2.5 px-3"
-              title={t("results.gateway.peakRpmTooltip")}
-            >
+            <div className="bg-elevated border border-border rounded-lg py-2.5 px-3">
               <p className="flex items-center gap-1 text-[10px] uppercase font-semibold text-muted tracking-wider">
                 <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
-                {t("results.gateway.peakRpm")}
-                <Info className="h-3 w-3 text-subtle ml-auto" strokeWidth={2.25} />
+                <span>{t("results.gateway.peakRpm")}</span>
+                <span className="ml-auto">
+                  <InfoTooltip text={t("results.gateway.peakRpmTooltip")} align="left" />
+                </span>
               </p>
               <p className="text-lg font-semibold text-fg mt-1 tabular-nums">
                 {fmt(results.peak_rpm, 0)}
@@ -423,14 +449,13 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                 {t("results.gateway.sustained")} {fmt(results.sustained_rpm, 0)}
               </p>
             </div>
-            <div
-              className="bg-elevated border border-border rounded-lg py-2.5 px-3"
-              title={t("results.gateway.peakTpmTooltip")}
-            >
+            <div className="bg-elevated border border-border rounded-lg py-2.5 px-3">
               <p className="flex items-center gap-1 text-[10px] uppercase font-semibold text-muted tracking-wider">
                 <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
-                {t("results.gateway.peakTpm")}
-                <Info className="h-3 w-3 text-subtle ml-auto" strokeWidth={2.25} />
+                <span>{t("results.gateway.peakTpm")}</span>
+                <span className="ml-auto">
+                  <InfoTooltip text={t("results.gateway.peakTpmTooltip")} />
+                </span>
               </p>
               <p className="text-lg font-semibold text-fg mt-1 tabular-nums">
                 {fmt(results.peak_tpm, 0)}
@@ -439,14 +464,13 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                 {t("results.gateway.sustained")} {fmt(results.sustained_tpm, 0)}
               </p>
             </div>
-            <div
-              className="bg-elevated border border-border rounded-lg py-2.5 px-3"
-              title={t("results.gateway.tpmSplitTooltip")}
-            >
+            <div className="bg-elevated border border-border rounded-lg py-2.5 px-3">
               <p className="flex items-center gap-1 text-[10px] uppercase font-semibold text-muted tracking-wider">
                 <span className="h-1.5 w-1.5 rounded-full bg-info" aria-hidden />
-                {t("results.gateway.tpmSplit")}
-                <Info className="h-3 w-3 text-subtle ml-auto" strokeWidth={2.25} />
+                <span>{t("results.gateway.tpmSplit")}</span>
+                <span className="ml-auto">
+                  <InfoTooltip text={t("results.gateway.tpmSplitTooltip")} />
+                </span>
               </p>
               <p className="text-sm font-semibold text-fg mt-1 tabular-nums">
                 <span className="text-muted">{t("results.gateway.in")}</span> {fmt(results.peak_tpm_input, 0)}
@@ -455,14 +479,13 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                 <span>{t("results.gateway.out")}</span> {fmt(results.peak_tpm_output, 0)}
               </p>
             </div>
-            <div
-              className="bg-elevated border border-border rounded-lg py-2.5 px-3"
-              title={t("results.gateway.maxParallelTooltip")}
-            >
+            <div className="bg-elevated border border-border rounded-lg py-2.5 px-3">
               <p className="flex items-center gap-1 text-[10px] uppercase font-semibold text-muted tracking-wider">
                 <span className="h-1.5 w-1.5 rounded-full bg-warning" aria-hidden />
-                {t("results.gateway.maxParallel")}
-                <Info className="h-3 w-3 text-subtle ml-auto" strokeWidth={2.25} />
+                <span>{t("results.gateway.maxParallel")}</span>
+                <span className="ml-auto">
+                  <InfoTooltip text={t("results.gateway.maxParallelTooltip")} align="right" />
+                </span>
               </p>
               <p className="text-lg font-semibold text-fg mt-1 tabular-nums">
                 {fmt(results.max_parallel_requests, 0)}
@@ -609,7 +632,8 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
             >
               <h4 className="text-sm font-semibold text-fg mb-3 flex items-center gap-1.5">
                 <Timer className="h-3.5 w-3.5 text-muted" strokeWidth={2.25} />
-                {t("results.sla.ttft.title")}
+                <span>{t("results.sla.ttft.title")}</span>
+                <InfoTooltip text={t("results.sla.ttft.tooltip")} />
               </h4>
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
@@ -657,7 +681,8 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
             >
               <h4 className="text-sm font-semibold text-fg mb-3 flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-muted" strokeWidth={2.25} />
-                {t("results.sla.e2e.title")}
+                <span>{t("results.sla.e2e.title")}</span>
+                <InfoTooltip text={t("results.sla.e2e.tooltip")} align="right" />
               </h4>
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
