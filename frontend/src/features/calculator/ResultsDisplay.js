@@ -298,31 +298,30 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
 
       {/* ── Primary metric tiles (3) ─────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-tour="result-cards">
-        {/* Card 1 — Infrastructure: number on its own line so it never
-             clips no matter how big the count or how long the locale's
-             plural noun. Label and meta sit below in a stable hierarchy. */}
-        <div className="result-tile bg-surface border border-accent/40 rounded-xl p-4 sm:p-5 shadow-card flex flex-col sm:min-h-[170px] overflow-hidden">
+        {/* Card 1 — Infrastructure: stacked layout so big values can't
+             clip the label. max(mem,comp) breakdown moved to hover
+             tooltip — too noisy on the front of the card. */}
+        <div
+          className="result-tile bg-surface border border-accent/40 rounded-xl p-4 sm:p-5 shadow-card flex flex-col sm:min-h-[170px] overflow-hidden"
+          title={interp(t("results.infrastructure.maxMemComp"), {
+            mem: results.servers_by_memory || 0,
+            comp: results.servers_by_compute || 0,
+          })}
+        >
           <MetricLabel icon={Server}>{t("results.infrastructure.title")}</MetricLabel>
-          <div className="mt-auto pt-2">
+          <div className="mt-auto mb-auto pt-2">
             <p
-              className="text-4xl sm:text-5xl font-semibold tracking-tight text-fg tabular-nums leading-none truncate"
+              className="text-4xl sm:text-5xl font-semibold tracking-tight text-fg tabular-nums leading-none"
               title={String(results.servers_final || 0)}
             >
               {fmt(results.servers_final, 0)}
             </p>
-            <p className="text-[11px] uppercase tracking-wide text-muted mt-1.5 font-semibold">
+            <p className="text-[11px] uppercase tracking-wide text-muted mt-2 font-semibold">
               {t("results.infrastructure.servers")}
-              <span className="text-subtle"> · </span>
-              <span className="font-normal normal-case tracking-normal text-muted">
-                {fmt(results.total_gpu_count, 0)} {t("results.infrastructure.gpus")}
-              </span>
             </p>
           </div>
-          <p className="text-xs text-subtle mt-1.5 tabular-nums truncate">
-            {interp(t("results.infrastructure.maxMemComp"), {
-              mem: results.servers_by_memory || 0,
-              comp: results.servers_by_compute || 0,
-            })}
+          <p className="text-xs text-muted mt-2 tabular-nums">
+            {fmt(results.total_gpu_count, 0)} {t("results.infrastructure.gpus")}
           </p>
         </div>
 

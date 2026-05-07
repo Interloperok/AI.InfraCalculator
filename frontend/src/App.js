@@ -576,11 +576,6 @@ function App() {
   return (
     <div className="min-h-screen bg-bg text-fg flex flex-col">
       <Joyride
-        // Force-remount whenever the tour transitions on/off so the overlay
-        // and spotlight DOM are torn down cleanly. Joyride 3.x sometimes
-        // leaves the dimmer mounted after Skip/Close, locking the UI; this
-        // belt-and-suspenders unmount guarantees a clean slate.
-        key={runTour ? "tour-on" : "tour-off"}
         steps={(() => {
           let raw;
           if (tourMode === "vlm") raw = isMobileTour ? TOUR_STEPS_VLM_MOBILE : TOUR_STEPS_VLM;
