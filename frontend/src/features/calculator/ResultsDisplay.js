@@ -298,22 +298,27 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
 
       {/* ── Primary metric tiles (3) ─────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-tour="result-cards">
-        {/* Card 1 — Infrastructure: servers as the headline, total GPUs as
-             a quiet secondary line so the tile doesn't feel cramped. */}
+        {/* Card 1 — Infrastructure: number on its own line so it never
+             clips no matter how big the count or how long the locale's
+             plural noun. Label and meta sit below in a stable hierarchy. */}
         <div className="result-tile bg-surface border border-accent/40 rounded-xl p-4 sm:p-5 shadow-card flex flex-col sm:min-h-[170px] overflow-hidden">
           <MetricLabel icon={Server}>{t("results.infrastructure.title")}</MetricLabel>
-          <p
-            className="text-4xl sm:text-5xl font-semibold tracking-tight text-fg mt-auto tabular-nums"
-            title={String(results.servers_final || 0)}
-          >
-            {fmt(results.servers_final, 0)}
-            <span className="ml-2 text-sm font-medium text-muted uppercase tracking-wide align-middle">
+          <div className="mt-auto pt-2">
+            <p
+              className="text-4xl sm:text-5xl font-semibold tracking-tight text-fg tabular-nums leading-none truncate"
+              title={String(results.servers_final || 0)}
+            >
+              {fmt(results.servers_final, 0)}
+            </p>
+            <p className="text-[11px] uppercase tracking-wide text-muted mt-1.5 font-semibold">
               {t("results.infrastructure.servers")}
-            </span>
-          </p>
-          <p className="text-sm text-muted mt-1.5 tabular-nums">
-            {fmt(results.total_gpu_count, 0)} {t("results.infrastructure.gpus")}
-            <span className="text-subtle"> · </span>
+              <span className="text-subtle"> · </span>
+              <span className="font-normal normal-case tracking-normal text-muted">
+                {fmt(results.total_gpu_count, 0)} {t("results.infrastructure.gpus")}
+              </span>
+            </p>
+          </div>
+          <p className="text-xs text-subtle mt-1.5 tabular-nums truncate">
             {interp(t("results.infrastructure.maxMemComp"), {
               mem: results.servers_by_memory || 0,
               comp: results.servers_by_compute || 0,
