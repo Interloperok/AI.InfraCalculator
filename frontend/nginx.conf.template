@@ -1,0 +1,54 @@
+# Nginx config for the AI Infra Calculator frontend container.
+#
+# When deployed in Kubernetes the frontend serves both the SPA AND proxies
+# /v1/* to the backend service over the cluster network — so the operator
+# only needs to port-forward (or expose) one Service to use the calculator.
+#
+# Variables substituted at container start by nginx's built-in envsubst
+# (the `nginx:alpine` image runs files in /etc/nginx/templates through it):
+#   BACKEND_URL — full URL of the backend Service, e.g.
+#                 http://calc-ai-infra-calculator-backend:8000
+#
+# In Helm we set this from the rendered backend Service name.
+
+server {
+    listen       80;
+    server_name  _;
+    root         /usr/share/nginx/html;
+
+    # Reverse-proxy the API surface to the backend Service.
+    location /v1/ {
+        proxy_pass         ${BACKEND_URL};
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+
+        # Heavy endpoints (auto-optimize, report) need generous timeouts.
+        proxy_connect_timeout 5s;
+        proxy_send_timeout    300s;
+        proxy_read_timeout    300s;
+
+        # Streaming-friendly defaults.
+        proxy_buffering       off;
+    }
+
+    location /healthz {
+        proxy_pass         ${BACKEND_URL}/healthz;
+        proxy_set_header   Host $host;
+    }
+
+    # SPA fallback: any non-API path resolves to index.html so React Router
+    # can take over.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Aggressive caching for hashed assets.
+    location ~* \.(?:js|css|woff2?|ttf|otf|eot|png|jpg|jpeg|gif|svg|ico|webp)$ {
+        expires 7d;
+        add_header Cache-Control "public, max-age=604800, immutable";
+        try_files $uri =404;
+    }
+}

@@ -47,6 +47,7 @@ const useSparkBurst = () => {
 
 // ── Auto-Optimize Toggle Switch with animations ──
 const ToggleSwitch = ({ autoMode, setAutoMode }) => {
+  const t = useT();
   const { containerRef, fire } = useSparkBurst();
   const [justActivated, setJustActivated] = useState(false);
   const prevMode = useRef(autoMode);
@@ -73,7 +74,7 @@ const ToggleSwitch = ({ autoMode, setAutoMode }) => {
               ? "bg-accent border-accent toggle-electric"
               : "bg-elevated border-border toggle-shimmer"
           }`}
-          title="Auto-Optimize: automatically find the best hardware configuration"
+          title={t("form.autoTooltip")}
         >
           <span
             className={`pointer-events-none inline-flex h-[28px] w-[28px] items-center justify-center rounded-full bg-surface shadow-card-hover ring-0 transition-all duration-300 ease-[cubic-bezier(0.68,-0.55,0.265,1.55)] ${
@@ -103,9 +104,9 @@ const ToggleSwitch = ({ autoMode, setAutoMode }) => {
           autoMode ? "text-accent" : "text-subtle"
         }`}
       >
-        Auto
+        {t("form.autoOn")}
       </span>
-      <InfoTooltip text="Auto-Optimize: automatically find the best hardware configuration by searching across GPUs, quantization, TP degree, and server layouts." />
+      <InfoTooltip text={t("form.autoTooltip")} />
     </div>
   );
 };
@@ -1429,58 +1430,70 @@ const CalculatorForm = ({
 
   // Basic configuration inputs
   const basicInputs = (
-    <div className="space-y-6">
-      <div className="bg-info-soft rounded-lg p-4 border border-info/30">
-        <h3 className="text-lg font-medium text-info mb-4 flex items-center">
-          {t("form.section.users")}
-          <SectionTooltip text="Define the total user base. Fine-tune adoption and concurrency rates in the Advanced tab." />
-        </h3>
+    <div className="space-y-4">
+      {/* Section: Users & workload — neutral card, accent dot for identity */}
+      <section className="bg-surface rounded-xl p-5 border border-border shadow-card">
+        <header className="flex items-center gap-2 mb-4">
+          <span className="h-2 w-2 rounded-full bg-info" aria-hidden />
+          <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted">
+            {t("form.section.users")}
+          </h3>
+          <SectionTooltip text={t("form.section.usersTooltip")} />
+        </header>
         {renderSliderInput(
           "internal_users",
-          "Total Users",
+          t("form.input.totalUsers"),
           0,
           100000,
           100,
           formData.internal_users,
           "",
-          "Total number of internal users who may access the AI service. Increase manually past slider max if needed.",
+          t("form.input.totalUsersTooltip"),
         )}
-      </div>
+      </section>
 
-      <div className="bg-success-soft rounded-lg p-4 border border-success/30" data-tour="model-search">
-        <h3 className="text-lg font-medium text-success mb-4 flex items-center">
-          {t("form.section.model")}
-          <SectionTooltip text="Search for a model on Hugging Face to auto-fill architecture parameters, or set them manually in the Advanced tab." />
-        </h3>
+      {/* Section: Model — same clean pattern, success-toned accent */}
+      <section
+        className="bg-surface rounded-xl p-5 border border-border shadow-card"
+        data-tour="model-search"
+      >
+        <header className="flex items-center gap-2 mb-4">
+          <span className="h-2 w-2 rounded-full bg-success" aria-hidden />
+          <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted">
+            {t("form.section.model")}
+          </h3>
+          <SectionTooltip text={t("form.section.modelTooltip")} />
+        </header>
 
         {/* Source toggle: Auto / HF live / Curated only */}
-        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-muted font-medium">Data source:</span>
-          {[
-            { id: "auto", label: t("form.source.auto"), title: "Use HuggingFace if reachable, fall back to curated catalog" },
-            { id: "hf", label: t("form.source.hf"), title: "Force HuggingFace; errors visibly when unreachable" },
-            { id: "curated", label: t("form.source.curated"), title: "Use bundled curated catalog only — no outbound HF traffic" },
-          ].map((opt) => {
-            const active = llmSourceMode === opt.id;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => setLlmSourceMode(opt.id)}
-                title={opt.title}
-                className={`px-2.5 py-1 rounded-md border transition-all ${
-                  active
-                    ? "bg-success border-success text-white"
-                    : "bg-surface border-border-strong text-fg hover:border-success/50"
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-muted font-medium">{t("form.dataSource")}:</span>
+          <div className="inline-flex rounded-lg border border-border bg-elevated p-0.5">
+            {[
+              { id: "auto", label: t("form.source.auto") },
+              { id: "hf", label: t("form.source.hf") },
+              { id: "curated", label: t("form.source.curated") },
+            ].map((opt) => {
+              const active = llmSourceMode === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setLlmSourceMode(opt.id)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    active
+                      ? "bg-surface text-fg shadow-sm"
+                      : "text-muted hover:text-fg"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
           {/* Effective-source badge */}
           <span
-            className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+            className={`ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
               effectiveLlmSource === "hf"
                 ? "bg-info-soft text-info"
                 : "bg-warning-soft text-warning"
@@ -1491,25 +1504,26 @@ const CalculatorForm = ({
                 : "Currently reading from bundled curated catalog"
             }
           >
-            {effectiveLlmSource === "hf" ? "🌐 HuggingFace" : "📁 Curated"}
+            <span aria-hidden>{effectiveLlmSource === "hf" ? "🌐" : "📁"}</span>
+            {effectiveLlmSource === "hf" ? t("form.badge.hf") : t("form.badge.curated")}
             {hfReachable === false && llmSourceMode !== "curated" && (
-              <span className="ml-1 normal-case opacity-70">(HF unreachable)</span>
+              <span className="ml-1 normal-case opacity-80">{t("form.badge.unreachable")}</span>
             )}
           </span>
         </div>
 
         {/* Model search */}
         <div className="mb-4 relative">
-          <label className="block text-sm font-medium text-fg mb-2 flex items-center">
+          <label className="text-sm font-medium text-fg mb-2 flex items-center">
             {t("form.search.model")}
-            <InfoTooltip text="Search Hugging Face to find your model. Parameters like size, layers, and hidden dim will be filled automatically. In 'Curated only' mode searches the bundled catalog instead." />
+            <InfoTooltip text={t("form.search.tooltip")} />
           </label>
           <input
             type="text"
             value={modelSearch}
             onChange={handleSearchChange}
-            placeholder="Search for a model (e.g., llama, gpt, etc.)"
-            className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+            placeholder={t("form.search.placeholder")}
+            className="w-full px-3 py-2 border border-border rounded-md shadow-sm bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
           />
 
           {isSearching && (
@@ -1596,10 +1610,10 @@ const CalculatorForm = ({
             )}
           </div>
         )}
-      </div>
+      </section>
 
-      <div className="bg-accent-soft rounded-lg p-4 border border-accent/30" data-tour="gpu-search">
-        <h3 className="text-lg font-medium text-accent mb-4 flex items-center">
+      <div className="bg-surface rounded-xl p-5 border border-border shadow-card" data-tour="gpu-search">
+        <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-accent before:content-['']">
           {t("form.section.hardware")}
           <SectionTooltip text="Choose the GPU accelerator and server layout. Memory and TFLOPS are auto-filled from the GPU catalog." />
         </h3>
@@ -1762,8 +1776,8 @@ const CalculatorForm = ({
         )}
       </div>
 
-      <div className="bg-warning-soft rounded-lg p-4 border border-warning/30">
-        <h3 className="text-lg font-medium text-warning mb-4 flex items-center">
+      <div className="bg-surface rounded-xl p-5 border border-border shadow-card">
+        <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-warning before:content-['']">
           Tensor Parallelism
           <SectionTooltip text="Tensor parallelism splits one model across multiple GPUs, increasing available memory per instance." />
         </h3>
@@ -1834,8 +1848,8 @@ const CalculatorForm = ({
         )}
       </div>
 
-      <div className="bg-warning-soft rounded-lg p-4 border border-warning/30" data-tour="sla-targets">
-        <h3 className="text-lg font-medium text-warning mb-4 flex items-center">
+      <div className="bg-surface rounded-xl p-5 border border-border shadow-card" data-tour="sla-targets">
+        <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-warning before:content-['']">
           {t("form.section.sla")}
           <SectionTooltip text="Time To First Token (TTFT) and end-to-end latency limits used to validate the configuration against your service-level requirements." />
         </h3>
@@ -2403,7 +2417,7 @@ const CalculatorForm = ({
       {/* Header with toggle switch */}
       <div className="flex items-center justify-between gap-2 mb-2">
         <h2 className="text-lg sm:text-2xl font-semibold text-fg min-w-0 truncate">
-          Configuration Parameters
+          {t("form.title")}
         </h2>
         <div data-tour="auto-optimize" className="shrink-0">
           <ToggleSwitch autoMode={autoMode} setAutoMode={setAutoMode} />
@@ -2505,19 +2519,19 @@ const CalculatorForm = ({
           }`}
           onClick={() => setActiveTab("basic")}
         >
-          Basic Configuration
+          {t("form.tab.basic")}
         </button>
         <button
           type="button"
           data-tour="advanced-tab"
           className={`py-2 px-4 font-medium text-sm ${
             activeTab === "advanced"
-              ? "text-fg border-b-2 border-fg bg-elevated"
-              : "text-subtle hover:text-fg bg-elevated"
+              ? "text-accent border-b-2 border-accent"
+              : "text-muted hover:text-fg"
           }`}
           onClick={() => setActiveTab("advanced")}
         >
-          Advanced
+          {t("form.tab.advanced")}
         </button>
       </div>
 
@@ -2541,7 +2555,7 @@ const CalculatorForm = ({
         {loading ? (
           <span className="flex items-center justify-center">
             <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></span>
-            {autoMode ? "Searching configurations..." : t("form.calculating")}
+            {autoMode ? t("form.searching") : t("form.calculating")}
           </span>
         ) : autoMode ? (
           <span className="flex items-center justify-center gap-2">
@@ -2553,7 +2567,7 @@ const CalculatorForm = ({
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-            Find Best Configs
+            {t("form.findBest")}
           </span>
         ) : (
           t("form.calculate")

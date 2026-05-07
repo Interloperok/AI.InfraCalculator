@@ -79,11 +79,11 @@ const ModeSwitcher = ({ mode, onChange }) => {
                 <Icon className="h-4 w-4" strokeWidth={2.25} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold leading-tight truncate">
+                <span className="block text-sm font-semibold leading-tight">
                   {label}
                 </span>
                 <span
-                  className={`block text-[11px] leading-tight truncate ${
+                  className={`block text-[11px] leading-snug ${
                     active ? "opacity-80" : "text-muted"
                   }`}
                 >

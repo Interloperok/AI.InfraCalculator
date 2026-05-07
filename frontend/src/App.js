@@ -443,20 +443,31 @@ function App() {
         }
       };
 
-      if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+      // Joyride 3.x can emit `type: "tour:end"` and / or `action: "skip"|"reset"|"close"`
+      // before the status flips to FINISHED/SKIPPED — handle all of them so the
+      // overlay doesn't get stuck dimming the page.
+      const closeTour = () => {
         setRunTour(false);
+        setTourStepIndex(0);
         if (!mobile) setDocsOpen(false);
         cleanupTourAuto();
         restoreSwipe();
+      };
+
+      if (
+        [STATUS.FINISHED, STATUS.SKIPPED, "skipped", "finished", "paused"].includes(status) ||
+        type === "tour:end" ||
+        action === "skip" ||
+        action === "reset" ||
+        action === "close"
+      ) {
+        closeTour();
         return;
       }
 
       if (type === "step:after") {
         if (action === "close") {
-          setRunTour(false);
-          if (!mobile) setDocsOpen(false);
-          cleanupTourAuto();
-          restoreSwipe();
+          closeTour();
           return;
         }
 
@@ -570,11 +581,14 @@ function App() {
     <div className="min-h-screen bg-bg text-fg flex flex-col">
       <Joyride
         steps={(() => {
-          if (tourMode === "vlm")
-            return isMobileTour ? TOUR_STEPS_VLM_MOBILE : TOUR_STEPS_VLM;
-          if (tourMode === "ocr")
-            return isMobileTour ? TOUR_STEPS_OCR_MOBILE : TOUR_STEPS_OCR;
-          return isMobileTour ? TOUR_STEPS_MOBILE : TOUR_STEPS;
+          let raw;
+          if (tourMode === "vlm") raw = isMobileTour ? TOUR_STEPS_VLM_MOBILE : TOUR_STEPS_VLM;
+          else if (tourMode === "ocr") raw = isMobileTour ? TOUR_STEPS_OCR_MOBILE : TOUR_STEPS_OCR;
+          else raw = isMobileTour ? TOUR_STEPS_MOBILE : TOUR_STEPS;
+          // Joyride 3.x: force beacon-less so we never get the lone black
+          // pulsing dot on entry; continuous + disableBeacon on every step
+          // gives the tooltip-only flow we want.
+          return raw.map((step) => ({ ...step, disableBeacon: true }));
         })()}
         run={runTour}
         stepIndex={tourStepIndex}

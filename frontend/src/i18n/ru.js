@@ -21,11 +21,11 @@ const ru = {
   // ── Calculator modes ─────────────────────────────────────────────────
   "mode.label": "Режим калькулятора",
   "mode.llm": "LLM",
-  "mode.llm.subtitle": "Чат и completion",
+  "mode.llm.subtitle": "Чат / completion",
   "mode.vlm": "VLM",
-  "mode.vlm.subtitle": "Изображение → JSON",
+  "mode.vlm.subtitle": "Картинка → JSON",
   "mode.ocr": "OCR + LLM",
-  "mode.ocr.subtitle": "Двухстадийная экстракция",
+  "mode.ocr.subtitle": "Двухстадийный",
 
   // ── Results: shared ──────────────────────────────────────────────────
   "results.title": "Результаты расчёта",
@@ -158,13 +158,25 @@ const ru = {
   "results.gateway.pagesPerMin": "страниц/мин",
 
   // ── Form (high-level section labels) ─────────────────────────────────
+  "form.title": "Конфигурация",
   "form.calculate": "Рассчитать",
   "form.calculating": "Расчёт…",
   "form.autoOptimize": "Автоподбор",
+  "form.autoOn": "Авто",
+  "form.autoOff": "Авто",
+  "form.autoTooltip": "Автоподбор: найти оптимальную конфигурацию оборудования",
+  "form.findBest": "Подобрать конфигурацию",
+  "form.searching": "Перебор конфигураций…",
   "form.report": "Скачать Excel-отчёт",
+  "form.tab.basic": "Базовые",
+  "form.tab.advanced": "Расширенные",
   "form.section.users": "Пользователи и нагрузка",
+  "form.section.usersTooltip":
+    "Размер базы пользователей. Тонкая настройка проникновения и одновременности — на вкладке «Расширенные».",
   "form.section.tokens": "Профиль токенов",
   "form.section.model": "Модель",
+  "form.section.modelTooltip":
+    "Найдите модель в Hugging Face для автозаполнения параметров архитектуры — или задайте их вручную во вкладке «Расширенные».",
   "form.section.kv": "KV-кэш",
   "form.section.hardware": "Оборудование",
   "form.section.compute": "Вычисления",
@@ -172,9 +184,20 @@ const ru = {
   "form.section.agentic": "Агентный / RAG",
   "form.preset.select": "Выбрать пресет",
   "form.search.model": "Поиск модели в Hugging Face",
+  "form.search.placeholder": "Поиск модели (например, llama, gpt и т. п.)",
+  "form.search.tooltip":
+    "Поиск в Hugging Face для подбора модели. Параметры (размер, слои, hidden dim) заполнятся автоматически. В режиме «Файл-каталог» поиск идёт по встроенному каталогу.",
+  "form.dataSource": "Источник данных",
   "form.source.auto": "Авто",
   "form.source.hf": "HuggingFace",
   "form.source.curated": "Файл-каталог",
+  "form.badge.hf": "HuggingFace",
+  "form.badge.curated": "Файл-каталог",
+  "form.badge.unreachable": "(HF недоступен)",
+  "form.input.totalUsers": "Всего пользователей",
+  "form.input.totalUsersTooltip":
+    "Общее число внутренних пользователей, которые могут обратиться к сервису. Можно ввести значение выше максимума слайдера вручную.",
+  "form.input.auto": "авто",
 
   // ── VLM / OCR specific ───────────────────────────────────────────────
   "vlm.title": "Результаты сайзинга VLM",

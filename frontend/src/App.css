@@ -8,15 +8,15 @@
 :root {
   --color-bg: 248 250 252; /* slate-50 — page background */
   --color-surface: 255 255 255; /* white — cards */
-  --color-elevated: 255 255 255; /* elevated surface */
+  --color-elevated: 241 245 249; /* slate-100 — elevated surface, distinct from white cards */
   --color-fg: 15 23 42; /* slate-900 — primary text */
   --color-muted: 71 85 105; /* slate-600 — secondary text */
-  --color-subtle: 148 163 184; /* slate-400 — tertiary / disabled */
-  --color-border: 226 232 240; /* slate-200 — hairlines */
-  --color-border-strong: 203 213 225; /* slate-300 — emphasised borders */
+  --color-subtle: 100 116 139; /* slate-500 — tertiary (was slate-400, too faint) */
+  --color-border: 203 213 225; /* slate-300 — hairlines (was slate-200 — invisible) */
+  --color-border-strong: 148 163 184; /* slate-400 — emphasised borders (was slate-300 — too faint) */
   --color-accent: 79 70 229; /* indigo-600 — primary accent */
   --color-accent-fg: 255 255 255; /* text on accent surfaces */
-  --color-accent-soft: 238 242 255; /* indigo-50 — accent backgrounds */
+  --color-accent-soft: 238 242 255; /* indigo-50 */
   --color-success: 5 150 105; /* emerald-600 */
   --color-success-soft: 209 250 229; /* emerald-100 */
   --color-warning: 217 119 6; /* amber-600 */

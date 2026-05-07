@@ -162,13 +162,25 @@ const en = {
   "results.gateway.pagesPerMin": "pages/min",
 
   // ── Form (high-level section labels only — leaf inputs stay verbatim) ──
+  "form.title": "Configuration",
   "form.calculate": "Calculate",
   "form.calculating": "Calculating…",
   "form.autoOptimize": "Auto-optimize",
+  "form.autoOn": "Auto",
+  "form.autoOff": "Auto",
+  "form.autoTooltip": "Auto-Optimize: automatically find the best hardware configuration",
+  "form.findBest": "Find Best Configs",
+  "form.searching": "Searching configurations…",
   "form.report": "Download Excel report",
+  "form.tab.basic": "Basic",
+  "form.tab.advanced": "Advanced",
   "form.section.users": "Users & workload",
+  "form.section.usersTooltip":
+    "Define the total user base. Fine-tune adoption and concurrency rates in the Advanced tab.",
   "form.section.tokens": "Token profile",
   "form.section.model": "Model",
+  "form.section.modelTooltip":
+    "Search for a model on Hugging Face to auto-fill architecture parameters, or set them manually in the Advanced tab.",
   "form.section.kv": "KV-cache",
   "form.section.hardware": "Hardware",
   "form.section.compute": "Compute",
@@ -176,9 +188,20 @@ const en = {
   "form.section.agentic": "Agentic / RAG",
   "form.preset.select": "Choose a preset",
   "form.search.model": "Search model on Hugging Face",
+  "form.search.placeholder": "Search for a model (e.g., llama, gpt, etc.)",
+  "form.search.tooltip":
+    "Search Hugging Face to find your model. Parameters like size, layers, and hidden dim are filled automatically. In 'Curated only' mode searches the bundled catalog instead.",
+  "form.dataSource": "Data source",
   "form.source.auto": "Auto",
   "form.source.hf": "HuggingFace",
-  "form.source.curated": "Curated catalog",
+  "form.source.curated": "Curated",
+  "form.badge.hf": "HuggingFace",
+  "form.badge.curated": "Curated",
+  "form.badge.unreachable": "(HF unreachable)",
+  "form.input.totalUsers": "Total Users",
+  "form.input.totalUsersTooltip":
+    "Total number of internal users who may access the AI service. Increase manually past the slider max if needed.",
+  "form.input.auto": "auto",
 
   // ── VLM / OCR specific ───────────────────────────────────────────────
   "vlm.title": "VLM Sizing Results",
