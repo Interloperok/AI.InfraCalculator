@@ -548,6 +548,12 @@ const en = {
   "ocr.diag.handoff.tooltip":
     "Fixed overhead added between OCR finishing and the LLM starting (network round-trip, JSON marshal, queueing). Subtracted from the per-page budget.",
 
+  // ── Pre-submit validation messages ──────────────────────────────────
+  "form.validate.selectModelAuto":
+    "Pick a model before running auto-optimize. Use the model search above (Hugging Face or curated catalog) so the optimizer knows the architecture to size against.",
+  "form.validate.selectGpuAuto":
+    "Pick a GPU (or open the GPU filter and choose at least one) before running auto-optimize. The optimizer needs at least one GPU to evaluate configurations.",
+
   // ── Errors / loading ─────────────────────────────────────────────────
   "error.title": "Error",
   "error.network": "Network error: unable to reach the backend.",

@@ -942,8 +942,21 @@ const CalculatorForm = ({
     return payload;
   };
 
+  const [validationError, setValidationError] = useState(null);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setValidationError(null);
+    if (autoMode) {
+      if (!selectedModel) {
+        setValidationError(t("form.validate.selectModelAuto"));
+        return;
+      }
+      if (!selectedGpu && (!gpuFilter || gpuFilter.length === 0)) {
+        setValidationError(t("form.validate.selectGpuAuto"));
+        return;
+      }
+    }
     onSubmit(buildPayload());
   };
 
@@ -2556,6 +2569,15 @@ const CalculatorForm = ({
         {activeTab === "basic" && basicInputs}
         {activeTab === "advanced" && advancedInputs}
       </div>
+
+      {validationError && (
+        <div className="bg-danger-soft border border-danger/30 rounded-md p-3 text-sm text-danger flex items-start gap-2">
+          <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{validationError}</span>
+        </div>
+      )}
 
       {/* Calculate / Find Best Configs button */}
       <button

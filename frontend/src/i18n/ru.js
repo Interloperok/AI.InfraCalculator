@@ -43,8 +43,8 @@ const ru = {
   "results.gpus": "Всего GPU",
   "results.gpus.subtitle": "Сервера × GPU/сервер",
   "results.sessions": "Сессий / сервер",
-  "results.throughput": "Пропускная способность сервера",
-  "results.throughput.unit": "req/s",
+  "results.throughput": "Пропускная сервера",
+  "results.throughput.unit": "запр/с",
   "results.gpuPerServer": "GPU / сервер",
   "results.gpuPerInstance": "GPU / экземпляр",
   "results.instancesPerServer": "Экземпляров / сервер",
@@ -68,7 +68,7 @@ const ru = {
   "results.infrastructure.maxMemComp": "max(память: {mem}, комп.: {comp})",
   "results.sessions.title": "Сессий на сервер",
   "results.sessions.subtitle": "{instances} экз. × {sessions} сесс. каждый",
-  "results.throughput.title": "Пропускная способность сервера",
+  "results.throughput.title": "Пропускная сервера",
   "results.throughput.tooltip":
     "Запросов в секунду, которые обрабатывает один сервер (req/s)",
   "results.throughput.detail": "prefill {pf} · decode {dec}",
@@ -545,6 +545,12 @@ const ru = {
     "Эффективная вычислительная мощность одного GPU LLM-пула (FP16/BF16 tensor TFLOPS).",
   "ocr.diag.handoff.tooltip":
     "Фиксированный оверхед на передачу от OCR к LLM (сетевой round-trip, сериализация JSON, очередь). Вычитается из бюджета на страницу.",
+
+  // ── Сообщения предварительной валидации ─────────────────────────────
+  "form.validate.selectModelAuto":
+    "Выберите модель перед запуском авто-оптимизации. Используйте поиск выше (Hugging Face или встроенный каталог), чтобы оптимизатор знал, под какую архитектуру сайзить.",
+  "form.validate.selectGpuAuto":
+    "Выберите GPU (или откройте фильтр GPU и выберите хотя бы один) перед запуском авто-оптимизации. Оптимизатору нужен минимум один GPU для перебора конфигураций.",
 
   // ── Errors / loading ─────────────────────────────────────────────────
   "error.title": "Ошибка",
