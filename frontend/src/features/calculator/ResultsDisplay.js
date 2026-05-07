@@ -298,38 +298,22 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
 
       {/* ── Primary metric tiles (3) ─────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-tour="result-cards">
-        {/* Card 1 — Infrastructure (servers + total GPUs) — accent ring on neutral surface */}
+        {/* Card 1 — Infrastructure: servers as the headline, total GPUs as
+             a quiet secondary line so the tile doesn't feel cramped. */}
         <div className="result-tile bg-surface border border-accent/40 rounded-xl p-4 sm:p-5 shadow-card flex flex-col sm:min-h-[170px] overflow-hidden">
-          <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider font-semibold text-accent">
-            <Server className="h-3.5 w-3.5" strokeWidth={2.25} />
-            <span>{t("results.infrastructure.title")}</span>
-          </div>
-          <div className="flex items-baseline justify-center gap-3 sm:gap-5 mt-auto mb-auto pt-2">
-            <div className="text-center">
-              <p
-                className="text-3xl sm:text-4xl font-semibold tracking-tight leading-none tabular-nums whitespace-nowrap text-fg"
-                title={String(results.servers_final || 0)}
-              >
-                {fmt(results.servers_final, 0)}
-              </p>
-              <p className="text-[10px] sm:text-xs text-muted mt-1.5 uppercase tracking-wide">
-                {t("results.infrastructure.servers")}
-              </p>
-            </div>
-            <span className="h-8 w-px bg-border" aria-hidden="true" />
-            <div className="text-center">
-              <p
-                className="text-3xl sm:text-4xl font-semibold tracking-tight leading-none tabular-nums whitespace-nowrap text-fg"
-                title={String(results.total_gpu_count || 0)}
-              >
-                {fmt(results.total_gpu_count, 0)}
-              </p>
-              <p className="text-[10px] sm:text-xs text-muted mt-1.5 uppercase tracking-wide">
-                {t("results.infrastructure.gpus")}
-              </p>
-            </div>
-          </div>
-          <p className="text-xs text-muted mt-2 tabular-nums">
+          <MetricLabel icon={Server}>{t("results.infrastructure.title")}</MetricLabel>
+          <p
+            className="text-4xl sm:text-5xl font-semibold tracking-tight text-fg mt-auto tabular-nums"
+            title={String(results.servers_final || 0)}
+          >
+            {fmt(results.servers_final, 0)}
+            <span className="ml-2 text-sm font-medium text-muted uppercase tracking-wide align-middle">
+              {t("results.infrastructure.servers")}
+            </span>
+          </p>
+          <p className="text-sm text-muted mt-1.5 tabular-nums">
+            {fmt(results.total_gpu_count, 0)} {t("results.infrastructure.gpus")}
+            <span className="text-subtle"> · </span>
             {interp(t("results.infrastructure.maxMemComp"), {
               mem: results.servers_by_memory || 0,
               comp: results.servers_by_compute || 0,

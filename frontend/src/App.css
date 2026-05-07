@@ -127,6 +127,22 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* react-joyride 3.x defensive overrides:
+   1. Beacon: we use continuous mode and want the tooltip to appear directly
+      on tour start, never the lone pulsing beacon (which is also invisible
+      in dark mode).
+   2. Overlay: dimming the page sometimes refused to dismiss after
+      Skip/Close in v3, locking the UI until refresh. We never need the
+      dim — tooltip alone is enough — so neutralise it here regardless of
+      whatever the Joyride prop happens to be doing this version. */
+.react-joyride__beacon {
+  display: none !important;
+}
+.react-joyride__overlay {
+  background: transparent !important;
+  pointer-events: none !important;
+}
+
 /* Animation for loading spinner */
 .animate-spin {
   animation: spin 1s linear infinite;

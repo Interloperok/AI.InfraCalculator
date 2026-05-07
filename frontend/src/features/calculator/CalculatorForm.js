@@ -625,8 +625,9 @@ const INITIAL_FORM_DATA = {
   emp_kv: 1.0,
   max_context_window_TSmax: 32768,
 
-  // Hardware & TP (Section 4)
-  gpu_mem_gb: 0, // No GPU selected by default
+  // Hardware & TP (Section 4) — default to A100 80GB so a fresh form
+  // submits cleanly without the user having to pick a GPU first.
+  gpu_mem_gb: 80,
   gpus_per_server: 8,
   kavail: 0.9,
   tp_multiplier_Z: 1,
@@ -1397,7 +1398,7 @@ const CalculatorForm = ({
               value={value}
               onChange={handleInputChange}
               disabled={disabled}
-              className={`px-2 py-1 text-sm border border-border-strong rounded-md text-right bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent ${max >= 1000000 ? "w-28" : "w-20"} ${disabled ? "bg-elevated text-subtle" : ""}`}
+              className={`px-2 py-1 text-sm border border-border-strong rounded-md text-right bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent ${max >= 1000000 ? "w-32" : max >= 10000 ? "w-28" : "w-20"} ${disabled ? "bg-elevated text-subtle" : ""}`}
               inputMode={isInteger ? "numeric" : "decimal"}
               placeholder="0"
             />
@@ -1491,25 +1492,28 @@ const CalculatorForm = ({
               );
             })}
           </div>
-          {/* Effective-source badge */}
-          <span
-            className={`ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-              effectiveLlmSource === "hf"
-                ? "bg-info-soft text-info"
-                : "bg-warning-soft text-warning"
-            }`}
-            title={
-              effectiveLlmSource === "hf"
-                ? "Currently reading from HuggingFace API"
-                : "Currently reading from bundled curated catalog"
-            }
-          >
-            <span aria-hidden>{effectiveLlmSource === "hf" ? "🌐" : "📁"}</span>
-            {effectiveLlmSource === "hf" ? t("form.badge.hf") : t("form.badge.curated")}
-            {hfReachable === false && llmSourceMode !== "curated" && (
-              <span className="ml-1 normal-case opacity-80">{t("form.badge.unreachable")}</span>
-            )}
-          </span>
+          {/* Effective-source badge — only shown when the *effective* source
+              differs from what the user picked (e.g. Auto + HF unreachable
+              ⇒ silently fell back to curated). Otherwise the active button
+              already conveys the state and the badge wraps to a new line in
+              languages with longer source labels. */}
+          {((llmSourceMode === "auto" && effectiveLlmSource !== "hf") ||
+            (hfReachable === false && llmSourceMode !== "curated")) && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-warning-soft text-warning"
+              title={
+                effectiveLlmSource === "hf"
+                  ? "Currently reading from HuggingFace API"
+                  : "Currently reading from bundled curated catalog"
+              }
+            >
+              <span aria-hidden>📁</span>
+              {t("form.badge.curated")}
+              {hfReachable === false && llmSourceMode !== "curated" && (
+                <span className="ml-1 normal-case opacity-80">{t("form.badge.unreachable")}</span>
+              )}
+            </span>
+          )}
         </div>
 
         {/* Model search */}
