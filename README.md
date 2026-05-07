@@ -132,6 +132,132 @@ Full API schema: http://localhost:8000/docs
 
 ***
 
+## Deploy via Helm
+
+The Helm chart at `charts/ai-infra-calculator/` deploys the backend and
+frontend together. The frontend container reverse-proxies the full
+backend API surface, so a single Service + a single Ingress on one
+host serves the UI, REST endpoints (`/v1/*`), `/healthz`, and the
+FastAPI introspection paths (`/docs`, `/redoc`, `/openapi.json`).
+
+### Build images
+
+The chart references `ai-infra-calculator/backend` and
+`ai-infra-calculator/frontend`. Build them locally (or push to your
+registry):
+
+```bash
+cd backend  && docker build -t ai-infra-calculator/backend:<tag> .
+cd frontend && docker build -t ai-infra-calculator/frontend:<tag> .
+```
+
+For local clusters that don't pull from a registry (kind, k3d), load
+each image into the cluster after building:
+
+```bash
+kind load docker-image ai-infra-calculator/backend:<tag>
+kind load docker-image ai-infra-calculator/frontend:<tag>
+```
+
+Docker Desktop's Kubernetes shares the host docker daemon's image
+store and doesn't need an explicit load step.
+
+### Install / upgrade
+
+```bash
+helm upgrade --install calc charts/ai-infra-calculator \
+  --namespace calc --create-namespace \
+  --set backend.image.tag=<tag> \
+  --set frontend.image.tag=<tag>
+```
+
+Common overrides (see `charts/ai-infra-calculator/values.yaml` for the
+full list):
+
+| Value                       | Default                       | Purpose                                              |
+| --------------------------- | ----------------------------- | ---------------------------------------------------- |
+| `backend.image.tag`         | `dev`                         | Backend image tag                                    |
+| `frontend.image.tag`        | `dev`                         | Frontend image tag                                   |
+| `backend.image.pullPolicy`  | `IfNotPresent`                | Use `Always` against a real registry                 |
+| `ingress.enabled`           | `false`                       | Set to `true` to expose on a host                    |
+| `ingress.host`              | `calc.localhost`              | DNS name the ingress matches                         |
+| `ingress.className`         | `nginx`                       | IngressClass (must exist in the cluster)             |
+| `ingress.tls`               | `[]`                          | TLS secrets — `[{ secretName, hosts: [...] }]`       |
+| `proxy.enabled`             | `false`                       | Route backend outbound traffic through a proxy       |
+| `proxy.secretName`          | `""`                          | Existing Secret with `HTTP_PROXY` / `HTTPS_PROXY`    |
+
+### Enable ingress on a host
+
+```bash
+helm upgrade calc charts/ai-infra-calculator -n calc --reuse-values \
+  --set ingress.enabled=true \
+  --set ingress.host=calc.example.com
+```
+
+A single Ingress rule routes all paths under `/` to the frontend
+Service. The frontend's nginx then splits between static SPA assets
+and the backend Service. UI lands at `https://calc.example.com/`,
+Swagger at `https://calc.example.com/docs`, OpenAPI at
+`https://calc.example.com/openapi.json`, etc.
+
+For TLS, supply `ingress.tls` and an existing `cert-manager` issuer
+or a manually-created Secret:
+
+```yaml
+ingress:
+  enabled: true
+  host: calc.example.com
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+  tls:
+    - secretName: calc-tls
+      hosts:
+        - calc.example.com
+```
+
+### Verify the deploy
+
+Without ingress (port-forward the frontend Service — one port serves
+everything):
+
+```bash
+kubectl port-forward -n calc svc/calc-ai-infra-calculator-frontend 8089:80
+# Open http://localhost:8089/        → UI
+#      http://localhost:8089/docs    → Swagger UI
+#      http://localhost:8089/v1/llms → backend REST
+```
+
+With ingress enabled, hit the host directly:
+
+```bash
+curl https://calc.example.com/healthz
+```
+
+### Image-tag rotation gotcha (local Kubernetes)
+
+Containerd caches images by digest. Rebuilding `:dev` (or any tag)
+locally produces a new digest, but pods that already pulled the old
+digest under the same tag won't notice.
+
+**Workaround:** use a unique tag per build (`:p1`, `:p2`, …) and pass
+it to `helm upgrade --set <component>.image.tag=...`. Verify the
+rolled-out image matches the host build:
+
+```bash
+kubectl get pod -n calc -l app.kubernetes.io/component=frontend \
+  -o jsonpath='{.items[0].status.containerStatuses[0].imageID}'
+docker image inspect ai-infra-calculator/frontend:<tag> --format '{{.Id}}'
+# The two digests must match.
+```
+
+If they don't match, force-recreate the pod:
+
+```bash
+kubectl delete pod -n calc -l app.kubernetes.io/component=frontend
+```
+
+***
+
 ## Helm: outbound HTTP/HTTPS proxy
 
 The Helm chart can route the backend's outbound traffic (e.g. the GPU-catalog
