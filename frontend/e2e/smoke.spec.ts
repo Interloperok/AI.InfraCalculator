@@ -134,6 +134,10 @@ test("smoke: auto-optimize mode renders optimization table", async ({ page }) =>
 
   await page.goto("/");
 
+  // Pre-submit validation now requires a model and a GPU before
+  // running auto-optimize — apply a preset first so both are selected.
+  await page.locator('[data-tour="presets"] button').first().click();
+
   await page.locator('[data-tour="auto-optimize"] button').click();
   await expect(page.locator('[data-tour="calculate-btn"]')).toContainText("Find Best Configs");
 
