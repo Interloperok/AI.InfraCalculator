@@ -142,6 +142,20 @@ const ru = {
   // ── Gateway quotas ───────────────────────────────────────────────────
   "results.gateway.title": "Квоты для шлюза",
   "results.gateway.subtitle": "Для LiteLLM / shared vLLM",
+  "results.gateway.peakRpmTooltip":
+    "Пиковый rpm с учётом K_SLA. Настраивайте как `rpm`-лимит тенанта на общем шлюзе (LiteLLM / vLLM). 'Устойчивый' ниже — долгосрочное среднее без headroom.",
+  "results.gateway.peakTpmTooltip":
+    "Суммарные tokens-per-minute (вход+выход) с K_SLA. Лимит `tpm` в LiteLLM. Не зависит от K_calls — агентность увеличивает число запросов, не токенов.",
+  "results.gateway.tpmSplitTooltip":
+    "Разбивка Peak TPM на вход (system prompt + Prp + RAG-контекст) и выход (ответ модели).",
+  "results.gateway.maxParallelTooltip":
+    "Лимит конкурентных запросов. Настраивайте как `max_parallel_requests` (LiteLLM) или `max_num_seqs` (vLLM).",
+  "results.gateway.ocrPeakRpmTooltip":
+    "Пиковые pages-per-minute на OCR-пул. Ноль для ocr_cpu (CPU-стадия не идёт через шлюз).",
+  "results.gateway.llmPeakRpmTooltip":
+    "Пиковые LLM-calls-per-minute на LLM-пул. Каждая страница — один вызов.",
+  "results.gateway.llmPeakTpmTooltip":
+    "Пиковые tokens-per-minute на LLM-пул (system prompt + OCR-текст + JSON-выход).",
   "results.gateway.peakRpm": "Пиковый RPM",
   "results.gateway.peakTpm": "Пиковый TPM",
   "results.gateway.tpmSplit": "TPM по сторонам",

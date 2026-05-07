@@ -127,13 +127,6 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* react-joyride 3.x defensive override:
-   we use continuous mode and want the tooltip to appear directly on tour
-   start, never the lone pulsing beacon (which is invisible in dark mode
-   anyway). The dimming overlay + spotlight are intended UX. */
-.react-joyride__beacon {
-  display: none !important;
-}
 
 /* Animation for loading spinner */
 .animate-spin {

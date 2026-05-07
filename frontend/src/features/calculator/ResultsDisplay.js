@@ -407,47 +407,67 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
             </span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-            <div className="bg-accent-soft rounded-lg py-2.5 px-3">
-              <p className="text-[10px] uppercase font-semibold text-accent tracking-wider">
+            <div
+              className="bg-elevated border border-border rounded-lg py-2.5 px-3"
+              title={t("results.gateway.peakRpmTooltip")}
+            >
+              <p className="flex items-center gap-1 text-[10px] uppercase font-semibold text-muted tracking-wider">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
                 {t("results.gateway.peakRpm")}
+                <Info className="h-3 w-3 text-subtle ml-auto" strokeWidth={2.25} />
               </p>
-              <p className="text-lg font-semibold text-accent mt-1 tabular-nums">
+              <p className="text-lg font-semibold text-fg mt-1 tabular-nums">
                 {fmt(results.peak_rpm, 0)}
               </p>
-              <p className="text-[10px] text-accent/80 mt-0.5 tabular-nums">
+              <p className="text-[10px] text-muted mt-0.5 tabular-nums">
                 {t("results.gateway.sustained")} {fmt(results.sustained_rpm, 0)}
               </p>
             </div>
-            <div className="bg-success-soft rounded-lg py-2.5 px-3">
-              <p className="text-[10px] uppercase font-semibold text-success tracking-wider">
+            <div
+              className="bg-elevated border border-border rounded-lg py-2.5 px-3"
+              title={t("results.gateway.peakTpmTooltip")}
+            >
+              <p className="flex items-center gap-1 text-[10px] uppercase font-semibold text-muted tracking-wider">
+                <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
                 {t("results.gateway.peakTpm")}
+                <Info className="h-3 w-3 text-subtle ml-auto" strokeWidth={2.25} />
               </p>
-              <p className="text-lg font-semibold text-success mt-1 tabular-nums">
+              <p className="text-lg font-semibold text-fg mt-1 tabular-nums">
                 {fmt(results.peak_tpm, 0)}
               </p>
-              <p className="text-[10px] text-success/80 mt-0.5 tabular-nums">
+              <p className="text-[10px] text-muted mt-0.5 tabular-nums">
                 {t("results.gateway.sustained")} {fmt(results.sustained_tpm, 0)}
               </p>
             </div>
-            <div className="bg-info-soft rounded-lg py-2.5 px-3">
-              <p className="text-[10px] uppercase font-semibold text-info tracking-wider">
+            <div
+              className="bg-elevated border border-border rounded-lg py-2.5 px-3"
+              title={t("results.gateway.tpmSplitTooltip")}
+            >
+              <p className="flex items-center gap-1 text-[10px] uppercase font-semibold text-muted tracking-wider">
+                <span className="h-1.5 w-1.5 rounded-full bg-info" aria-hidden />
                 {t("results.gateway.tpmSplit")}
+                <Info className="h-3 w-3 text-subtle ml-auto" strokeWidth={2.25} />
               </p>
-              <p className="text-sm font-semibold text-info mt-1 tabular-nums">
-                {t("results.gateway.in")} {fmt(results.peak_tpm_input, 0)}
+              <p className="text-sm font-semibold text-fg mt-1 tabular-nums">
+                <span className="text-muted">{t("results.gateway.in")}</span> {fmt(results.peak_tpm_input, 0)}
               </p>
-              <p className="text-[11px] text-info/80 tabular-nums">
-                {t("results.gateway.out")} {fmt(results.peak_tpm_output, 0)}
+              <p className="text-[11px] text-muted tabular-nums">
+                <span>{t("results.gateway.out")}</span> {fmt(results.peak_tpm_output, 0)}
               </p>
             </div>
-            <div className="bg-warning-soft rounded-lg py-2.5 px-3">
-              <p className="text-[10px] uppercase font-semibold text-warning tracking-wider">
+            <div
+              className="bg-elevated border border-border rounded-lg py-2.5 px-3"
+              title={t("results.gateway.maxParallelTooltip")}
+            >
+              <p className="flex items-center gap-1 text-[10px] uppercase font-semibold text-muted tracking-wider">
+                <span className="h-1.5 w-1.5 rounded-full bg-warning" aria-hidden />
                 {t("results.gateway.maxParallel")}
+                <Info className="h-3 w-3 text-subtle ml-auto" strokeWidth={2.25} />
               </p>
-              <p className="text-lg font-semibold text-warning mt-1 tabular-nums">
+              <p className="text-lg font-semibold text-fg mt-1 tabular-nums">
                 {fmt(results.max_parallel_requests, 0)}
               </p>
-              <p className="text-[10px] text-warning/80 mt-0.5">
+              <p className="text-[10px] text-muted mt-0.5">
                 {t("results.gateway.concurrent")}
               </p>
             </div>

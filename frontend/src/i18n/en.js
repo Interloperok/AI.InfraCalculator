@@ -146,6 +146,20 @@ const en = {
   // ── Gateway quotas ───────────────────────────────────────────────────
   "results.gateway.title": "Gateway quotas",
   "results.gateway.subtitle": "For LiteLLM / shared vLLM rate-limits",
+  "results.gateway.peakRpmTooltip":
+    "Peak requests-per-minute across all sessions, with K_SLA headroom. Set this as the per-tenant `rpm` cap on a shared inference gateway (LiteLLM / vLLM). The 'sustained' value below is the long-term average without headroom.",
+  "results.gateway.peakTpmTooltip":
+    "Peak total tokens-per-minute (input + output) the solution will push through the gateway, with K_SLA headroom. Use this as the LiteLLM `tpm` cap. Independent of K_calls — agentic workloads add more requests, not more tokens.",
+  "results.gateway.tpmSplitTooltip":
+    "Breakdown of the Peak TPM into input tokens (system prompt + user prompt + RAG context) the gateway sees on every call vs. output tokens (model response) it returns.",
+  "results.gateway.maxParallelTooltip":
+    "Concurrent in-flight requests. Set as LiteLLM `max_parallel_requests` or vLLM `max_num_seqs` so the engine doesn't accept more sessions than it can serve under SLA.",
+  "results.gateway.ocrPeakRpmTooltip":
+    "Peak pages-per-minute hitting the OCR pool. Zero for ocr_cpu pipelines (CPU stage isn't gateway-routed).",
+  "results.gateway.llmPeakRpmTooltip":
+    "Peak LLM-calls-per-minute hitting the LLM pool. Each page is one LLM call.",
+  "results.gateway.llmPeakTpmTooltip":
+    "Peak total tokens-per-minute on the LLM pool (system prompt + OCR text + JSON output).",
   "results.gateway.peakRpm": "Peak RPM",
   "results.gateway.peakTpm": "Peak TPM",
   "results.gateway.tpmSplit": "TPM split",

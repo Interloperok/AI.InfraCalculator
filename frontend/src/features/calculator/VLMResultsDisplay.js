@@ -242,6 +242,7 @@ const VLMResultsDisplay = ({ results, loading, error, inputData }) => {
             sub={fmtTemplate(t("vlm.peakRpmSub"), {
               value: fmt(results.sustained_rpm, 0),
             })}
+            tooltip={t("results.gateway.peakRpmTooltip")}
           />
           <QuotaCell
             tone="success"
@@ -250,6 +251,7 @@ const VLMResultsDisplay = ({ results, loading, error, inputData }) => {
             sub={fmtTemplate(t("vlm.peakTpmSub"), {
               value: fmt(results.sustained_tpm, 0),
             })}
+            tooltip={t("results.gateway.peakTpmTooltip")}
           />
           <QuotaCell
             tone="info"
@@ -257,12 +259,14 @@ const VLMResultsDisplay = ({ results, loading, error, inputData }) => {
             valueSize="sm"
             value={`in ${fmt(results.peak_tpm_input, 0)}`}
             sub={`out ${fmt(results.peak_tpm_output, 0)}`}
+            tooltip={t("results.gateway.tpmSplitTooltip")}
           />
           <QuotaCell
             tone="warning"
             label={t("vlm.maxParallel")}
             value={fmt(results.max_parallel_requests, 0)}
             sub={t("vlm.concurrentPages")}
+            tooltip={t("results.gateway.maxParallelTooltip")}
           />
         </div>
       </div>
@@ -371,21 +375,29 @@ const VLMResultsDisplay = ({ results, loading, error, inputData }) => {
   );
 };
 
-const TONE_CLASSES = {
-  accent: { bg: "bg-accent-soft", text: "text-accent" },
-  success: { bg: "bg-success-soft", text: "text-success" },
-  info: { bg: "bg-info-soft", text: "text-info" },
-  warning: { bg: "bg-warning-soft", text: "text-warning" },
-  danger: { bg: "bg-danger-soft", text: "text-danger" },
+const TONE_DOTS = {
+  accent: "bg-accent",
+  success: "bg-success",
+  info: "bg-info",
+  warning: "bg-warning",
+  danger: "bg-danger",
+};
+
+const TONE_ICON_BG = {
+  accent: "bg-accent-soft text-accent",
+  success: "bg-success-soft text-success",
+  info: "bg-info-soft text-info",
+  warning: "bg-warning-soft text-warning",
+  danger: "bg-danger-soft text-danger",
 };
 
 const SecondaryTile = ({ icon, tone = "accent", label, value }) => {
-  const tc = TONE_CLASSES[tone] || TONE_CLASSES.accent;
+  const iconClass = TONE_ICON_BG[tone] || TONE_ICON_BG.accent;
   return (
     <div className="rounded-lg border border-border bg-surface p-3 sm:p-4 shadow-card">
       <div className="flex items-center gap-2">
         <span
-          className={`inline-flex h-6 w-6 items-center justify-center rounded-md ${tc.bg} ${tc.text}`}
+          className={`inline-flex h-6 w-6 items-center justify-center rounded-md ${iconClass}`}
         >
           {icon}
         </span>
@@ -398,23 +410,25 @@ const SecondaryTile = ({ icon, tone = "accent", label, value }) => {
   );
 };
 
-const QuotaCell = ({ tone = "accent", label, value, sub, valueSize = "lg" }) => {
-  const tc = TONE_CLASSES[tone] || TONE_CLASSES.accent;
+const QuotaCell = ({ tone = "accent", label, value, sub, valueSize = "lg", tooltip }) => {
+  const dot = TONE_DOTS[tone] || TONE_DOTS.accent;
   return (
-    <div className={`rounded-md ${tc.bg} px-3 py-2.5`}>
-      <p
-        className={`text-[10px] uppercase font-semibold tracking-wider ${tc.text}`}
-      >
+    <div
+      className="rounded-lg border border-border bg-elevated px-3 py-2.5"
+      title={tooltip}
+    >
+      <p className="flex items-center gap-1 text-[10px] uppercase font-semibold tracking-wider text-muted">
+        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden />
         {label}
       </p>
       <p
         className={`${
           valueSize === "sm" ? "text-sm" : "text-lg"
-        } font-bold text-fg mt-1 tabular-nums`}
+        } font-semibold text-fg mt-1 tabular-nums`}
       >
         {value}
       </p>
-      {sub && <p className={`text-[10px] mt-0.5 ${tc.text} opacity-90`}>{sub}</p>}
+      {sub && <p className="text-[10px] mt-0.5 text-muted">{sub}</p>}
     </div>
   );
 };
