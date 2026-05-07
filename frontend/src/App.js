@@ -581,14 +581,18 @@ function App() {
   return (
     <div className="min-h-screen bg-bg text-fg flex flex-col">
       <Joyride
+        // Force-remount whenever the tour transitions on/off so the overlay
+        // and spotlight DOM are torn down cleanly. Joyride 3.x sometimes
+        // leaves the dimmer mounted after Skip/Close, locking the UI; this
+        // belt-and-suspenders unmount guarantees a clean slate.
+        key={runTour ? "tour-on" : "tour-off"}
         steps={(() => {
           let raw;
           if (tourMode === "vlm") raw = isMobileTour ? TOUR_STEPS_VLM_MOBILE : TOUR_STEPS_VLM;
           else if (tourMode === "ocr") raw = isMobileTour ? TOUR_STEPS_OCR_MOBILE : TOUR_STEPS_OCR;
           else raw = isMobileTour ? TOUR_STEPS_MOBILE : TOUR_STEPS;
-          // Joyride 3.x: force beacon-less so we never get the lone black
-          // pulsing dot on entry; continuous + disableBeacon on every step
-          // gives the tooltip-only flow we want.
+          // Force beacon-less on every step — we want the tooltip to appear
+          // directly without an entry beacon.
           return raw.map((step) => ({ ...step, disableBeacon: true }));
         })()}
         run={runTour}
@@ -597,13 +601,7 @@ function App() {
         showSkipButton
         showProgress
         scrollToFirstStep
-        // Don't dim the page. The dimming overlay sometimes refuses to
-        // unmount in Joyride 3.x, leaving the UI un-clickable until refresh
-        // — we never need it for this product anyway, the tooltip alone is
-        // enough to walk the user through.
-        disableOverlay
-        disableScrolling
-        spotlightClicks
+        disableOverlayClose
         disableScrollParentFix
         callback={handleTourCallback}
         styles={isMobileTour ? TOUR_STYLES_MOBILE : TOUR_STYLES}
