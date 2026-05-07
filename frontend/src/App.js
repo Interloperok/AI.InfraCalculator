@@ -12,7 +12,7 @@ import Calculator from "./features/calculator/Calculator";
 import { GITHUB_URL } from "./config";
 import LanguageToggle from "./components/LanguageToggle";
 import ThemeToggle from "./components/ThemeToggle";
-import { useI18n, useT } from "./contexts/I18nContext";
+import { useT } from "./contexts/I18nContext";
 import "./App.css";
 
 const APP_VERSION = "1.3.0";
@@ -385,7 +385,6 @@ const TOUR_STYLES_MOBILE = {
 
 function App() {
   const t = useT();
-  const { locale } = useI18n();
   const [runTour, setRunTour] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
   // Tour mode is set when the tour starts, based on the active calculator mode
@@ -444,26 +443,20 @@ function App() {
         }
       };
 
-      // Reset only on terminal events. `action === "reset"` is also fired
-      // by Joyride right after `run: true` flips on (it clears state from
-      // the previous run) — closing on that would tear the tour down
-      // immediately and the user would see nothing.
-      const closeTour = () => {
+      if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
         setRunTour(false);
-        setTourStepIndex(0);
         if (!mobile) setDocsOpen(false);
         cleanupTourAuto();
         restoreSwipe();
-      };
-
-      if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status) || type === "tour:end") {
-        closeTour();
         return;
       }
 
       if (type === "step:after") {
-        if (action === "close" || action === "skip") {
-          closeTour();
+        if (action === "close") {
+          setRunTour(false);
+          if (!mobile) setDocsOpen(false);
+          cleanupTourAuto();
+          restoreSwipe();
           return;
         }
 
@@ -577,13 +570,11 @@ function App() {
     <div className="min-h-screen bg-bg text-fg flex flex-col">
       <Joyride
         steps={(() => {
-          let raw;
-          if (tourMode === "vlm") raw = isMobileTour ? TOUR_STEPS_VLM_MOBILE : TOUR_STEPS_VLM;
-          else if (tourMode === "ocr") raw = isMobileTour ? TOUR_STEPS_OCR_MOBILE : TOUR_STEPS_OCR;
-          else raw = isMobileTour ? TOUR_STEPS_MOBILE : TOUR_STEPS;
-          // Force beacon-less on every step — we want the tooltip to appear
-          // directly without an entry beacon.
-          return raw.map((step) => ({ ...step, disableBeacon: true }));
+          if (tourMode === "vlm")
+            return isMobileTour ? TOUR_STEPS_VLM_MOBILE : TOUR_STEPS_VLM;
+          if (tourMode === "ocr")
+            return isMobileTour ? TOUR_STEPS_OCR_MOBILE : TOUR_STEPS_OCR;
+          return isMobileTour ? TOUR_STEPS_MOBILE : TOUR_STEPS;
         })()}
         run={runTour}
         stepIndex={tourStepIndex}
@@ -595,11 +586,13 @@ function App() {
         disableScrollParentFix
         callback={handleTourCallback}
         styles={isMobileTour ? TOUR_STYLES_MOBILE : TOUR_STYLES}
-        locale={
-          locale === "ru"
-            ? { back: "Назад", close: "Закрыть", last: "Готово", next: "Далее", skip: "Пропустить" }
-            : { back: "Back", close: "Close", last: "Finish", next: "Next", skip: "Skip tour" }
-        }
+        locale={{
+          back: "Back",
+          close: "Close",
+          last: "Finish",
+          next: "Next",
+          skip: "Skip tour",
+        }}
       />
 
       {/* Sticky top bar — modern compact layout, brand + mode toggles + theme/lang */}
