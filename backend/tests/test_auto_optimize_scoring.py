@@ -105,12 +105,8 @@ def test_balanced_uses_population_normalisation() -> None:
         min_cost=10000.0,
         max_cost=50000.0,
     )
-    best = score_config(
-        OptimizationMode.balanced, 10, 80, 5.0, 10000.0, 0.5, ctx
-    )
-    worst = score_config(
-        OptimizationMode.balanced, 20, 160, 1.0, 50000.0, 5.0, ctx
-    )
+    best = score_config(OptimizationMode.balanced, 10, 80, 5.0, 10000.0, 0.5, ctx)
+    worst = score_config(OptimizationMode.balanced, 20, 160, 1.0, 50000.0, 5.0, ctx)
     assert best < worst
 
 

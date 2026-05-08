@@ -277,7 +277,6 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         catalog_bw = lookup_gpu_bandwidth_gbs(inp.gpu_id)
         bw_gpu = catalog_bw if catalog_bw > 0 else None
 
-
     # ── §7.1 (P2 + P8): SL_pf for prefill / TTFT / Cmodel ──
     # Input-only sequence length (excludes answer / last-turn reasoning that
     # haven't been generated yet). Used in TTFT and Cmodel formulas.
@@ -298,14 +297,23 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     # ── §6.1 (P7): Prefill compute branch — BS-independent, computed once ──
     if engine_mode == "static":
         th_pf_compute_branch = calc_th_prefill_analyt(
-            Fcount_model_flops, inp.eta_prefill, Kbatch, FPS,
-            inp.layers_L, inp.hidden_size_H, SL,
+            Fcount_model_flops,
+            inp.eta_prefill,
+            Kbatch,
+            FPS,
+            inp.layers_L,
+            inp.hidden_size_H,
+            SL,
         )
     else:
         # 'continuous' — K_batch=1, SL_pf_eff (post-prefix-cache)
         th_pf_compute_branch = calc_th_prefill_cb_compute(
-            Fcount_model_flops, inp.eta_prefill, FPS,
-            inp.layers_L, inp.hidden_size_H, SL_pf_eff,
+            Fcount_model_flops,
+            inp.eta_prefill,
+            FPS,
+            inp.layers_L,
+            inp.hidden_size_H,
+            SL_pf_eff,
         )
     # P11: η_TP scaling on prefill compute branch
     th_pf_compute_branch = th_pf_compute_branch * eta_tp_used
@@ -326,9 +334,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     MAX_ITER = 10
 
     bs_real_init = (
-        calc_bs_real(Ssim, NcountTP, servers_mem, bs_max=S_TP_z)
-        if servers_mem > 0
-        else 1
+        calc_bs_real(Ssim, NcountTP, servers_mem, bs_max=S_TP_z) if servers_mem > 0 else 1
     )
     if is_moe_detailed:
         p_eff_pf_init = calc_p_effective(
@@ -410,9 +416,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         # P8: amplified rps because each user-session triggers K_calls
         # LLM invocations. effective_R = R · K_calls.
         effective_R = inp.rps_per_session_R * k_calls
-        sc = calc_servers_by_compute(
-            Ssim, effective_R, inp.sla_reserve_KSLA, th_srv
-        )
+        sc = calc_servers_by_compute(Ssim, effective_R, inp.sla_reserve_KSLA, th_srv)
         return {
             "bs_real": bs_r,
             "p_effective": p_eff_local,
@@ -548,9 +552,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     if inp.th_prefill_empir:
         th_pf_pool = float(inp.th_prefill_empir)
     else:
-        pf_scale = (
-            eta_pf_pool_used / inp.eta_prefill if inp.eta_prefill > 0 else 1.0
-        )
+        pf_scale = eta_pf_pool_used / inp.eta_prefill if inp.eta_prefill > 0 else 1.0
         th_pf_compute_scaled = th_pf_compute * pf_scale if th_pf_compute > 0 else 0.0
         if engine_mode == "continuous" and th_pf_mem > 0 and th_pf_compute_scaled > 0:
             th_pf_pool = min(th_pf_compute_scaled, th_pf_mem)
@@ -724,9 +726,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         e2e_latency_analyt=round(e2e_latency_analyt, 4)
         if e2e_latency_analyt != float("inf")
         else None,
-        e2e_latency_load=round(e2e_latency_load, 4)
-        if e2e_latency_load != float("inf")
-        else None,
+        e2e_latency_load=round(e2e_latency_load, 4) if e2e_latency_load != float("inf") else None,
         e2e_latency_for_sla=round(e2e_latency_for_sla, 4)
         if e2e_latency_for_sla != float("inf")
         else None,

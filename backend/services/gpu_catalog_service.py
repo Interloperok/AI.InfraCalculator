@@ -66,7 +66,7 @@ def lookup_gpu_bandwidth_gbs(gpu_id: Optional[str]) -> float:
         return 0.0
     try:
         gpu_data = load_gpu_catalog()
-    except (FileNotFoundError, json.JSONDecodeError):
+    except FileNotFoundError, json.JSONDecodeError:
         return 0.0
 
     for gpu in gpu_data:
@@ -75,7 +75,7 @@ def lookup_gpu_bandwidth_gbs(gpu_id: Optional[str]) -> float:
             if bw is not None:
                 try:
                     return float(bw)
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     return 0.0
             return 0.0
     return 0.0

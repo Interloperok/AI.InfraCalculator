@@ -64,9 +64,7 @@ def test_gpu_static_routes_not_shadowed_by_parametric(client) -> None:
     assert "vendors" in body
 
     export_response = client.get("/v1/gpus/export")
-    assert export_response.status_code == 200, (
-        "/v1/gpus/export was shadowed by /v1/gpus/{gpu_id}"
-    )
+    assert export_response.status_code == 200, "/v1/gpus/export was shadowed by /v1/gpus/{gpu_id}"
 
     detail_response = client.get("/v1/gpus/__definitely_not_a_gpu__")
     assert detail_response.status_code == 404

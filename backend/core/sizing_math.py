@@ -481,9 +481,7 @@ def calc_th_decode_mem(
         return 0.0
     numerator = bw_gpu_gbs * 1e9 * eta_mem
     denominator = (
-        params_billions * 1e9 * b_quant
-        + bs_real * mkv_gb * (1024**3)
-        + o_fixed_gb * (1024**3)
+        params_billions * 1e9 * b_quant + bs_real * mkv_gb * (1024**3) + o_fixed_gb * (1024**3)
     )
     if denominator <= 0:
         return 0.0

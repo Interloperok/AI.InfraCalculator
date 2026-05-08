@@ -107,7 +107,9 @@ class SizingInput(BaseModel):
     )
 
     # ── Section 3.1: Model ──
-    params_billions: confloat(gt=0) = Field(..., description="Параметры модели в миллиардах (P_total)")
+    params_billions: confloat(gt=0) = Field(
+        ..., description="Параметры модели в миллиардах (P_total)"
+    )
     params_active: Optional[confloat(gt=0)] = Field(
         default=None,
         description="Активные параметры (B) — для MoE моделей. "
@@ -122,8 +124,7 @@ class SizingInput(BaseModel):
     )
     params_moe: Optional[confloat(ge=0)] = Field(
         default=None,
-        description="Сумма всех экспертов MoE модели, B. = P_total − P_dense. "
-        "0 для dense.",
+        description="Сумма всех экспертов MoE модели, B. = P_total − P_dense. 0 для dense.",
     )
     n_experts: Optional[conint(ge=1)] = Field(
         default=None,
@@ -564,7 +565,9 @@ class SizingOutput(BaseModel):
         "'compute' / 'memory' / 'compute_only' / 'memory_only' / 'empirical' (использован "
         "inp.th_prefill_empir) / 'none'.",
     )
-    th_decode: float = Field(..., description="Throughput decode (tokens/sec) — итоговый, после min(compute, mem)")
+    th_decode: float = Field(
+        ..., description="Throughput decode (tokens/sec) — итоговый, после min(compute, mem)"
+    )
     th_dec_compute: Optional[float] = Field(
         default=None,
         description="Compute-bound предел throughput decode (tokens/sec, §6.1).",
@@ -1014,9 +1017,7 @@ class VLMDocClass(BaseModel):
     n_prompt_txt: conint(ge=0) = Field(default=100, description="Текстовый промпт, tokens")
     n_fields: conint(ge=1) = Field(..., description="Полей JSON на класс")
     tok_field: conint(ge=1) = Field(default=50, description="Tokens per field")
-    eta_cache_vlm: confloat(ge=0.0, le=1.0) = Field(
-        default=0.0, description="η_cache^c для класса"
-    )
+    eta_cache_vlm: confloat(ge=0.0, le=1.0) = Field(default=0.0, description="η_cache^c для класса")
     k_spec: confloat(ge=1.0) = Field(
         default=1.0, description="k_spec^c — speculative decoding для класса"
     )
@@ -1209,9 +1210,7 @@ class VLMSizingOutput(BaseModel):
 
     # ── §4: GPU & TP ──
     gpus_per_instance: int = Field(..., description="GPU на 1 инстанс модели")
-    s_tp_z: int = Field(
-        ..., description="Макс. одновременных сессий на инстанс при заданном TP"
-    )
+    s_tp_z: int = Field(..., description="Макс. одновременных сессий на инстанс при заданном TP")
     instance_total_mem_gb: float = Field(..., description="GPU-память на инстанс (GiB)")
 
     # ── §6.1: Throughput ──
@@ -1220,9 +1219,7 @@ class VLMSizingOutput(BaseModel):
     th_dec_vlm: float = Field(..., description="Throughput decode VLM при BS=BS_real* (tokens/s)")
 
     # ── И.4.1: Per-page latency & BS_real* ──
-    t_page_vlm: float = Field(
-        ..., description="t_page^VLM при найденном BS_real* (сек)"
-    )
+    t_page_vlm: float = Field(..., description="t_page^VLM при найденном BS_real* (сек)")
     bs_real_star: int = Field(
         ...,
         description="Максимальный BS_real, удовлетворяющий SLA_page. "
@@ -1232,9 +1229,7 @@ class VLMSizingOutput(BaseModel):
     sla_page_target: float = Field(..., description="SLA_page (echo)")
 
     # ── И.4.1: Replicas & GPUs ──
-    n_repl_vlm: int = Field(
-        ..., description="Реплики VLM-инстансов: ⌈C_peak / BS_real*⌉"
-    )
+    n_repl_vlm: int = Field(..., description="Реплики VLM-инстансов: ⌈C_peak / BS_real*⌉")
     n_gpu_vlm_online: int = Field(
         ..., description="Всего GPU в online-пуле: N_repl_VLM · Z_TP · gpus_per_instance"
     )
@@ -1256,9 +1251,7 @@ class VLMSizingOutput(BaseModel):
         description="GPU в batch-пуле: ⌈D · t_page_at_bs_max / (W · η_batch)⌉. "
         "None если D / W не заданы.",
     )
-    n_servers_vlm_batch: Optional[int] = Field(
-        default=None, description="Серверы в batch-пуле"
-    )
+    n_servers_vlm_batch: Optional[int] = Field(default=None, description="Серверы в batch-пуле")
     n_gpu_vlm_total: Optional[int] = Field(
         default=None,
         description="Combined deployment: max(N_GPU_online, N_GPU_batch) per И.5. "
@@ -1272,9 +1265,7 @@ class VLMSizingOutput(BaseModel):
         description="Достаточно ли окна W для batch-нагрузки на online-парке "
         "(И.1: W ≥ D · t_page / (N_online · η_batch)). None если D/W не заданы.",
     )
-    eta_batch_used: Optional[float] = Field(
-        default=None, description="η_batch (echo)"
-    )
+    eta_batch_used: Optional[float] = Field(default=None, description="η_batch (echo)")
     D_pages_used: Optional[float] = Field(default=None, description="D (echo)")
     W_seconds_used: Optional[float] = Field(default=None, description="W (echo)")
 
@@ -1326,12 +1317,8 @@ class VLMSizingOutput(BaseModel):
         ...,
         description="Peak gateway RPM (pages/min) = λ_online × K_SLA_multi × 60.",
     )
-    peak_tpm_input: float = Field(
-        ..., description="Peak input-side TPM = peak_rpm × sl_pf_vlm."
-    )
-    peak_tpm_output: float = Field(
-        ..., description="Peak output-side TPM = peak_rpm × sl_dec_vlm."
-    )
+    peak_tpm_input: float = Field(..., description="Peak input-side TPM = peak_rpm × sl_pf_vlm.")
+    peak_tpm_output: float = Field(..., description="Peak output-side TPM = peak_rpm × sl_dec_vlm.")
     peak_tpm: float = Field(..., description="peak_tpm_input + peak_tpm_output.")
     sustained_rpm: float = Field(
         ..., description="Sustained RPM = peak_rpm / K_SLA_multi (no headroom)."
@@ -1372,9 +1359,7 @@ class OCRDocClass(BaseModel):
     eta_cache: confloat(ge=0.0, le=1.0) = Field(
         default=0.0, description="η_cache^c — prefix-cache для класса"
     )
-    k_spec: confloat(ge=1.0) = Field(
-        default=1.0, description="k_spec^c — speculative decoding"
-    )
+    k_spec: confloat(ge=1.0) = Field(default=1.0, description="k_spec^c — speculative decoding")
 
 
 class OCRSizingInput(BaseModel):
@@ -1393,9 +1378,7 @@ class OCRSizingInput(BaseModel):
         ..., description="Среднее число страниц в секунду (λ_online), pages/s"
     )
     c_peak: conint(gt=0) = Field(..., description="Пиковое число одновременных страниц")
-    sla_page: confloat(gt=0) = Field(
-        ..., description="p95 SLA на одну страницу (SLA_page), сек"
-    )
+    sla_page: confloat(gt=0) = Field(..., description="p95 SLA на одну страницу (SLA_page), сек")
 
     # ── И.3.2-И.3.3: Pipeline mode ──
     pipeline: OCRPipeline = Field(
@@ -1578,12 +1561,8 @@ class OCRSizingOutput(BaseModel):
 
     # ── LLM stage tokens ──
     l_text: float = Field(..., description="L_text = chars_page / c_token (tokens)")
-    sl_pf_llm: float = Field(
-        ..., description="SL_pf^LLM = L_text + N_prompt^sys"
-    )
-    sl_pf_llm_eff: float = Field(
-        ..., description="SL_pf^LLM,eff = SL_pf · (1 − η_cache)"
-    )
+    sl_pf_llm: float = Field(..., description="SL_pf^LLM = L_text + N_prompt^sys")
+    sl_pf_llm_eff: float = Field(..., description="SL_pf^LLM,eff = SL_pf · (1 − η_cache)")
     sl_dec_llm: int = Field(..., description="SL_dec^LLM = N_fields · tok_field")
 
     # ── SLA budget split ──
@@ -1603,9 +1582,7 @@ class OCRSizingOutput(BaseModel):
     th_dec_llm: float = Field(..., description="Th_dec^LLM при BS_real* (tok/s)")
 
     # ── Per-page latency ──
-    t_page_llm: float = Field(
-        ..., description="Per-page LLM-stage time при BS_real* (сек)"
-    )
+    t_page_llm: float = Field(..., description="Per-page LLM-stage time при BS_real* (сек)")
     bs_real_star: int = Field(
         ..., description="Макс. BS, удовлетворяющий t_page_llm ≤ t_LLM^target"
     )
@@ -1619,9 +1596,7 @@ class OCRSizingOutput(BaseModel):
     n_gpu_llm_online: int = Field(..., description="GPU в LLM-пуле")
     n_servers_llm_online: int = Field(..., description="Серверы для LLM-пула")
 
-    n_gpu_total_online: int = Field(
-        ..., description="Всего GPU: N_OCR + N_LLM"
-    )
+    n_gpu_total_online: int = Field(..., description="Всего GPU: N_OCR + N_LLM")
     n_servers_total_online: int = Field(
         ..., description="Всего серверов: ⌈N_GPU_total / gpus_per_server⌉"
     )
@@ -1702,8 +1677,7 @@ class OCRSizingOutput(BaseModel):
     )
     n_gpu_llm_multiclass: Optional[int] = Field(
         default=None,
-        description="GPU в LLM-пуле для multi-class: "
-        "⌈ Demand_pool · K_SLA / Th_pool^eff ⌉.",
+        description="GPU в LLM-пуле для multi-class: ⌈ Demand_pool · K_SLA / Th_pool^eff ⌉.",
     )
     n_gpu_total_multiclass: Optional[int] = Field(
         default=None, description="N_OCR + N_LLM для multi-class"
@@ -1732,20 +1706,14 @@ class OCRSizingOutput(BaseModel):
     llm_peak_rpm: float = Field(
         ..., description="LLM-pool peak RPM (calls/min) = λ_online × K_SLA × 60."
     )
-    llm_peak_tpm_input: float = Field(
-        ..., description="LLM input TPM = llm_peak_rpm × sl_pf_llm."
-    )
+    llm_peak_tpm_input: float = Field(..., description="LLM input TPM = llm_peak_rpm × sl_pf_llm.")
     llm_peak_tpm_output: float = Field(
         ..., description="LLM output TPM = llm_peak_rpm × sl_dec_llm."
     )
-    llm_peak_tpm: float = Field(
-        ..., description="LLM total peak TPM (input + output)."
-    )
+    llm_peak_tpm: float = Field(..., description="LLM total peak TPM (input + output).")
     llm_sustained_rpm: float = Field(..., description="LLM sustained RPM = peak / K_SLA.")
     llm_sustained_tpm: float = Field(..., description="LLM sustained TPM = peak / K_SLA.")
-    max_parallel_requests: int = Field(
-        ..., description="Concurrent in-flight pages = c_peak."
-    )
+    max_parallel_requests: int = Field(..., description="Concurrent in-flight pages = c_peak.")
 
     # ── Context ──
     gpu_id: Optional[str] = Field(None, description="ID GPU")

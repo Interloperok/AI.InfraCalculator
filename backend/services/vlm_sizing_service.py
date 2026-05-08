@@ -165,9 +165,7 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
         if th_pf_sel <= 0 or th_dec_sel <= 0:
             break  # cannot serve at this BS
 
-        t_page = calc_t_page_vlm(
-            sl_pf_vlm_eff, th_pf_sel, sl_dec_vlm, th_dec_sel, inp.t_ovh_vlm
-        )
+        t_page = calc_t_page_vlm(sl_pf_vlm_eff, th_pf_sel, sl_dec_vlm, th_dec_sel, inp.t_ovh_vlm)
 
         if t_page <= inp.sla_page:
             bs_real_star = bs
@@ -223,9 +221,7 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
     D_used: float | None = None
     W_used: float | None = None
 
-    has_batch_inputs = (
-        inp.D_pages is not None and inp.W_seconds is not None and inp.W_seconds > 0
-    )
+    has_batch_inputs = inp.D_pages is not None and inp.W_seconds is not None and inp.W_seconds > 0
 
     if has_batch_inputs:
         eta_batch_used = float(inp.eta_batch)
@@ -266,12 +262,8 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
             t_page_at_bs_max = calc_t_page_vlm(
                 sl_pf_vlm_eff, th_pf_max_sel, sl_dec_vlm, th_dec_max_sel, inp.t_ovh_vlm
             )
-            n_gpu_batch_raw = calc_n_gpu_batch(
-                D_used, t_page_at_bs_max, W_used, eta_batch_used
-            )
-            n_gpu_batch = (
-                None if n_gpu_batch_raw is math.inf else int(n_gpu_batch_raw)
-            )
+            n_gpu_batch_raw = calc_n_gpu_batch(D_used, t_page_at_bs_max, W_used, eta_batch_used)
+            n_gpu_batch = None if n_gpu_batch_raw is math.inf else int(n_gpu_batch_raw)
             window_ok = calc_window_sufficient(
                 W_used, D_used, t_page_at_bs_max, n_gpu_online, eta_batch_used
             )
@@ -362,9 +354,7 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
             )
             if n_multi_raw is not math.inf:
                 n_gpu_multiclass_int = int(n_multi_raw)
-                n_servers_multiclass_int = math.ceil(
-                    n_gpu_multiclass_int / inp.gpus_per_server
-                )
+                n_servers_multiclass_int = math.ceil(n_gpu_multiclass_int / inp.gpus_per_server)
 
     # Section 9: Gateway quotas. Each "request" is one page; tokens split
     # into vision+text input and structured-JSON output. K_SLA_multi (default
@@ -420,9 +410,7 @@ def run_vlm_sizing(inp: VLMSizingInput) -> VLMSizingOutput:
         ),
         representative_class_name=representative_class_name,
         th_pool_eff_tokens_per_sec_per_gpu=(
-            round(th_pool_eff_tps_per_gpu, 4)
-            if th_pool_eff_tps_per_gpu is not None
-            else None
+            round(th_pool_eff_tps_per_gpu, 4) if th_pool_eff_tps_per_gpu is not None else None
         ),
         n_gpu_multiclass=n_gpu_multiclass_int,
         n_servers_multiclass=n_servers_multiclass_int,

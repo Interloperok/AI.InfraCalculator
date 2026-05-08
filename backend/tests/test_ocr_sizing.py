@@ -194,9 +194,7 @@ class TestOCRBSRealAndReplicas:
     def test_n_repl_ceiling_of_c_peak_over_bs(self):
         result = run_ocr_sizing(OCRSizingInput(**BASELINE_OCR_GPU))
         if result.sla_pass:
-            assert result.n_repl_llm == math.ceil(
-                BASELINE_OCR_GPU["c_peak"] / result.bs_real_star
-            )
+            assert result.n_repl_llm == math.ceil(BASELINE_OCR_GPU["c_peak"] / result.bs_real_star)
 
     def test_high_load_grows_total_gpu(self):
         small = run_ocr_sizing(OCRSizingInput(**BASELINE_OCR_GPU))
@@ -241,39 +239,49 @@ class TestOCRBatchMode:
         assert result.window_sufficient is None
 
     def test_batch_populates_both_pools(self):
-        data = {**BASELINE_OCR_GPU, "mode": "batch", "D_pages": 10000.0,
-                "W_seconds": 28800.0, "eta_batch": 0.9}
+        data = {
+            **BASELINE_OCR_GPU,
+            "mode": "batch",
+            "D_pages": 10000.0,
+            "W_seconds": 28800.0,
+            "eta_batch": 0.9,
+        }
         result = run_ocr_sizing(OCRSizingInput(**data))
         assert result.n_gpu_ocr_batch is not None and result.n_gpu_ocr_batch >= 1
         assert result.n_gpu_llm_batch is not None and result.n_gpu_llm_batch >= 1
         assert result.n_gpu_total_batch == result.n_gpu_ocr_batch + result.n_gpu_llm_batch
 
     def test_ocr_cpu_pipeline_zero_ocr_batch(self):
-        data = {**BASELINE_OCR_CPU, "mode": "batch", "D_pages": 10000.0,
-                "W_seconds": 28800.0}
+        data = {**BASELINE_OCR_CPU, "mode": "batch", "D_pages": 10000.0, "W_seconds": 28800.0}
         result = run_ocr_sizing(OCRSizingInput(**data))
         assert result.n_gpu_ocr_batch == 0
         assert result.n_gpu_llm_batch is not None
         assert result.n_gpu_total_batch == result.n_gpu_llm_batch
 
     def test_combined_takes_per_pool_max(self):
-        data = {**BASELINE_OCR_GPU, "mode": "combined", "D_pages": 100000.0,
-                "W_seconds": 28800.0, "eta_batch": 0.9}
+        data = {
+            **BASELINE_OCR_GPU,
+            "mode": "combined",
+            "D_pages": 100000.0,
+            "W_seconds": 28800.0,
+            "eta_batch": 0.9,
+        }
         result = run_ocr_sizing(OCRSizingInput(**data))
         # Combined per-pool max(online, batch)
-        assert result.n_gpu_ocr_combined == max(
-            result.n_gpu_ocr_online, result.n_gpu_ocr_batch
-        )
-        assert result.n_gpu_llm_combined == max(
-            result.n_gpu_llm_online, result.n_gpu_llm_batch
-        )
+        assert result.n_gpu_ocr_combined == max(result.n_gpu_ocr_online, result.n_gpu_ocr_batch)
+        assert result.n_gpu_llm_combined == max(result.n_gpu_llm_online, result.n_gpu_llm_batch)
         assert result.n_gpu_total_combined == (
             result.n_gpu_ocr_combined + result.n_gpu_llm_combined
         )
 
     def test_window_insufficient_with_heavy_demand(self):
-        data = {**BASELINE_OCR_GPU, "mode": "combined", "D_pages": 1_000_000.0,
-                "W_seconds": 60.0, "eta_batch": 0.9}
+        data = {
+            **BASELINE_OCR_GPU,
+            "mode": "combined",
+            "D_pages": 1_000_000.0,
+            "W_seconds": 60.0,
+            "eta_batch": 0.9,
+        }
         result = run_ocr_sizing(OCRSizingInput(**data))
         assert result.window_sufficient is False
 
@@ -283,8 +291,13 @@ class TestOCRBatchMode:
             run_ocr_sizing(OCRSizingInput(**data))
 
     def test_d_w_eta_echoes(self):
-        data = {**BASELINE_OCR_GPU, "mode": "batch", "D_pages": 500.0,
-                "W_seconds": 3600.0, "eta_batch": 0.88}
+        data = {
+            **BASELINE_OCR_GPU,
+            "mode": "batch",
+            "D_pages": 500.0,
+            "W_seconds": 3600.0,
+            "eta_batch": 0.88,
+        }
         result = run_ocr_sizing(OCRSizingInput(**data))
         assert result.D_pages_used == 500.0
         assert result.W_seconds_used == 3600.0
@@ -302,28 +315,48 @@ class TestOCRMultiClass:
 
     def test_multi_class_populates_breakdown(self):
         from models import OCRDocClass
-        data = {**BASELINE_OCR_GPU, "classes": [
-            OCRDocClass(name="form", lambda_online=0.6, chars_page=3000, n_fields=20).model_dump(),
-            OCRDocClass(name="receipt", lambda_online=0.3, chars_page=600, n_fields=8).model_dump(),
-        ]}
+
+        data = {
+            **BASELINE_OCR_GPU,
+            "classes": [
+                OCRDocClass(
+                    name="form", lambda_online=0.6, chars_page=3000, n_fields=20
+                ).model_dump(),
+                OCRDocClass(
+                    name="receipt", lambda_online=0.3, chars_page=600, n_fields=8
+                ).model_dump(),
+            ],
+        }
         result = run_ocr_sizing(OCRSizingInput(**data))
         assert result.multi_class_used is True
         assert len(result.factor_per_class) == 2
 
     def test_representative_class_largest_sl_pf_llm(self):
         from models import OCRDocClass
-        data = {**BASELINE_OCR_GPU, "classes": [
-            OCRDocClass(name="form", lambda_online=0.5, chars_page=3000, n_fields=20).model_dump(),
-            OCRDocClass(name="tech_doc", lambda_online=0.5, chars_page=12000, n_fields=50).model_dump(),
-        ]}
+
+        data = {
+            **BASELINE_OCR_GPU,
+            "classes": [
+                OCRDocClass(
+                    name="form", lambda_online=0.5, chars_page=3000, n_fields=20
+                ).model_dump(),
+                OCRDocClass(
+                    name="tech_doc", lambda_online=0.5, chars_page=12000, n_fields=50
+                ).model_dump(),
+            ],
+        }
         result = run_ocr_sizing(OCRSizingInput(**data))
         assert result.representative_class_name == "tech_doc"
 
     def test_total_multi_is_sum_ocr_and_llm(self):
         from models import OCRDocClass
-        data = {**BASELINE_OCR_GPU, "classes": [
-            OCRDocClass(name="A", lambda_online=1.0, chars_page=3000, n_fields=20).model_dump(),
-        ]}
+
+        data = {
+            **BASELINE_OCR_GPU,
+            "classes": [
+                OCRDocClass(name="A", lambda_online=1.0, chars_page=3000, n_fields=20).model_dump(),
+            ],
+        }
         result = run_ocr_sizing(OCRSizingInput(**data))
         assert result.n_gpu_total_multiclass == (
             result.n_gpu_ocr_multiclass + result.n_gpu_llm_multiclass
@@ -331,18 +364,26 @@ class TestOCRMultiClass:
 
     def test_ocr_cpu_pipeline_zero_ocr_multi(self):
         from models import OCRDocClass
-        data = {**BASELINE_OCR_CPU, "classes": [
-            OCRDocClass(name="A", lambda_online=1.0, chars_page=3000, n_fields=20).model_dump(),
-        ]}
+
+        data = {
+            **BASELINE_OCR_CPU,
+            "classes": [
+                OCRDocClass(name="A", lambda_online=1.0, chars_page=3000, n_fields=20).model_dump(),
+            ],
+        }
         result = run_ocr_sizing(OCRSizingInput(**data))
         assert result.n_gpu_ocr_multiclass == 0
         assert result.n_gpu_total_multiclass == result.n_gpu_llm_multiclass
 
     def test_k_sla_multi_default_and_echo(self):
         from models import OCRDocClass
-        data = {**BASELINE_OCR_GPU, "classes": [
-            OCRDocClass(name="A", lambda_online=1.0, chars_page=3000, n_fields=20).model_dump(),
-        ]}
+
+        data = {
+            **BASELINE_OCR_GPU,
+            "classes": [
+                OCRDocClass(name="A", lambda_online=1.0, chars_page=3000, n_fields=20).model_dump(),
+            ],
+        }
         result = run_ocr_sizing(OCRSizingInput(**data))
         assert result.K_SLA_multi_used == 1.25
 

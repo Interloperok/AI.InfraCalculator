@@ -69,9 +69,7 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
         r_ocr_used = float(inp.r_ocr_gpu)
     else:  # ocr_cpu
         if inp.r_ocr_core is None or inp.n_ocr_cores is None:
-            raise ValidationAppError(
-                "Для pipeline='ocr_cpu' обязательны r_ocr_core и n_ocr_cores."
-            )
+            raise ValidationAppError("Для pipeline='ocr_cpu' обязательны r_ocr_core и n_ocr_cores.")
         t_ocr = calc_t_ocr_cpu(inp.r_ocr_core, inp.n_ocr_cores)
         n_gpu_ocr_count = 0
         n_ocr_cores_used = int(inp.n_ocr_cores)
@@ -197,11 +195,7 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
             if th_pf_sel <= 0 or th_dec_sel <= 0:
                 break
 
-            t_page = (
-                sl_pf_llm_eff / th_pf_sel
-                + sl_dec_llm / th_dec_sel
-                + inp.t_overhead_llm
-            )
+            t_page = sl_pf_llm_eff / th_pf_sel + sl_dec_llm / th_dec_sel + inp.t_overhead_llm
 
             if t_page <= t_llm_target:
                 bs_real_star = bs
@@ -213,8 +207,7 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
 
         if bs_real_star == 0:
             sla_failure_reason = (
-                f"Даже при BS=1 LLM-стадия не укладывается в t_LLM^target "
-                f"({t_llm_target:.3f}s)."
+                f"Даже при BS=1 LLM-стадия не укладывается в t_LLM^target ({t_llm_target:.3f}s)."
             )
 
     sla_pass = bs_real_star >= 1
@@ -222,13 +215,15 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
     if not sla_pass:
         # Surface diagnostic at BS=1 even on failure
         bs_real_star_for_repl = 1
-        if t_page_at_star == float("inf") and th_pf_compute_branch > 0 and th_dec_compute_instance > 0:
+        if (
+            t_page_at_star == float("inf")
+            and th_pf_compute_branch > 0
+            and th_dec_compute_instance > 0
+        ):
             th_pf_at_star = th_pf_compute_branch
             th_dec_at_star = th_dec_compute_instance
             t_page_at_star = (
-                sl_pf_llm_eff / th_pf_at_star
-                + sl_dec_llm / th_dec_at_star
-                + inp.t_overhead_llm
+                sl_pf_llm_eff / th_pf_at_star + sl_dec_llm / th_dec_at_star + inp.t_overhead_llm
             )
         n_repl_llm = inp.c_peak
     else:
@@ -261,9 +256,7 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
     D_used: float | None = None
     W_used: float | None = None
 
-    has_batch_inputs = (
-        inp.D_pages is not None and inp.W_seconds is not None and inp.W_seconds > 0
-    )
+    has_batch_inputs = inp.D_pages is not None and inp.W_seconds is not None and inp.W_seconds > 0
 
     if has_batch_inputs:
         eta_batch_used = float(inp.eta_batch)
@@ -274,9 +267,7 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
         # the OCR pool is out of GPU scope (N_GPU = 0).
         if pipeline == "ocr_gpu":
             n_ocr_raw = calc_n_gpu_batch(D_used, t_ocr, W_used, eta_batch_used)
-            n_gpu_ocr_batch = (
-                None if n_ocr_raw is math.inf else int(n_ocr_raw)
-            )
+            n_gpu_ocr_batch = None if n_ocr_raw is math.inf else int(n_ocr_raw)
         else:
             n_gpu_ocr_batch = 0
 
@@ -312,16 +303,10 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
 
         if th_pf_max_sel > 0 and th_dec_max_sel > 0:
             t_page_llm_at_bs_max = (
-                sl_pf_llm_eff / th_pf_max_sel
-                + sl_dec_llm / th_dec_max_sel
-                + inp.t_overhead_llm
+                sl_pf_llm_eff / th_pf_max_sel + sl_dec_llm / th_dec_max_sel + inp.t_overhead_llm
             )
-            n_llm_raw = calc_n_gpu_batch(
-                D_used, t_page_llm_at_bs_max, W_used, eta_batch_used
-            )
-            n_gpu_llm_batch = (
-                None if n_llm_raw is math.inf else int(n_llm_raw)
-            )
+            n_llm_raw = calc_n_gpu_batch(D_used, t_page_llm_at_bs_max, W_used, eta_batch_used)
+            n_gpu_llm_batch = None if n_llm_raw is math.inf else int(n_llm_raw)
             # Window sufficiency on the LLM-stage online pool (the typically
             # dominant stage). True if W ≥ D · t_page / (N_LLM_online · η_batch).
             window_ok = calc_window_sufficient(
@@ -334,9 +319,7 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
             n_gpu_ocr_combined = max(n_gpu_ocr_count, n_gpu_ocr_batch)
             n_gpu_llm_combined = max(n_gpu_llm, n_gpu_llm_batch)
             n_gpu_total_combined = n_gpu_ocr_combined + n_gpu_llm_combined
-            n_servers_total_combined = math.ceil(
-                n_gpu_total_combined / inp.gpus_per_server
-            )
+            n_servers_total_combined = math.ceil(n_gpu_total_combined / inp.gpus_per_server)
 
     # ── И.4.2 ext (P9d): Multi-class workload aggregation ──
     multi_class_used: bool | None = None
@@ -393,14 +376,16 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
         # OCR-pool multi-class: aggregate λ across classes (t_OCR is shared
         # since it's per-page rate of the OCR engine on its content).
         if pipeline == "ocr_gpu":
-            n_ocr_multi_raw = calc_n_gpu_ocr_online(
-                int(math.ceil(total_lambda * inp.sla_page)),
-                t_ocr,
-                inp.eta_ocr,
-            ) if t_ocr > 0 else math.inf
-            n_gpu_ocr_multiclass = (
-                None if n_ocr_multi_raw is math.inf else int(n_ocr_multi_raw)
+            n_ocr_multi_raw = (
+                calc_n_gpu_ocr_online(
+                    int(math.ceil(total_lambda * inp.sla_page)),
+                    t_ocr,
+                    inp.eta_ocr,
+                )
+                if t_ocr > 0
+                else math.inf
             )
+            n_gpu_ocr_multiclass = None if n_ocr_multi_raw is math.inf else int(n_ocr_multi_raw)
         else:
             n_gpu_ocr_multiclass = 0
 
@@ -424,9 +409,7 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
 
         if n_gpu_ocr_multiclass is not None and n_gpu_llm_multiclass is not None:
             n_gpu_total_multiclass = n_gpu_ocr_multiclass + n_gpu_llm_multiclass
-            n_servers_total_multiclass = math.ceil(
-                n_gpu_total_multiclass / inp.gpus_per_server
-            )
+            n_servers_total_multiclass = math.ceil(n_gpu_total_multiclass / inp.gpus_per_server)
 
     # Section 9: Gateway quotas. Two-pool (OCR + LLM) so gateway can rate-limit
     # each upstream independently. OCR-pool sees pages-only; LLM-pool sees
@@ -498,9 +481,7 @@ def run_ocr_sizing(inp: OCRSizingInput) -> OCRSizingOutput:
         ),
         representative_class_name=representative_class_name,
         th_pool_eff_tokens_per_sec_per_gpu=(
-            round(th_pool_eff_tps_per_gpu, 4)
-            if th_pool_eff_tps_per_gpu is not None
-            else None
+            round(th_pool_eff_tps_per_gpu, 4) if th_pool_eff_tps_per_gpu is not None else None
         ),
         n_gpu_ocr_multiclass=n_gpu_ocr_multiclass,
         n_gpu_llm_multiclass=n_gpu_llm_multiclass,

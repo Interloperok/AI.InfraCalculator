@@ -22,9 +22,7 @@ from services.sizing_service import run_sizing
 
 
 def _baseline_payload() -> dict:
-    return json.loads(
-        (Path(__file__).parent / "payload.json").read_text(encoding="utf-8")
-    )
+    return json.loads((Path(__file__).parent / "payload.json").read_text(encoding="utf-8"))
 
 
 def test_gateway_quotas_present_and_positive() -> None:
@@ -42,9 +40,7 @@ def test_peak_rpm_matches_definition() -> None:
     payload = _baseline_payload()
     payload.update({"k_calls": 1, "sla_reserve_KSLA": 1.25})
     out = run_sizing(SizingInput(**payload))
-    expected_peak_rpm = (
-        out.Ssim_concurrent_sessions * payload["rps_per_session_R"] * 1.25 * 60
-    )
+    expected_peak_rpm = out.Ssim_concurrent_sessions * payload["rps_per_session_R"] * 1.25 * 60
     assert out.peak_rpm == pytest.approx(expected_peak_rpm, rel=1e-6)
 
 

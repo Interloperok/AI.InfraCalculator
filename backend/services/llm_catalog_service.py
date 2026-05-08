@@ -2,6 +2,7 @@
 the project root) and exposes filter/paginate helpers for the /v1/llms
 endpoint. Schema mirrors llm_catalog.schema.json.
 """
+
 from __future__ import annotations
 
 import json

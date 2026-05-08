@@ -354,9 +354,7 @@ def list_llms(
     is_moe: Optional[bool] = Query(None),
     is_mla: Optional[bool] = Query(None),
     verified: Optional[bool] = Query(None),
-    search: Optional[str] = Query(
-        None, description="Substring search across name, hf_id, family."
-    ),
+    search: Optional[str] = Query(None, description="Substring search across name, hf_id, family."),
 ) -> LLMListResponse:
     """List entries from the curated LLM catalog with optional filters."""
     return build_list_response(

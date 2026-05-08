@@ -524,7 +524,7 @@ class TestPDDisaggregationService:
         data = {
             **EXCEL_INPUT,
             "user_prompt_tokens_Prp": 4000,  # long input
-            "answer_tokens_A": 50,            # short output
+            "answer_tokens_A": 50,  # short output
             "reasoning_tokens_MRT": 0,
             "dialog_turns": 1,
         }

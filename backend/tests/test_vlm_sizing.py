@@ -116,9 +116,7 @@ class TestVLMSizingReplicas:
     def test_n_repl_ceiling_of_c_peak_over_bs(self):
         result = run_vlm_sizing(VLMSizingInput(**BASELINE_VLM))
         if result.sla_pass:
-            assert result.n_repl_vlm == math.ceil(
-                BASELINE_VLM["c_peak"] / result.bs_real_star
-            )
+            assert result.n_repl_vlm == math.ceil(BASELINE_VLM["c_peak"] / result.bs_real_star)
 
     def test_n_gpu_includes_tp_factor(self):
         # TP=2 doubles GPUs per replica
@@ -195,8 +193,13 @@ class TestVLMBatchMode:
         assert result.n_gpu_vlm_total == result.n_gpu_vlm_online
 
     def test_batch_mode_populates_what_if(self):
-        data = {**BASELINE_VLM, "mode": "batch", "D_pages": 1000.0,
-                "W_seconds": 28800.0, "eta_batch": 0.9}
+        data = {
+            **BASELINE_VLM,
+            "mode": "batch",
+            "D_pages": 1000.0,
+            "W_seconds": 28800.0,
+            "eta_batch": 0.9,
+        }
         result = run_vlm_sizing(VLMSizingInput(**data))
         assert result.t_page_vlm_at_bs_max is not None
         assert result.n_gpu_vlm_batch is not None
@@ -204,23 +207,30 @@ class TestVLMBatchMode:
         assert result.window_sufficient is not None
 
     def test_combined_mode_picks_max(self):
-        data = {**BASELINE_VLM, "mode": "combined", "D_pages": 100000.0,
-                "W_seconds": 3600.0, "eta_batch": 0.9}
+        data = {
+            **BASELINE_VLM,
+            "mode": "combined",
+            "D_pages": 100000.0,
+            "W_seconds": 3600.0,
+            "eta_batch": 0.9,
+        }
         result = run_vlm_sizing(VLMSizingInput(**data))
-        assert result.n_gpu_vlm_total == max(
-            result.n_gpu_vlm_online, result.n_gpu_vlm_batch
-        )
+        assert result.n_gpu_vlm_total == max(result.n_gpu_vlm_online, result.n_gpu_vlm_batch)
 
     def test_t_page_at_bs_max_exceeds_t_page_at_star(self):
         # Per-session throughput drops with BS, so t_page at BS_max > t_page at BS*
-        data = {**BASELINE_VLM, "mode": "combined", "D_pages": 1000.0,
-                "W_seconds": 28800.0}
+        data = {**BASELINE_VLM, "mode": "combined", "D_pages": 1000.0, "W_seconds": 28800.0}
         result = run_vlm_sizing(VLMSizingInput(**data))
         assert result.t_page_vlm_at_bs_max > result.t_page_vlm
 
     def test_window_insufficient_with_heavy_demand(self):
-        data = {**BASELINE_VLM, "mode": "combined", "D_pages": 1_000_000.0,
-                "W_seconds": 60.0, "eta_batch": 0.9}
+        data = {
+            **BASELINE_VLM,
+            "mode": "combined",
+            "D_pages": 1_000_000.0,
+            "W_seconds": 60.0,
+            "eta_batch": 0.9,
+        }
         result = run_vlm_sizing(VLMSizingInput(**data))
         assert result.window_sufficient is False
 
@@ -230,8 +240,13 @@ class TestVLMBatchMode:
             run_vlm_sizing(VLMSizingInput(**data))
 
     def test_d_w_eta_echoes(self):
-        data = {**BASELINE_VLM, "mode": "batch", "D_pages": 500.0,
-                "W_seconds": 3600.0, "eta_batch": 0.88}
+        data = {
+            **BASELINE_VLM,
+            "mode": "batch",
+            "D_pages": 500.0,
+            "W_seconds": 3600.0,
+            "eta_batch": 0.88,
+        }
         result = run_vlm_sizing(VLMSizingInput(**data))
         assert result.D_pages_used == 500.0
         assert result.W_seconds_used == 3600.0
@@ -250,10 +265,18 @@ class TestVLMMultiClass:
 
     def test_multi_class_populates_breakdown(self):
         from models import VLMDocClass
-        data = {**BASELINE_VLM, "classes": [
-            VLMDocClass(name="A4", lambda_online=0.6, w_px=1240, h_px=1754, n_fields=20).model_dump(),
-            VLMDocClass(name="receipt", lambda_online=0.3, w_px=800, h_px=1200, n_fields=8).model_dump(),
-        ]}
+
+        data = {
+            **BASELINE_VLM,
+            "classes": [
+                VLMDocClass(
+                    name="A4", lambda_online=0.6, w_px=1240, h_px=1754, n_fields=20
+                ).model_dump(),
+                VLMDocClass(
+                    name="receipt", lambda_online=0.3, w_px=800, h_px=1200, n_fields=8
+                ).model_dump(),
+            ],
+        }
         result = run_vlm_sizing(VLMSizingInput(**data))
         assert result.multi_class_used is True
         assert result.factor_per_class is not None
@@ -264,15 +287,24 @@ class TestVLMMultiClass:
     def test_representative_class_is_largest_sl_pf(self):
         # tech_doc has way more visual tokens → representative
         from models import VLMDocClass
-        data = {**BASELINE_VLM, "classes": [
-            VLMDocClass(name="A4", lambda_online=0.5, w_px=1240, h_px=1754, n_fields=20).model_dump(),
-            VLMDocClass(name="tech_doc", lambda_online=0.5, w_px=2480, h_px=3508, n_fields=50).model_dump(),
-        ]}
+
+        data = {
+            **BASELINE_VLM,
+            "classes": [
+                VLMDocClass(
+                    name="A4", lambda_online=0.5, w_px=1240, h_px=1754, n_fields=20
+                ).model_dump(),
+                VLMDocClass(
+                    name="tech_doc", lambda_online=0.5, w_px=2480, h_px=3508, n_fields=50
+                ).model_dump(),
+            ],
+        }
         result = run_vlm_sizing(VLMSizingInput(**data))
         assert result.representative_class_name == "tech_doc"
 
     def test_demand_pool_sum_of_lambda_times_factor(self):
         from models import VLMDocClass
+
         cls_a = VLMDocClass(name="A", lambda_online=1.0, w_px=1000, h_px=1000, n_fields=10)
         cls_b = VLMDocClass(name="B", lambda_online=2.0, w_px=1000, h_px=1000, n_fields=10)
         data = {**BASELINE_VLM, "classes": [cls_a.model_dump(), cls_b.model_dump()]}
@@ -284,21 +316,28 @@ class TestVLMMultiClass:
 
     def test_k_sla_multi_default_125(self):
         from models import VLMDocClass
-        data = {**BASELINE_VLM, "classes": [
-            VLMDocClass(name="A", lambda_online=1.0, w_px=1240, h_px=1754, n_fields=20).model_dump(),
-        ]}
+
+        data = {
+            **BASELINE_VLM,
+            "classes": [
+                VLMDocClass(
+                    name="A", lambda_online=1.0, w_px=1240, h_px=1754, n_fields=20
+                ).model_dump(),
+            ],
+        }
         result = run_vlm_sizing(VLMSizingInput(**data))
         assert result.K_SLA_multi_used == 1.25
 
     def test_higher_k_sla_grows_n_gpu_multi(self):
         from models import VLMDocClass
+
         cls = VLMDocClass(name="A", lambda_online=10.0, w_px=2000, h_px=2000, n_fields=30)
-        loose = run_vlm_sizing(VLMSizingInput(
-            **{**BASELINE_VLM, "classes": [cls.model_dump()], "K_SLA_multi": 1.0}
-        ))
-        strict = run_vlm_sizing(VLMSizingInput(
-            **{**BASELINE_VLM, "classes": [cls.model_dump()], "K_SLA_multi": 2.0}
-        ))
+        loose = run_vlm_sizing(
+            VLMSizingInput(**{**BASELINE_VLM, "classes": [cls.model_dump()], "K_SLA_multi": 1.0})
+        )
+        strict = run_vlm_sizing(
+            VLMSizingInput(**{**BASELINE_VLM, "classes": [cls.model_dump()], "K_SLA_multi": 2.0})
+        )
         assert strict.n_gpu_multiclass >= loose.n_gpu_multiclass
 
     def test_empty_classes_list_treated_as_single_class(self):
