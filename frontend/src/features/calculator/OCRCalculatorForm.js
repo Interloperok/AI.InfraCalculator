@@ -8,21 +8,13 @@ const FieldTooltip = ({ text, align = "center" }) => (
     <Info className="h-3 w-3 text-subtle cursor-help" strokeWidth={2.25} />
     <span
       className={`invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full ${
-        align === "right"
-          ? "right-0"
-          : align === "left"
-            ? "left-0"
-            : "left-1/2 -translate-x-1/2"
+        align === "right" ? "right-0" : align === "left" ? "left-0" : "left-1/2 -translate-x-1/2"
       } mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-slate-900 dark:bg-slate-800 rounded-md shadow-elevated w-60 text-center leading-relaxed pointer-events-none`}
     >
       {text}
       <span
         className={`absolute top-full ${
-          align === "right"
-            ? "right-3"
-            : align === "left"
-              ? "left-3"
-              : "left-1/2 -translate-x-1/2"
+          align === "right" ? "right-3" : align === "left" ? "left-3" : "left-1/2 -translate-x-1/2"
         } border-4 border-transparent border-t-slate-900 dark:border-t-slate-800`}
       />
     </span>
@@ -224,7 +216,9 @@ const PipelineToggle = ({ value, onChange }) => {
   ];
   return (
     <div className="sm:col-span-2">
-      <label className="block text-xs font-medium text-muted mb-1">{t("ocrForm.pipelineLabel")}</label>
+      <label className="block text-xs font-medium text-muted mb-1">
+        {t("ocrForm.pipelineLabel")}
+      </label>
       <div className="grid grid-cols-2 gap-2">
         {options.map((o) => {
           const active = value === o.id;
@@ -240,9 +234,7 @@ const PipelineToggle = ({ value, onChange }) => {
               }`}
             >
               <p className="text-sm font-semibold">{o.label}</p>
-              <p
-                className={`text-[11px] mt-0.5 ${active ? "opacity-80" : "text-muted"}`}
-              >
+              <p className={`text-[11px] mt-0.5 ${active ? "opacity-80" : "text-muted"}`}>
                 {o.hint}
               </p>
             </button>
@@ -361,7 +353,9 @@ const OCRCalculatorForm = ({
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 flex-1">
       {/* Presets */}
       <div data-tour="ocr-presets">
-        <label className="block text-sm font-medium text-muted mb-2">{t("vmForm.quickPresets")}</label>
+        <label className="block text-sm font-medium text-muted mb-2">
+          {t("vmForm.quickPresets")}
+        </label>
         <div className="grid grid-cols-2 gap-2">
           {OCR_PRESETS.map((preset) => {
             const isActive = selectedPreset === preset.id;
@@ -598,7 +592,9 @@ const OCRCalculatorForm = ({
       {/* Hardware */}
       <Section title={t("vmForm.hardware")} color="amber" dataTour="ocr-hardware">
         <div className="sm:col-span-2">
-          <label className="block text-xs font-medium text-muted mb-1">{t("vmForm.gpuModel")}</label>
+          <label className="block text-xs font-medium text-muted mb-1">
+            {t("vmForm.gpuModel")}
+          </label>
           <button
             type="button"
             onClick={() => onOpenGpuPicker?.(selectedGpu?.id)}

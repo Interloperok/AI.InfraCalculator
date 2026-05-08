@@ -14,8 +14,7 @@ export const CALCULATOR_MODES = [
     id: "vlm",
     label: "OCR (VLM)",
     subtitle: "Image → structured JSON",
-    description:
-      "Single-pass vision-language model. Sizing driven by pages/sec and per-page SLA.",
+    description: "Single-pass vision-language model. Sizing driven by pages/sec and per-page SLA.",
   },
   {
     id: "ocr",
@@ -79,9 +78,7 @@ const ModeSwitcher = ({ mode, onChange }) => {
                 <Icon className="h-4 w-4" strokeWidth={2.25} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold leading-tight">
-                  {label}
-                </span>
+                <span className="block text-sm font-semibold leading-tight">{label}</span>
                 <span
                   className={`block text-[11px] leading-snug ${
                     active ? "opacity-80" : "text-muted"

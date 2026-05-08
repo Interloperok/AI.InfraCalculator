@@ -127,7 +127,6 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-
 /* Animation for loading spinner */
 .animate-spin {
   animation: spin 1s linear infinite;

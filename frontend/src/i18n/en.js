@@ -73,8 +73,7 @@ const en = {
   "results.sessions.title": "Sessions per Server",
   "results.sessions.subtitle": "{instances} inst × {sessions} sess each",
   "results.throughput.title": "Server Throughput",
-  "results.throughput.tooltip":
-    "Requests per second that one server can handle (req/s)",
+  "results.throughput.tooltip": "Requests per second that one server can handle (req/s)",
   "results.throughput.detail": "prefill {pf} · decode {dec}",
 
   // ── Secondary metric cards ──────────────────────────────────────────
@@ -533,8 +532,7 @@ const en = {
     "Tokens the LLM stage receives — system prompt plus the OCR'd text from one page.",
   "ocr.diag.slPfEff.tooltip":
     "Effective prefill length on the LLM stage after rounding to the engine's batching granularity.",
-  "ocr.diag.slDec.tooltip":
-    "Tokens the LLM generates per page (the JSON response length).",
+  "ocr.diag.slDec.tooltip": "Tokens the LLM generates per page (the JSON response length).",
   "ocr.diag.gpusPerInstance.tooltip":
     "GPUs allocated to one running copy of the LLM (tensor parallelism degree on the LLM pool).",
   "ocr.diag.sessionsPerInstance.tooltip":
@@ -547,6 +545,71 @@ const en = {
     "Effective compute capacity of one LLM-pool GPU used by the calculator (FP16/BF16 tensor TFLOPS).",
   "ocr.diag.handoff.tooltip":
     "Fixed overhead added between OCR finishing and the LLM starting (network round-trip, JSON marshal, queueing). Subtracted from the per-page budget.",
+
+  // ── Small UI affordances ────────────────────────────────────────────
+  "ui.dragToResize": "Drag to resize",
+  "ui.swipe.configuration": "Configuration",
+  "ui.swipe.results": "Results",
+  "ui.openOnHuggingFace": "Open on Hugging Face",
+  "form.gpuFilterLabel": "GPU Filter",
+  "form.gpuFilterCount": " ({count} selected)",
+  "form.gpuFilterAll": " (all GPUs)",
+  "form.gpuPicker.tooltip":
+    "Open the catalog to choose one GPU. Memory and compute specs will be filled in automatically.",
+
+  // ── GPU filter / picker modal ───────────────────────────────────────
+  "gpuFilter.title.single": "Select GPU",
+  "gpuFilter.title.multi": "GPU Filter",
+  "gpuFilter.subtitle.single": "Choose one GPU for calculation",
+  "gpuFilter.subtitle.multi": "Select GPUs to include in optimization search",
+  "gpuFilter.catalogSource": "Catalog Source",
+  "gpuFilter.catalog.default": "Default Catalog",
+  "gpuFilter.catalog.custom": "Custom Catalog",
+  "gpuFilter.catalog.gpuCount": "{count} GPUs",
+  "gpuFilter.catalog.notUploaded": "Not uploaded",
+  "gpuFilter.action.downloading": "Downloading...",
+  "gpuFilter.action.downloadDefault": "Download Default",
+  "gpuFilter.action.uploadCustom": "Upload Custom",
+  "gpuFilter.action.cancel": "Cancel",
+  "gpuFilter.action.apply": "Apply",
+  "gpuFilter.action.applyN": "Apply ({count})",
+  "gpuFilter.action.selectAll": "Select All ({count})",
+  "gpuFilter.action.clear": "Clear",
+  "gpuFilter.search.placeholder": "Search GPUs...",
+  "gpuFilter.list.empty": "No GPUs match your search",
+  "gpuFilter.list.selected": "{count} selected",
+  "gpuFilter.gpu.notSpecified": "not specified",
+  "gpuFilter.error.invalidFormat": "Invalid format: expected a JSON array of GPU objects.",
+  "gpuFilter.error.empty": "Catalog is empty.",
+  "gpuFilter.error.missingMemory": 'Invalid catalog: entries must have "memory_gb" field.',
+  "gpuFilter.error.parseFailed": "Failed to parse JSON: {message}",
+  "gpuFilter.error.readFailed": "Failed to read file",
+  "gpuFilter.error.downloadFailed": "Failed to download catalog",
+
+  // ── Auto-optimize results table ────────────────────────────────────
+  "optimize.title": "Optimization Results",
+  "optimize.evaluating": "Evaluating configurations...",
+  "optimize.empty.title": "No results yet",
+  "optimize.empty.subtitle": 'Click "Find Best Configs" to start',
+  "optimize.noValid.title": "No valid configurations found",
+  "optimize.noValid.subtitle": "Try adjusting your parameters or GPU filters",
+  "optimize.stats.evaluated": "Evaluated:",
+  "optimize.stats.valid": "Valid:",
+  "optimize.stats.showing": "Showing:",
+  "optimize.col.gpu": "GPU",
+  "optimize.col.quant": "Quant",
+  "optimize.col.tp": "TP(Z)",
+  "optimize.col.gpuPerServer": "GPU/Srv",
+  "optimize.col.servers": "Servers",
+  "optimize.col.totalGpu": "Total GPU",
+  "optimize.col.sessPerServer": "Sess/Srv",
+  "optimize.col.throughput": "Throughput",
+  "optimize.col.cost": "Cost",
+  "optimize.cost.perGpu": "{value}/gpu",
+  "optimize.mode.minServers": "Min Servers",
+  "optimize.mode.minCost": "Min Cost",
+  "optimize.mode.balanced": "Balanced",
+  "optimize.mode.maxPerformance": "Max Performance",
 
   // ── Pre-submit validation messages ──────────────────────────────────
   "form.validate.selectModelAuto":
@@ -609,8 +672,7 @@ const en = {
   // ── Guided tour: LLM (mobile) ────────────────────────────────────────
   "tour.llmMobile.github": "Visit us on GitHub — star the repo to stay updated.",
   "tour.llmMobile.docs": "Tap to open the methodology documentation in a new tab.",
-  "tour.llmMobile.presets":
-    "Pick a preset to quickly fill in model, GPU, and load parameters.",
+  "tour.llmMobile.presets": "Pick a preset to quickly fill in model, GPU, and load parameters.",
   "tour.llmMobile.modelSearch":
     "Search Hugging Face for your AI model — parameters are filled automatically.",
   "tour.llmMobile.gpuSearch":

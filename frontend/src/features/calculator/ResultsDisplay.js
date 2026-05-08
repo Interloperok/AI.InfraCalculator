@@ -65,21 +65,13 @@ const InfoTooltip = ({ text, align = "center" }) => (
     <Info className="h-3.5 w-3.5 text-subtle cursor-help" strokeWidth={2.25} />
     <span
       className={`invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full ${
-        align === "right"
-          ? "right-0"
-          : align === "left"
-            ? "left-0"
-            : "left-1/2 -translate-x-1/2"
+        align === "right" ? "right-0" : align === "left" ? "left-0" : "left-1/2 -translate-x-1/2"
       } mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-slate-900 dark:bg-slate-800 rounded-md shadow-elevated w-56 text-center leading-relaxed pointer-events-none`}
     >
       {text}
       <span
         className={`absolute top-full ${
-          align === "right"
-            ? "right-3"
-            : align === "left"
-              ? "left-3"
-              : "left-1/2 -translate-x-1/2"
+          align === "right" ? "right-3" : align === "left" ? "left-3" : "left-1/2 -translate-x-1/2"
         } border-4 border-transparent border-t-slate-900 dark:border-t-slate-800`}
       />
     </span>
@@ -96,9 +88,7 @@ const MetricLabel = ({ children, icon: Icon, tooltip, tooltipAlign }) => (
 
 const StatRow = ({ label, value, divider = true }) => (
   <div
-    className={`flex justify-between items-center py-2 ${
-      divider ? "border-b border-border" : ""
-    }`}
+    className={`flex justify-between items-center py-2 ${divider ? "border-b border-border" : ""}`}
   >
     <span className="text-sm text-muted">{label}</span>
     <span className="text-sm font-semibold tabular-nums text-fg">{value}</span>
@@ -148,10 +138,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Loader2
-            className="mx-auto h-10 w-10 text-accent animate-spin mb-4"
-            strokeWidth={2.25}
-          />
+          <Loader2 className="mx-auto h-10 w-10 text-accent animate-spin mb-4" strokeWidth={2.25} />
           <p className="text-muted">{t("results.loading")}</p>
         </div>
       </div>
@@ -361,11 +348,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
 
         {/* Card 3 — Server Throughput */}
         <div className="result-tile bg-surface border border-border rounded-xl p-4 sm:p-6 shadow-card flex flex-col sm:min-h-[170px]">
-          <MetricLabel
-            icon={Zap}
-            tooltip={t("results.throughput.tooltip")}
-            tooltipAlign="right"
-          >
+          <MetricLabel icon={Zap} tooltip={t("results.throughput.tooltip")} tooltipAlign="right">
             {t("results.throughput.title")}
           </MetricLabel>
           <p className="text-4xl sm:text-5xl font-semibold tracking-tight text-fg mt-auto mb-auto tabular-nums">
@@ -405,12 +388,16 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
               <InfoTooltip text={t("results.gpuPerInstance.tooltip")} />
             </span>
           </div>
-          <p className="text-xl sm:text-2xl font-semibold text-fg mt-1.5 tabular-nums">{gpusInst}</p>
+          <p className="text-xl sm:text-2xl font-semibold text-fg mt-1.5 tabular-nums">
+            {gpusInst}
+          </p>
         </div>
         <div className="bg-surface border border-border rounded-lg p-3 sm:p-4 shadow-card">
           <div className="flex items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-muted font-semibold">
             <Layers className="h-3 w-3 text-subtle mt-px shrink-0" strokeWidth={2.25} />
-            <span className="leading-tight break-words">{t("results.instancesPerServer.title")}</span>
+            <span className="leading-tight break-words">
+              {t("results.instancesPerServer.title")}
+            </span>
             <span className="ml-auto shrink-0">
               <InfoTooltip text={t("results.instancesPerServer.tooltip")} align="right" />
             </span>
@@ -429,9 +416,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
               <Gauge className="h-4 w-4 text-muted" strokeWidth={2.25} />
               {t("results.gateway.title")}
             </h3>
-            <span className="text-[11px] text-muted truncate">
-              {t("results.gateway.subtitle")}
-            </span>
+            <span className="text-[11px] text-muted truncate">{t("results.gateway.subtitle")}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             <div className="bg-elevated border border-border rounded-lg py-2.5 px-3">
@@ -473,7 +458,8 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                 </span>
               </p>
               <p className="text-sm font-semibold text-fg mt-1 tabular-nums">
-                <span className="text-muted">{t("results.gateway.in")}</span> {fmt(results.peak_tpm_input, 0)}
+                <span className="text-muted">{t("results.gateway.in")}</span>{" "}
+                {fmt(results.peak_tpm_input, 0)}
               </p>
               <p className="text-[11px] text-muted tabular-nums">
                 <span>{t("results.gateway.out")}</span> {fmt(results.peak_tpm_output, 0)}
@@ -490,9 +476,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
               <p className="text-lg font-semibold text-fg mt-1 tabular-nums">
                 {fmt(results.max_parallel_requests, 0)}
               </p>
-              <p className="text-[10px] text-muted mt-0.5">
-                {t("results.gateway.concurrent")}
-              </p>
+              <p className="text-[10px] text-muted mt-0.5">{t("results.gateway.concurrent")}</p>
             </div>
           </div>
         </div>
@@ -541,10 +525,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                     className="relative p-1.5 rounded-lg hover:bg-elevated transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-warning"
                     title={t("results.sla.notifications.button")}
                   >
-                    <Bell
-                      className="h-5 w-5 text-muted bell-shake"
-                      strokeWidth={2.25}
-                    />
+                    <Bell className="h-5 w-5 text-muted bell-shake" strokeWidth={2.25} />
                     {results.sla_passed === false && results.sla_recommendations?.length > 0 && (
                       <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white">
                         {results.sla_recommendations.length}
@@ -573,10 +554,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                         {results.sla_recommendations?.length > 0 ? (
                           <ul className="p-4 space-y-2">
                             {results.sla_recommendations.map((rec, i) => (
-                              <li
-                                key={i}
-                                className="text-sm text-fg flex items-start gap-2"
-                              >
+                              <li key={i} className="text-sm text-fg flex items-start gap-2">
                                 <AlertTriangle
                                   className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0"
                                   strokeWidth={2.25}
@@ -712,9 +690,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                     ) : (
                       <XCircle className="h-3.5 w-3.5" strokeWidth={2.5} />
                     )}
-                    {results.e2e_latency_sla_pass
-                      ? t("results.sla.pass")
-                      : t("results.sla.fail")}
+                    {results.e2e_latency_sla_pass ? t("results.sla.pass") : t("results.sla.fail")}
                   </div>
                 )}
               </div>
@@ -881,10 +857,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                 label={t("results.detailed.sessionsBaseTp")}
                 value={results.S_TP_base || 0}
               />
-              <StatRow
-                label={t("results.detailed.sessionsZTp")}
-                value={results.S_TP_z || 0}
-              />
+              <StatRow label={t("results.detailed.sessionsZTp")} value={results.S_TP_z || 0} />
               <div className="flex justify-between items-center py-2">
                 <span className="text-sm font-semibold text-fg">
                   {t("results.detailed.serversByMemory")}
@@ -925,10 +898,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                 label={t("results.detailed.decodeThroughput")}
                 value={`${fmt(results.th_decode)} tok/s`}
               />
-              <StatRow
-                label={t("results.detailed.cmodel")}
-                value={fmt(results.Cmodel_rps, 4)}
-              />
+              <StatRow label={t("results.detailed.cmodel")} value={fmt(results.Cmodel_rps, 4)} />
               <StatRow
                 label={t("results.detailed.serverThroughput")}
                 value={`${fmt(results.th_server_comp, 4)} req/s`}

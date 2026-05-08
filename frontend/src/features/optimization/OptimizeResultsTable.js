@@ -1,13 +1,17 @@
 import React from "react";
+import { useT } from "../../contexts/I18nContext";
 
 const QUANT_LABELS = { 1: "INT8", 2: "FP16", 4: "FP32" };
 
-const OPTIMIZATION_MODE_LABELS = {
-  min_servers: "Min Servers",
-  min_cost: "Min Cost",
-  balanced: "Balanced",
-  max_performance: "Max Performance",
+const OPTIMIZATION_MODE_KEYS = {
+  min_servers: "optimize.mode.minServers",
+  min_cost: "optimize.mode.minCost",
+  balanced: "optimize.mode.balanced",
+  max_performance: "optimize.mode.maxPerformance",
 };
+
+const interp = (s, vars) =>
+  s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? String(vars[k]) : ""));
 
 const fmt = (v, digits = 2) => {
   if (v === undefined || v === null || isNaN(v)) return "0";
@@ -32,6 +36,7 @@ const OptimizeResultsTable = ({
   onSelectRow,
   embedded = false,
 }) => {
+  const t = useT();
   return (
     <div
       className={
@@ -55,7 +60,7 @@ const OptimizeResultsTable = ({
               d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          Optimization Results
+          {t("optimize.title")}
         </h2>
       )}
 
@@ -71,7 +76,7 @@ const OptimizeResultsTable = ({
         <div className="flex-1 flex items-center justify-center py-12">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-accent mb-3"></div>
-            <p className="text-muted text-sm">Evaluating configurations...</p>
+            <p className="text-muted text-sm">{t("optimize.evaluating")}</p>
           </div>
         </div>
       )}
@@ -95,8 +100,8 @@ const OptimizeResultsTable = ({
                 />
               </svg>
             </div>
-            <h3 className="text-sm font-medium text-subtle">No results yet</h3>
-            <p className="text-xs text-subtle mt-1">Click "Find Best Configs" to start</p>
+            <h3 className="text-sm font-medium text-subtle">{t("optimize.empty.title")}</h3>
+            <p className="text-xs text-subtle mt-1">{t("optimize.empty.subtitle")}</p>
           </div>
         </div>
       )}
@@ -108,16 +113,19 @@ const OptimizeResultsTable = ({
           {stats && (
             <div className="flex items-center gap-3 mb-3 text-xs text-muted flex-wrap">
               <span className="px-2 py-1 bg-accent-soft text-accent rounded-full font-medium">
-                {OPTIMIZATION_MODE_LABELS[stats.mode] || stats.mode}
+                {OPTIMIZATION_MODE_KEYS[stats.mode]
+                  ? t(OPTIMIZATION_MODE_KEYS[stats.mode])
+                  : stats.mode}
               </span>
               <span>
-                Evaluated: <strong>{stats.total_evaluated.toLocaleString()}</strong>
+                {t("optimize.stats.evaluated")}{" "}
+                <strong>{stats.total_evaluated.toLocaleString()}</strong>
               </span>
               <span>
-                Valid: <strong>{stats.total_valid.toLocaleString()}</strong>
+                {t("optimize.stats.valid")} <strong>{stats.total_valid.toLocaleString()}</strong>
               </span>
               <span>
-                Showing: <strong>{results.length}</strong>
+                {t("optimize.stats.showing")} <strong>{results.length}</strong>
               </span>
             </div>
           )}
@@ -131,31 +139,31 @@ const OptimizeResultsTable = ({
                     #
                   </th>
                   <th className="py-2 px-2 text-left text-xs font-semibold text-muted uppercase">
-                    GPU
+                    {t("optimize.col.gpu")}
                   </th>
                   <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
-                    Quant
+                    {t("optimize.col.quant")}
                   </th>
                   <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
-                    TP(Z)
+                    {t("optimize.col.tp")}
                   </th>
                   <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
-                    GPU/Srv
+                    {t("optimize.col.gpuPerServer")}
                   </th>
                   <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
-                    Servers
+                    {t("optimize.col.servers")}
                   </th>
                   <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
-                    Total GPU
+                    {t("optimize.col.totalGpu")}
                   </th>
                   <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
-                    Sess/Srv
+                    {t("optimize.col.sessPerServer")}
                   </th>
                   <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
-                    Throughput
+                    {t("optimize.col.throughput")}
                   </th>
                   <th className="py-2 px-2 text-center text-xs font-semibold text-muted uppercase">
-                    Cost
+                    {t("optimize.col.cost")}
                   </th>
                 </tr>
               </thead>
@@ -225,7 +233,9 @@ const OptimizeResultsTable = ({
                         <div>{fmtCost(config.cost_estimate_usd)}</div>
                         {config.gpu_price_usd != null && (
                           <div className="text-xs text-subtle">
-                            {fmtCost(config.gpu_price_usd)}/gpu
+                            {interp(t("optimize.cost.perGpu"), {
+                              value: fmtCost(config.gpu_price_usd),
+                            })}
                           </div>
                         )}
                       </td>
@@ -242,10 +252,8 @@ const OptimizeResultsTable = ({
       {results && results.length === 0 && !error && (
         <div className="flex-1 flex items-center justify-center py-12">
           <div className="text-center">
-            <h3 className="text-sm font-medium text-muted">No valid configurations found</h3>
-            <p className="text-xs text-subtle mt-1">
-              Try adjusting your parameters or GPU filters
-            </p>
+            <h3 className="text-sm font-medium text-muted">{t("optimize.noValid.title")}</h3>
+            <p className="text-xs text-subtle mt-1">{t("optimize.noValid.subtitle")}</p>
           </div>
         </div>
       )}

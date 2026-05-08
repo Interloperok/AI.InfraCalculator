@@ -39,9 +39,7 @@ const ThemeToggle = ({ className = "" }) => {
             title={label}
             onClick={() => setTheme(value)}
             className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors duration-150 ease-out-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-              active
-                ? "bg-accent text-accent-fg shadow-sm"
-                : "text-muted hover:text-fg"
+              active ? "bg-accent text-accent-fg shadow-sm" : "text-muted hover:text-fg"
             }`}
           >
             <Icon className="h-3.5 w-3.5" strokeWidth={2.25} />

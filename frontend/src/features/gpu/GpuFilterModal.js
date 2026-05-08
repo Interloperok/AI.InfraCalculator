@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import ReactDOM from "react-dom";
 import { getGPUs, exportGpuCatalog } from "../../services/api";
+import { useT } from "../../contexts/I18nContext";
 
 /**
  * GpuFilterModal — GPU selection for auto-optimization + catalog management.
@@ -25,6 +26,9 @@ const GpuFilterModal = ({
   onCustomCatalogUpload,
   onCustomCatalogToggle,
 }) => {
+  const t = useT();
+  const interp = (s, vars) =>
+    s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? String(vars[k]) : ""));
   const [gpuCatalog, setGpuCatalog] = useState([]);
   const [loadingGpus, setLoadingGpus] = useState(false);
   const [search, setSearch] = useState("");
@@ -205,7 +209,7 @@ const GpuFilterModal = ({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (err) {
-      setUploadError("Failed to download catalog");
+      setUploadError(t("gpuFilter.error.downloadFailed"));
     } finally {
       setDownloading(false);
     }
@@ -228,28 +232,28 @@ const GpuFilterModal = ({
 
         // Validate structure: must be an array of GPU objects
         if (!Array.isArray(parsed)) {
-          setUploadError("Invalid format: expected a JSON array of GPU objects.");
+          setUploadError(t("gpuFilter.error.invalidFormat"));
           return;
         }
 
         if (parsed.length === 0) {
-          setUploadError("Catalog is empty.");
+          setUploadError(t("gpuFilter.error.empty"));
           return;
         }
 
         const first = parsed[0];
         if (typeof first !== "object" || !first.memory_gb) {
-          setUploadError('Invalid catalog: entries must have "memory_gb" field.');
+          setUploadError(t("gpuFilter.error.missingMemory"));
           return;
         }
 
         onCustomCatalogUpload(parsed, file.name);
       } catch (err) {
-        setUploadError(`Failed to parse JSON: ${err.message}`);
+        setUploadError(interp(t("gpuFilter.error.parseFailed"), { message: err.message }));
       }
     };
     reader.onerror = () => {
-      setUploadError("Failed to read file");
+      setUploadError(t("gpuFilter.error.readFailed"));
     };
     reader.readAsText(file);
 
@@ -291,12 +295,14 @@ const GpuFilterModal = ({
                   d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                 />
               </svg>
-              {singleSelection ? modalTitle || "Select GPU" : "GPU Filter"}
+              {singleSelection
+                ? modalTitle || t("gpuFilter.title.single")
+                : t("gpuFilter.title.multi")}
             </h3>
             <p className="text-xs text-muted mt-0.5">
               {singleSelection
-                ? modalSubtitle || "Choose one GPU for calculation"
-                : "Select GPUs to include in optimization search"}
+                ? modalSubtitle || t("gpuFilter.subtitle.single")
+                : t("gpuFilter.subtitle.multi")}
             </p>
           </div>
           <button
@@ -317,7 +323,7 @@ const GpuFilterModal = ({
         {/* ── Catalog Source Section ── */}
         <div className="px-6 py-3 border-b border-border shrink-0 bg-elevated/70">
           <div className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
-            Catalog Source
+            {t("gpuFilter.catalogSource")}
           </div>
 
           {/* Radio: Default */}
@@ -335,10 +341,10 @@ const GpuFilterModal = ({
             />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-fg">
-                Default Catalog
+                {t("gpuFilter.catalog.default")}
                 {defaultCatalogCount != null && (
                   <span className="ml-1.5 text-xs font-normal text-subtle">
-                    ({defaultCatalogCount} GPUs)
+                    ({interp(t("gpuFilter.catalog.gpuCount"), { count: defaultCatalogCount })})
                   </span>
                 )}
               </div>
@@ -361,13 +367,16 @@ const GpuFilterModal = ({
             />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-fg">
-                Custom Catalog
+                {t("gpuFilter.catalog.custom")}
                 {customCatalog ? (
                   <span className="ml-1.5 text-xs font-normal text-subtle">
-                    {customCatalogName} ({customCatalogCount} GPUs)
+                    {customCatalogName} (
+                    {interp(t("gpuFilter.catalog.gpuCount"), { count: customCatalogCount })})
                   </span>
                 ) : (
-                  <span className="ml-1.5 text-xs font-normal text-subtle">Not uploaded</span>
+                  <span className="ml-1.5 text-xs font-normal text-subtle">
+                    {t("gpuFilter.catalog.notUploaded")}
+                  </span>
                 )}
               </div>
             </div>
@@ -389,7 +398,9 @@ const GpuFilterModal = ({
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                 />
               </svg>
-              {downloading ? "Downloading..." : "Download Default"}
+              {downloading
+                ? t("gpuFilter.action.downloading")
+                : t("gpuFilter.action.downloadDefault")}
             </button>
 
             <button
@@ -405,7 +416,7 @@ const GpuFilterModal = ({
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
                 />
               </svg>
-              Upload Custom
+              {t("gpuFilter.action.uploadCustom")}
             </button>
 
             <input
@@ -431,7 +442,7 @@ const GpuFilterModal = ({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search GPUs..."
+            placeholder={t("gpuFilter.search.placeholder")}
             className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
             autoFocus
           />
@@ -444,7 +455,7 @@ const GpuFilterModal = ({
                     onClick={handleSelectAll}
                     className="text-xs font-medium text-accent hover:text-accent/80 transition-colors"
                   >
-                    Select All ({filteredGpus.length})
+                    {interp(t("gpuFilter.action.selectAll"), { count: filteredGpus.length })}
                   </button>
                   <span className="text-subtle">|</span>
                 </>
@@ -454,10 +465,12 @@ const GpuFilterModal = ({
                 onClick={handleClear}
                 className="text-xs font-medium text-muted hover:text-fg transition-colors"
               >
-                Clear
+                {t("gpuFilter.action.clear")}
               </button>
             </div>
-            <span className="text-xs text-subtle">{selected.size} selected</span>
+            <span className="text-xs text-subtle">
+              {interp(t("gpuFilter.list.selected"), { count: selected.size })}
+            </span>
           </div>
         </div>
 
@@ -468,7 +481,7 @@ const GpuFilterModal = ({
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent"></div>
             </div>
           ) : filteredGpus.length === 0 ? (
-            <div className="text-center py-8 text-sm text-subtle">No GPUs match your search</div>
+            <div className="text-center py-8 text-sm text-subtle">{t("gpuFilter.list.empty")}</div>
           ) : (
             <div className="space-y-1">
               {filteredGpus.map((gpu) => {
@@ -495,7 +508,7 @@ const GpuFilterModal = ({
                         {" | "}
                         {gpu.price_usd != null && gpu.price_usd !== ""
                           ? `$${Number(gpu.price_usd).toLocaleString()}`
-                          : "not specified"}
+                          : t("gpuFilter.gpu.notSpecified")}
                       </div>
                     </div>
                     <span
@@ -514,7 +527,7 @@ const GpuFilterModal = ({
                       i
                       {hoveredInfoGpuId === gpu.id && (
                         <div
-                          className="absolute right-full top-0 mr-1.5 z-[10001] px-3 py-2 text-left text-xs font-normal text-white bg-fg rounded-lg shadow-elevated whitespace-pre-line min-w-[200px] max-w-[280px] pointer-events-none"
+                          className="absolute right-full top-0 mr-1.5 z-[10001] px-3 py-2 text-left text-xs font-normal text-white bg-slate-900 dark:bg-slate-800 rounded-lg shadow-elevated whitespace-pre-line min-w-[200px] max-w-[280px] pointer-events-none"
                           style={{ lineHeight: 1.5 }}
                         >
                           {formatGpuInfoTooltip(gpu)}
@@ -535,14 +548,16 @@ const GpuFilterModal = ({
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-muted hover:text-fg hover:bg-elevated rounded-lg transition-colors"
           >
-            Cancel
+            {t("gpuFilter.action.cancel")}
           </button>
           <button
             type="button"
             onClick={handleApply}
             className="px-5 py-2 text-sm font-semibold bg-accent text-accent-fg rounded-lg hover:bg-accent/90 transition-colors shadow-card"
           >
-            Apply{selected.size > 0 ? ` (${selected.size})` : ""}
+            {selected.size > 0
+              ? interp(t("gpuFilter.action.applyN"), { count: selected.size })
+              : t("gpuFilter.action.apply")}
           </button>
         </div>
       </div>

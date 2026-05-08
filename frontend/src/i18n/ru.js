@@ -69,8 +69,7 @@ const ru = {
   "results.sessions.title": "Сессий на сервер",
   "results.sessions.subtitle": "{instances} экз. × {sessions} сесс. каждый",
   "results.throughput.title": "Пропускная сервера",
-  "results.throughput.tooltip":
-    "Запросов в секунду, которые обрабатывает один сервер (req/s)",
+  "results.throughput.tooltip": "Запросов в секунду, которые обрабатывает один сервер (req/s)",
   "results.throughput.detail": "prefill {pf} · decode {dec}",
 
   // ── Secondary metric cards ──────────────────────────────────────────
@@ -497,8 +496,7 @@ const ru = {
     "Эффективная вычислительная мощность одного GPU, которой оперирует калькулятор (FP16/BF16 tensor TFLOPS).",
   "vlm.diag.slPfEff.tooltip":
     "Эффективная длина prefill, которой оперирует движок — визуальные + промпт-токены после округления под гранулярность пакетирования.",
-  "vlm.diag.slDec.tooltip":
-    "Сколько токенов модель генерирует на страницу (длина JSON-ответа).",
+  "vlm.diag.slDec.tooltip": "Сколько токенов модель генерирует на страницу (длина JSON-ответа).",
   "vlm.diag.kvPerPage.tooltip":
     "Память GPU, занятая KV-кешем под одну страницу в работе. Умножается на число одновременных страниц на экземпляр.",
   "vlm.diag.modelWeights.tooltip":
@@ -519,8 +517,7 @@ const ru = {
     "GPU, выделенные на этап LLM, который обрабатывает распознанный текст и выдаёт JSON-ответ.",
   "ocr.bsRealStar.tooltip":
     "Эффективный размер пачки на этапе LLM — сколько страниц идут в одном prefill на LLM.",
-  "ocr.replicas.tooltip":
-    "Параллельные копии LLM в LLM-пуле. Больше реплик — больше пропускная.",
+  "ocr.replicas.tooltip": "Параллельные копии LLM в LLM-пуле. Больше реплик — больше пропускная.",
   "ocr.diag.pipeline.tooltip":
     "Какой OCR-стек учитывал калькулятор: ocr_gpu (PaddleOCR/EasyOCR на GPU) или ocr_cpu (Tesseract на CPU).",
   "ocr.diag.tOcr.tooltip":
@@ -531,20 +528,83 @@ const ru = {
     "Сколько токенов попадает в LLM — системный промпт плюс распознанный текст одной страницы.",
   "ocr.diag.slPfEff.tooltip":
     "Эффективная длина prefill на этапе LLM после округления под гранулярность пакетирования.",
-  "ocr.diag.slDec.tooltip":
-    "Сколько токенов LLM генерирует на страницу (длина JSON-ответа).",
+  "ocr.diag.slDec.tooltip": "Сколько токенов LLM генерирует на страницу (длина JSON-ответа).",
   "ocr.diag.gpusPerInstance.tooltip":
     "Сколько GPU выделено одной запущенной копии LLM (степень тензорного параллелизма в LLM-пуле).",
   "ocr.diag.sessionsPerInstance.tooltip":
     "Сколько одновременных страниц может держать один экземпляр LLM в пределах бюджета времени LLM.",
-  "ocr.diag.kvPerSession.tooltip":
-    "Память GPU под KV-кеш одной страницы в работе на этапе LLM.",
+  "ocr.diag.kvPerSession.tooltip": "Память GPU под KV-кеш одной страницы в работе на этапе LLM.",
   "ocr.diag.modelWeights.tooltip":
     "Память GPU под загруженные веса LLM — без KV-кеша и runtime-оверхеда.",
   "ocr.diag.gpuTflops.tooltip":
     "Эффективная вычислительная мощность одного GPU LLM-пула (FP16/BF16 tensor TFLOPS).",
   "ocr.diag.handoff.tooltip":
     "Фиксированный оверхед на передачу от OCR к LLM (сетевой round-trip, сериализация JSON, очередь). Вычитается из бюджета на страницу.",
+
+  // ── Мелкие UI-элементы ──────────────────────────────────────────────
+  "ui.dragToResize": "Потяните, чтобы изменить размер",
+  "ui.swipe.configuration": "Конфигурация",
+  "ui.swipe.results": "Результаты",
+  "ui.openOnHuggingFace": "Открыть на Hugging Face",
+  "form.gpuFilterLabel": "Фильтр GPU",
+  "form.gpuFilterCount": " (выбрано: {count})",
+  "form.gpuFilterAll": " (все GPU)",
+  "form.gpuPicker.tooltip":
+    "Откройте каталог, чтобы выбрать один GPU. Память и вычислительные характеристики подставятся автоматически.",
+
+  // ── Модалка выбора / фильтра GPU ────────────────────────────────────
+  "gpuFilter.title.single": "Выбор GPU",
+  "gpuFilter.title.multi": "Фильтр GPU",
+  "gpuFilter.subtitle.single": "Выберите один GPU для расчёта",
+  "gpuFilter.subtitle.multi": "Выберите GPU для перебора при авто-оптимизации",
+  "gpuFilter.catalogSource": "Источник каталога",
+  "gpuFilter.catalog.default": "Каталог по умолчанию",
+  "gpuFilter.catalog.custom": "Свой каталог",
+  "gpuFilter.catalog.gpuCount": "{count} GPU",
+  "gpuFilter.catalog.notUploaded": "Не загружен",
+  "gpuFilter.action.downloading": "Скачивание...",
+  "gpuFilter.action.downloadDefault": "Скачать каталог",
+  "gpuFilter.action.uploadCustom": "Загрузить свой",
+  "gpuFilter.action.cancel": "Отмена",
+  "gpuFilter.action.apply": "Применить",
+  "gpuFilter.action.applyN": "Применить ({count})",
+  "gpuFilter.action.selectAll": "Выбрать все ({count})",
+  "gpuFilter.action.clear": "Очистить",
+  "gpuFilter.search.placeholder": "Поиск GPU...",
+  "gpuFilter.list.empty": "По запросу ничего не найдено",
+  "gpuFilter.list.selected": "выбрано: {count}",
+  "gpuFilter.gpu.notSpecified": "не указано",
+  "gpuFilter.error.invalidFormat": "Неверный формат: ожидается JSON-массив объектов GPU.",
+  "gpuFilter.error.empty": "Каталог пуст.",
+  "gpuFilter.error.missingMemory": 'Неверный каталог: у записей должно быть поле "memory_gb".',
+  "gpuFilter.error.parseFailed": "Не удалось разобрать JSON: {message}",
+  "gpuFilter.error.readFailed": "Не удалось прочитать файл",
+  "gpuFilter.error.downloadFailed": "Не удалось скачать каталог",
+
+  // ── Таблица результатов авто-оптимизации ────────────────────────────
+  "optimize.title": "Результаты оптимизации",
+  "optimize.evaluating": "Перебираю конфигурации...",
+  "optimize.empty.title": "Пока нет результатов",
+  "optimize.empty.subtitle": "Нажмите «Найти лучшие конфиги», чтобы начать",
+  "optimize.noValid.title": "Подходящих конфигураций не найдено",
+  "optimize.noValid.subtitle": "Скорректируйте параметры или фильтры GPU",
+  "optimize.stats.evaluated": "Перебрано:",
+  "optimize.stats.valid": "Подходит:",
+  "optimize.stats.showing": "Показано:",
+  "optimize.col.gpu": "GPU",
+  "optimize.col.quant": "Квант.",
+  "optimize.col.tp": "TP(Z)",
+  "optimize.col.gpuPerServer": "GPU/сервер",
+  "optimize.col.servers": "Серверов",
+  "optimize.col.totalGpu": "Всего GPU",
+  "optimize.col.sessPerServer": "Сессий/серв.",
+  "optimize.col.throughput": "Пропускная",
+  "optimize.col.cost": "Стоимость",
+  "optimize.cost.perGpu": "{value}/GPU",
+  "optimize.mode.minServers": "Мин. серверов",
+  "optimize.mode.minCost": "Мин. стоимость",
+  "optimize.mode.balanced": "Баланс",
+  "optimize.mode.maxPerformance": "Макс. произв.",
 
   // ── Сообщения предварительной валидации ─────────────────────────────
   "form.validate.selectModelAuto":
@@ -613,8 +673,7 @@ const ru = {
     "Найдите вашу AI-модель в Hugging Face — параметры подставятся автоматически.",
   "tour.llmMobile.gpuSearch":
     "Выберите GPU из каталога. Память и TFLOPS подставятся автоматически.",
-  "tour.llmMobile.calculate":
-    "Нажмите «Рассчитать», чтобы запустить движок и увидеть результаты.",
+  "tour.llmMobile.calculate": "Нажмите «Рассчитать», чтобы запустить движок и увидеть результаты.",
 
   // ── Guided tour: VLM (desktop) ───────────────────────────────────────
   "tour.vlm.github":
@@ -654,8 +713,7 @@ const ru = {
   "tour.ocr.pipeline":
     "Выберите OCR на GPU (PaddleOCR/EasyOCR) для высокой нагрузки или OCR на CPU (Tesseract), если в GPU-пуле должна быть только LLM. Это меняет деление SLA-бюджета.",
   "tour.ocr.hardware": "Выберите GPU и степень тензорного параллелизма для этапа LLM.",
-  "tour.ocr.calculate":
-    "Запустите сайзинг — бэкенд вернёт отдельные пулы GPU под этапы OCR и LLM.",
+  "tour.ocr.calculate": "Запустите сайзинг — бэкенд вернёт отдельные пулы GPU под этапы OCR и LLM.",
   "tour.ocr.results":
     "Три карточки: общая инфраструктура с разбивкой на пулы OCR+LLM, проверка SLA с разложением t_OCR и пропускная способность этапа LLM.",
 

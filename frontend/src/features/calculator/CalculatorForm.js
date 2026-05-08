@@ -881,11 +881,7 @@ const CalculatorForm = ({
       delete payload.gpu_flops_Fcount;
     }
     // head_dim=0 / null / "" → drop so backend uses the H/N_attn fallback
-    if (
-      payload.head_dim === null ||
-      payload.head_dim === "" ||
-      payload.head_dim === 0
-    ) {
+    if (payload.head_dim === null || payload.head_dim === "" || payload.head_dim === 0) {
       delete payload.head_dim;
     }
     // params_active=0 / null / "" → drop so backend treats model as dense
@@ -907,11 +903,7 @@ const CalculatorForm = ({
       "kv_lora_rank",
       "qk_rope_head_dim",
     ]) {
-      if (
-        payload[field] === null ||
-        payload[field] === "" ||
-        payload[field] === 0
-      ) {
+      if (payload[field] === null || payload[field] === "" || payload[field] === 0) {
         delete payload[field];
       }
     }
@@ -1276,9 +1268,7 @@ const CalculatorForm = ({
       // before falling back to "fill manually". Updates the source-mode
       // probe so subsequent searches use curated automatically.
       const modelId = (model.modelId || model.id || "").toLowerCase();
-      const curatedMatch = llmCatalog.find(
-        (m) => (m.hf_id || "").toLowerCase() === modelId,
-      );
+      const curatedMatch = llmCatalog.find((m) => (m.hf_id || "").toLowerCase() === modelId);
       if (curatedMatch) {
         setHfReachable(false);
         applyCuratedModel(curatedMatch);
@@ -1424,9 +1414,7 @@ const CalculatorForm = ({
               placeholder="0"
             />
             {unit && (
-              <span className="text-xs text-muted font-medium w-7 shrink-0 text-left">
-                {unit}
-              </span>
+              <span className="text-xs text-muted font-medium w-7 shrink-0 text-left">{unit}</span>
             )}
           </div>
         </div>
@@ -1507,9 +1495,7 @@ const CalculatorForm = ({
                   type="button"
                   onClick={() => setLlmSourceMode(opt.id)}
                   className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                    active
-                      ? "bg-surface text-fg shadow-sm"
-                      : "text-muted hover:text-fg"
+                    active ? "bg-surface text-fg shadow-sm" : "text-muted hover:text-fg"
                   }`}
                 >
                   {opt.label}
@@ -1611,7 +1597,7 @@ const CalculatorForm = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="ml-2 p-1 rounded-lg hover:bg-warning-soft transition-colors flex-shrink-0"
-                  title="Open on Hugging Face"
+                  title={t("ui.openOnHuggingFace")}
                 >
                   <img src="/huggingface-color.png" alt="Hugging Face" className="w-6 h-6" />
                 </a>
@@ -1641,7 +1627,10 @@ const CalculatorForm = ({
         )}
       </section>
 
-      <div className="bg-surface rounded-xl p-5 border border-border shadow-card" data-tour="gpu-search">
+      <div
+        className="bg-surface rounded-xl p-5 border border-border shadow-card"
+        data-tour="gpu-search"
+      >
         <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-accent before:content-['']">
           {t("form.section.hardware")}
           <SectionTooltip text={t("form.section.hardwareTooltip")} />
@@ -1670,17 +1659,17 @@ const CalculatorForm = ({
                   d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                 />
               </svg>
-              GPU Filter
+              {t("form.gpuFilterLabel")}
               {gpuFilter && gpuFilter.length > 0
-                ? ` (${gpuFilter.length} selected)`
-                : " (all GPUs)"}
+                ? t("form.gpuFilterCount").replace("{count}", String(gpuFilter.length))
+                : t("form.gpuFilterAll")}
             </button>
           </div>
         ) : (
           <div className="mb-4">
             <label className="block text-sm font-medium text-fg mb-2 flex items-center">
               GPU
-              <InfoTooltip text="Open the catalog to choose one GPU. Memory and compute specs will be filled in automatically." />
+              <InfoTooltip text={t("form.gpuPicker.tooltip")} />
             </label>
             <button
               type="button"
@@ -1877,7 +1866,10 @@ const CalculatorForm = ({
         )}
       </div>
 
-      <div className="bg-surface rounded-xl p-5 border border-border shadow-card" data-tour="sla-targets">
+      <div
+        className="bg-surface rounded-xl p-5 border border-border shadow-card"
+        data-tour="sla-targets"
+      >
         <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-warning before:content-['']">
           {t("form.section.sla")}
           <SectionTooltip text="Time To First Token (TTFT) and end-to-end latency limits used to validate the configuration against your service-level requirements." />
@@ -2203,7 +2195,9 @@ const CalculatorForm = ({
               <div>
                 SP_eff ={" "}
                 <span className="text-accent font-semibold">
-                  {(formData.system_prompt_tokens_SP || 0) + (formData.sp_tools || 0) + (formData.c_rag_static || 0)}
+                  {(formData.system_prompt_tokens_SP || 0) +
+                    (formData.sp_tools || 0) +
+                    (formData.c_rag_static || 0)}
                 </span>{" "}
                 tok
               </div>
@@ -2231,7 +2225,8 @@ const CalculatorForm = ({
               <div className="col-span-2">
                 TS_agent ={" "}
                 <span className="text-accent font-semibold">
-                  {((formData.system_prompt_tokens_SP || 0) +
+                  {(
+                    (formData.system_prompt_tokens_SP || 0) +
                     (formData.sp_tools || 0) +
                     (formData.c_rag_static || 0) +
                     (formData.dialog_turns || 0) *
@@ -2240,7 +2235,8 @@ const CalculatorForm = ({
                         (formData.c_rag_dynamic || 0) +
                         (formData.reasoning_tokens_MRT || 0) +
                         (formData.answer_tokens_A || 0) +
-                        (formData.a_tool || 0))).toLocaleString()}
+                        (formData.a_tool || 0))
+                  ).toLocaleString()}
                 </span>{" "}
                 tok &nbsp;
                 <span className="text-muted">
@@ -2249,8 +2245,8 @@ const CalculatorForm = ({
               </div>
             </div>
             <p className="text-[10px] text-muted mt-2 leading-snug">
-              These derive from your token + agentic inputs. Backend recomputes them per
-              §2.2 / Appendix В when you Calculate — no need to re-enter values manually.
+              These derive from your token + agentic inputs. Backend recomputes them per §2.2 /
+              Appendix В when you Calculate — no need to re-enter values manually.
             </p>
           </div>
         </>,
@@ -2438,11 +2434,7 @@ const CalculatorForm = ({
   );
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      noValidate
-      className="gap-6 flex flex-col flex-1"
-    >
+    <form onSubmit={handleSubmit} noValidate className="gap-6 flex flex-col flex-1">
       {/* Header with toggle switch */}
       <div className="flex items-center justify-between gap-2 mb-2">
         <h2 className="text-lg sm:text-2xl font-semibold text-fg min-w-0 truncate">
@@ -2507,7 +2499,9 @@ const CalculatorForm = ({
         </div>
       ) : (
         <div className="mb-2" data-tour="presets">
-          <label className="block text-sm font-medium text-muted mb-2">{t("form.preset.select")}</label>
+          <label className="block text-sm font-medium text-muted mb-2">
+            {t("form.preset.select")}
+          </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {PRESETS.map((preset) => {
               const isActive = selectedPreset === preset.id;
@@ -2572,8 +2566,18 @@ const CalculatorForm = ({
 
       {validationError && (
         <div className="bg-danger-soft border border-danger/30 rounded-md p-3 text-sm text-danger flex items-start gap-2">
-          <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            className="w-4 h-4 mt-0.5 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
           <span>{validationError}</span>
         </div>
@@ -2585,9 +2589,7 @@ const CalculatorForm = ({
         data-tour="calculate-btn"
         disabled={loading}
         className={`mt-auto w-full py-3 px-4 rounded-lg font-semibold text-lg transition-colors text-accent-fg ${
-          loading
-            ? "bg-accent/60 cursor-not-allowed"
-            : "bg-accent hover:bg-accent/90 calc-btn-glow"
+          loading ? "bg-accent/60 cursor-not-allowed" : "bg-accent hover:bg-accent/90 calc-btn-glow"
         }`}
       >
         {loading ? (

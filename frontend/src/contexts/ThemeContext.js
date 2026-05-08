@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 /**
  * Light / dark / system theme provider.
@@ -43,8 +36,7 @@ const systemPrefersDark = () => {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 };
 
-const resolve = (theme) =>
-  theme === "system" ? (systemPrefersDark() ? "dark" : "light") : theme;
+const resolve = (theme) => (theme === "system" ? (systemPrefersDark() ? "dark" : "light") : theme);
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setThemeState] = useState(() => readStored());

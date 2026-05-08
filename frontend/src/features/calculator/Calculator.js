@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import { useT } from "../../contexts/I18nContext";
 import CalculatorForm from "./CalculatorForm";
 import ResultsDisplay from "./ResultsDisplay";
 import ModeSwitcher from "./ModeSwitcher";
@@ -18,6 +19,7 @@ import {
 const VALID_MODES = ["llm", "vlm", "ocr"];
 
 const Calculator = () => {
+  const t = useT();
   // ── Calculator mode (LLM by default; VLM/OCR placeholders until P12c/d) ──
   const [mode, setMode] = useState(() => {
     const saved = typeof window !== "undefined" && localStorage.getItem("calculatorMode");
@@ -506,8 +508,8 @@ const Calculator = () => {
           className={`w-2.5 h-2.5 rounded-full transition-colors ${
             swipeIndex === 0 ? "bg-accent" : "bg-subtle hover:bg-muted"
           }`}
-          aria-label="Configuration"
-          title="Configuration"
+          aria-label={t("ui.swipe.configuration")}
+          title={t("ui.swipe.configuration")}
         />
         <button
           type="button"
@@ -520,8 +522,8 @@ const Calculator = () => {
           className={`w-2.5 h-2.5 rounded-full transition-colors ${
             swipeIndex === 1 ? "bg-accent" : "bg-subtle hover:bg-muted"
           }`}
-          aria-label="Results"
-          title="Results"
+          aria-label={t("ui.swipe.results")}
+          title={t("ui.swipe.results")}
         />
       </div>
 
@@ -634,7 +636,7 @@ const Calculator = () => {
               <div
                 onMouseDown={handleDragStart}
                 className="absolute right-0 top-0 h-full w-2 cursor-col-resize z-10 group"
-                title="Drag to resize"
+                title={t("ui.dragToResize")}
               >
                 <div className="absolute right-0 top-0 h-full w-1 bg-transparent group-hover:bg-accent/50 transition-colors" />
               </div>
@@ -721,8 +723,8 @@ const Calculator = () => {
           setGpuModalOpen(false);
         }}
         singleSelection={gpuModalMode === "picker"}
-        modalTitle="Select GPU"
-        modalSubtitle="Choose one GPU for calculation"
+        modalTitle={t("gpuFilter.title.single")}
+        modalSubtitle={t("gpuFilter.subtitle.single")}
         customCatalog={customCatalog}
         customCatalogName={customCatalogName}
         useCustomCatalog={useCustomCatalog}

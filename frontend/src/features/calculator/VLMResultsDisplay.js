@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-} from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -152,9 +146,7 @@ const VLMResultsDisplay = ({ results, loading, error, inputData }) => {
           <div className="flex items-center gap-2 text-muted">
             <span
               className={`inline-flex h-7 w-7 items-center justify-center rounded-md ${
-                slaPass
-                  ? "bg-success-soft text-success"
-                  : "bg-danger-soft text-danger"
+                slaPass ? "bg-success-soft text-success" : "bg-danger-soft text-danger"
               }`}
             >
               {slaPass ? (
@@ -200,9 +192,7 @@ const VLMResultsDisplay = ({ results, loading, error, inputData }) => {
           </div>
           <p className="text-3xl sm:text-4xl font-extrabold mt-auto mb-auto tabular-nums text-fg leading-none">
             {fmt(results.th_pf_vlm, 0)}
-            <span className="text-sm font-semibold text-muted ml-1">
-              {t("vlm.throughputUnit")}
-            </span>
+            <span className="text-sm font-semibold text-muted ml-1">{t("vlm.throughputUnit")}</span>
           </p>
           <p className="text-xs sm:text-sm text-muted mt-2">
             {fmtTemplate(t("vlm.decode"), { value: fmt(results.th_dec_vlm, 0) })}
@@ -444,14 +434,10 @@ const SecondaryTile = ({ icon, tone = "accent", label, value, tooltip, tooltipAl
   return (
     <div className="rounded-lg border border-border bg-surface p-3 sm:p-4 shadow-card">
       <div className="flex items-center gap-2">
-        <span
-          className={`inline-flex h-6 w-6 items-center justify-center rounded-md ${iconClass}`}
-        >
+        <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md ${iconClass}`}>
           {icon}
         </span>
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-          {label}
-        </h3>
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted">{label}</h3>
         {tooltip && (
           <span className="ml-auto">
             <QuotaTooltip text={tooltip} align={tooltipAlign || "right"} />
@@ -513,21 +499,13 @@ const QuotaTooltip = ({ text, align = "center" }) => (
     <Info className="h-3 w-3 text-subtle cursor-help" strokeWidth={2.25} />
     <span
       className={`invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full ${
-        align === "right"
-          ? "right-0"
-          : align === "left"
-            ? "left-0"
-            : "left-1/2 -translate-x-1/2"
+        align === "right" ? "right-0" : align === "left" ? "left-0" : "left-1/2 -translate-x-1/2"
       } mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-slate-900 dark:bg-slate-800 rounded-md shadow-elevated w-56 text-center leading-relaxed pointer-events-none`}
     >
       {text}
       <span
         className={`absolute top-full ${
-          align === "right"
-            ? "right-3"
-            : align === "left"
-              ? "left-3"
-              : "left-1/2 -translate-x-1/2"
+          align === "right" ? "right-3" : align === "left" ? "left-3" : "left-1/2 -translate-x-1/2"
         } border-4 border-transparent border-t-slate-900 dark:border-t-slate-800`}
       />
     </span>

@@ -25,9 +25,7 @@ const LanguageToggle = ({ className = "" }) => {
             aria-checked={active}
             onClick={() => setLocale(value)}
             className={`flex h-7 min-w-[2rem] items-center justify-center rounded-full px-2 text-[11px] font-semibold uppercase tracking-wider transition-colors duration-150 ease-out-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-              active
-                ? "bg-accent text-accent-fg shadow-sm"
-                : "text-muted hover:text-fg"
+              active ? "bg-accent text-accent-fg shadow-sm" : "text-muted hover:text-fg"
             }`}
           >
             {value}

@@ -44,11 +44,7 @@ describe("VLMCalculatorForm", () => {
   it("opens GPU picker when the GPU selector is clicked", () => {
     const onOpenGpuPicker = jest.fn();
     render(
-      <VLMCalculatorForm
-        onSubmit={jest.fn()}
-        loading={false}
-        onOpenGpuPicker={onOpenGpuPicker}
-      />,
+      <VLMCalculatorForm onSubmit={jest.fn()} loading={false} onOpenGpuPicker={onOpenGpuPicker} />,
     );
 
     fireEvent.click(screen.getByText(/Click to choose a GPU/i));
