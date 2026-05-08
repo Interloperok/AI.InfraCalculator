@@ -50,6 +50,26 @@ def test_scheduler_status_when_running(client, main_module) -> None:
     assert body["jobs"][0]["id"] == "job-1"
 
 
+def test_gpu_static_routes_not_shadowed_by_parametric(client) -> None:
+    """Regression: static-path routes (/v1/gpus/{export,stats}) must be
+    declared before /v1/gpus/{gpu_id}, else Starlette matches `gpu_id="stats"`
+    and returns 404 "GPU not found" instead of routing to the static handler.
+    """
+    stats_response = client.get("/v1/gpus/stats")
+    assert stats_response.status_code == 200, (
+        "/v1/gpus/stats was shadowed by /v1/gpus/{gpu_id} — check route declaration order"
+    )
+    body = stats_response.json()
+    assert "total_gpus" in body
+    assert "vendors" in body
+
+    export_response = client.get("/v1/gpus/export")
+    assert export_response.status_code == 200, "/v1/gpus/export was shadowed by /v1/gpus/{gpu_id}"
+
+    detail_response = client.get("/v1/gpus/__definitely_not_a_gpu__")
+    assert detail_response.status_code == 404
+
+
 def test_size_endpoint_returns_consistent_result(client, test_data_dir) -> None:
     payload = _load_json(test_data_dir / "payload.json")
 
@@ -68,6 +88,39 @@ def test_size_endpoint_returns_consistent_result(client, test_data_dir) -> None:
 def test_size_endpoint_validation_error(client, test_data_dir) -> None:
     payload = _load_json(test_data_dir / "payload.json")
     payload["internal_users"] = -1
+
+    response = client.post("/v1/size", json=payload)
+    assert response.status_code == 422
+
+
+def test_size_endpoint_rejects_invalid_engine_mode(client, test_data_dir) -> None:
+    payload = _load_json(test_data_dir / "payload.json")
+    payload["engine_mode"] = "continuious"  # typo previously silently passed
+
+    response = client.post("/v1/size", json=payload)
+    assert response.status_code == 422
+
+
+def test_size_endpoint_rejects_k_experts_above_n_experts(client, test_data_dir) -> None:
+    payload = _load_json(test_data_dir / "payload.json")
+    payload.update({"n_experts": 8, "k_experts": 16})
+
+    response = client.post("/v1/size", json=payload)
+    assert response.status_code == 422
+    assert "k_experts" in response.json()["detail"][0]["msg"]
+
+
+def test_size_endpoint_rejects_params_active_above_total(client, test_data_dir) -> None:
+    payload = _load_json(test_data_dir / "payload.json")
+    payload.update({"params_active": payload["params_billions"] + 100})
+
+    response = client.post("/v1/size", json=payload)
+    assert response.status_code == 422
+
+
+def test_size_endpoint_rejects_mla_without_qk_rope(client, test_data_dir) -> None:
+    payload = _load_json(test_data_dir / "payload.json")
+    payload["kv_lora_rank"] = 512  # MLA enabled, but qk_rope_head_dim missing
 
     response = client.post("/v1/size", json=payload)
     assert response.status_code == 422

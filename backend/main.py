@@ -17,8 +17,10 @@ from api.gpu_handlers import (
 )
 from api.sizing_handlers import (
     auto_optimize_endpoint_handler,
+    ocr_size_endpoint_handler,
     report_endpoint_handler,
     size_endpoint_handler,
+    vlm_size_endpoint_handler,
     whatif_endpoint_handler,
 )
 from models import (
@@ -28,47 +30,55 @@ from models import (
     GPUListResponse,
     GPURefreshResponse,
     GPUStats,
+    LLMInfo,
+    LLMListResponse,
+    OCRSizingInput,
+    OCRSizingOutput,
     SizingInput,
     SizingOutput,
+    VLMSizingInput,
+    VLMSizingOutput,
     WhatIfRequest,
     WhatIfResponseItem,
 )
 from settings import get_settings
 from services.gpu_refresh_service import refresh_gpu_data_internal, start_scheduler
+from services.ocr_sizing_service import run_ocr_sizing
 from services.sizing_service import run_sizing
+from services.vlm_sizing_service import run_vlm_sizing
 
-# Модуль расчета мощностей для развертывания LLM (Методика v2)
+# Capacity sizing module for LLM deployment (Methodology v2)
 #
-# Методика расчета основана на документе:
-# «Методика расчета количества серверов и GPU для LLM-inference решений»
+# Sizing methodology is based on the document:
+# "Methodology for calculating the number of servers and GPUs for LLM-inference solutions"
 #
-# Расчет выполняется по двум независимым ограничениям:
-# 1. По памяти GPU (веса модели и KV-кэш) — разделы 3-5
-# 2. По вычислительной пропускной способности (tokens/sec, requests/sec) — раздел 6
-# Итоговое количество серверов = max(серверы_по_памяти, серверы_по_compute)
+# Sizing is performed under two independent constraints:
+# 1. GPU memory (model weights and KV-cache) — sections 3-5 (разделы 3-5)
+# 2. Compute throughput (tokens/sec, requests/sec) — section 6 (раздел 6)
+# Final server count = max(servers_by_memory, servers_by_compute)
 
 logger = configure_logger("sizing")
 
 
-# Точка композиции приложения:
-# - бизнес-логика вынесена в services/*
-# - HTTP-обработчики вынесены в api/*
+# Application composition point:
+# - business logic lives in services/*
+# - HTTP handlers live in api/*
 
-# Глобальная переменная для планировщика
+# Global scheduler reference
 scheduler: Optional[BackgroundScheduler] = None
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    """Lifespan-хук приложения вместо устаревших startup/shutdown событий."""
+    """Application lifespan hook (replaces deprecated startup/shutdown events)."""
     global scheduler
     settings = get_settings()
 
     logger.info("🚀 Запуск AI Server Calculator API...")
 
-    # При старте: скрапим только если gpu_data.json не существует.
-    # Если файл уже есть — используем его как есть.
-    # Обновление по расписанию или вручную через /v1/gpus/refresh.
+    # On startup: scrape only if gpu_data.json does not exist.
+    # If the file already exists — use it as-is.
+    # Refresh runs on schedule or manually via /v1/gpus/refresh.
     if not settings.gpu_data_path.exists():
         logger.info("🔄 Файл gpu_data.json не найден, запускаем первичный скрапинг...")
         refresh_gpu_data_internal()
@@ -158,6 +168,30 @@ def size_endpoint(inp: SizingInput) -> SizingOutput:
     возвращает детальный расчет необходимых серверов.
     """
     return size_endpoint_handler(inp, run_sizing_fn=run_sizing)
+
+
+@app.post("/v1/size-vlm", response_model=VLMSizingOutput, tags=["VLM/OCR"])
+def size_vlm_endpoint(inp: VLMSizingInput) -> VLMSizingOutput:
+    """
+    VLM single-pass online сайзинг (Приложение И.4.1).
+
+    Принимает параметры VLM-нагрузки (изображение, поля JSON, SLA на страницу),
+    возвращает реплики, GPU и серверы. Находит максимальный BS_real,
+    удовлетворяющий SLA_page, и рассчитывает N_repl_VLM = ⌈C_peak / BS_real*⌉.
+    """
+    return vlm_size_endpoint_handler(inp, run_vlm_sizing_fn=run_vlm_sizing)
+
+
+@app.post("/v1/size-ocr", response_model=OCRSizingOutput, tags=["VLM/OCR"])
+def size_ocr_endpoint(inp: OCRSizingInput) -> OCRSizingOutput:
+    """
+    OCR + LLM two-pass online сайзинг (Приложение И.4.2).
+
+    Принимает параметры pipeline (ocr_gpu / ocr_cpu), OCR-throughput и
+    LLM-стадию, возвращает раздельные пулы GPU (N_OCR + N_LLM) и общий счёт
+    серверов. SLA_page разделяется между OCR и LLM с учётом T_handoff.
+    """
+    return ocr_size_endpoint_handler(inp, run_ocr_sizing_fn=run_ocr_sizing)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -250,6 +284,9 @@ def get_gpus(
     )
 
 
+# Static-path routes MUST be declared before the parametric `/v1/gpus/{gpu_id}`
+# route — Starlette matches in declaration order, so a route declared after
+# `{gpu_id}` is shadowed for the matching HTTP method.
 @app.get("/v1/gpus/export", tags=["GPU Catalog"])
 def export_gpu_catalog():
     """
@@ -260,6 +297,31 @@ def export_gpu_catalog():
     через custom_gpu_catalog в auto-optimize запросе.
     """
     return export_gpu_catalog_handler()
+
+
+@app.get("/v1/gpus/stats", response_model=GPUStats, tags=["GPU Catalog"])
+def get_gpu_stats() -> GPUStats:
+    """
+    Получить статистику по каталогу GPU.
+
+    Возвращает аналитику по базе данных GPU:
+    - Общее количество GPU
+    - Распределение по производителям
+    - Распределение по объему памяти
+    - Распределение по годам выпуска
+    """
+    return get_gpu_stats_handler()
+
+
+@app.post("/v1/gpus/refresh", response_model=GPURefreshResponse, tags=["GPU Catalog"])
+def refresh_gpu_data() -> GPURefreshResponse:
+    """
+    Обновить каталог GPU из Wikipedia.
+
+    Запускает скрапинг актуальных данных о GPU с Wikipedia.
+    Процесс может занять несколько минут.
+    """
+    return refresh_gpu_data_handler(refresh_fn=refresh_gpu_data_internal)
 
 
 @app.get("/v1/gpus/{gpu_id}", response_model=GPUInfo, tags=["GPU Catalog"])
@@ -275,26 +337,44 @@ def get_gpu_details(gpu_id: str) -> GPUInfo:
     return get_gpu_details_handler(gpu_id)
 
 
-@app.post("/v1/gpus/refresh", response_model=GPURefreshResponse, tags=["GPU Catalog"])
-def refresh_gpu_data() -> GPURefreshResponse:
-    """
-    Обновить каталог GPU из Wikipedia.
+# ── Curated LLM catalog (mirrors /llm_catalog.json) ────────────────────────
+# Frontend uses these endpoints as a fallback / curated alternative when
+# HuggingFace is unreachable from an enterprise environment. Schema mirrors
+# llm_catalog.schema.json — keep `models/llm.py` in sync.
 
-    Запускает скрапинг актуальных данных о GPU с Wikipedia.
-    Процесс может занять несколько минут.
-    """
-    return refresh_gpu_data_handler(refresh_fn=refresh_gpu_data_internal)
+from services.llm_catalog_service import build_list_response, get_model_by_name  # noqa: E402
 
 
-@app.get("/v1/gpus/stats", response_model=GPUStats, tags=["GPU Catalog"])
-def get_gpu_stats() -> GPUStats:
-    """
-    Получить статистику по каталогу GPU.
+@app.get("/v1/llms", response_model=LLMListResponse, tags=["LLM Catalog"])
+def list_llms(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(100, ge=1, le=200),
+    vendor: Optional[str] = Query(None, description="Filter by vendor (e.g. 'Qwen')."),
+    family: Optional[str] = Query(None, description="Filter by family (e.g. 'Qwen3')."),
+    is_moe: Optional[bool] = Query(None),
+    is_mla: Optional[bool] = Query(None),
+    verified: Optional[bool] = Query(None),
+    search: Optional[str] = Query(None, description="Substring search across name, hf_id, family."),
+) -> LLMListResponse:
+    """List entries from the curated LLM catalog with optional filters."""
+    return build_list_response(
+        page=page,
+        per_page=per_page,
+        vendor=vendor,
+        family=family,
+        is_moe=is_moe,
+        is_mla=is_mla,
+        verified=verified,
+        search=search,
+    )
 
-    Возвращает аналитику по базе данных GPU:
-    - Общее количество GPU
-    - Распределение по производителям
-    - Распределение по объему памяти
-    - Распределение по годам выпуска
-    """
-    return get_gpu_stats_handler()
+
+@app.get("/v1/llms/{name}", response_model=LLMInfo, tags=["LLM Catalog"])
+def get_llm(name: str) -> LLMInfo:
+    """Lookup a single catalog entry by exact `name` match."""
+    entry = get_model_by_name(name)
+    if entry is None:
+        from errors import NotFoundAppError, to_http_exception
+
+        raise to_http_exception(NotFoundAppError(f"LLM not found: {name}"))
+    return entry

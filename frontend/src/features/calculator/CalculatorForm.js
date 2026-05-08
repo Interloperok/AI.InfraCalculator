@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import ReactDOM from "react-dom";
-import { getGPUs } from "../../services/api";
+import { getGPUs, getLLMs, probeHuggingFace } from "../../services/api";
+import { useT } from "../../contexts/I18nContext";
 
 // ── Model subtitle from Hugging Face API fields (when description is missing) ──
 const getModelSubtitle = (model) => {
@@ -46,6 +47,7 @@ const useSparkBurst = () => {
 
 // ── Auto-Optimize Toggle Switch with animations ──
 const ToggleSwitch = ({ autoMode, setAutoMode }) => {
+  const t = useT();
   const { containerRef, fire } = useSparkBurst();
   const [justActivated, setJustActivated] = useState(false);
   const prevMode = useRef(autoMode);
@@ -67,21 +69,21 @@ const ToggleSwitch = ({ autoMode, setAutoMode }) => {
         <button
           type="button"
           onClick={() => setAutoMode(!autoMode)}
-          className={`relative inline-flex h-8 w-[56px] shrink-0 cursor-pointer rounded-full border-2 transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+          className={`relative inline-flex h-8 w-[56px] shrink-0 cursor-pointer rounded-full border-2 transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
             autoMode
-              ? "bg-indigo-600 border-indigo-600 toggle-electric"
-              : "bg-gray-200 border-gray-200 toggle-shimmer"
+              ? "bg-accent border-accent toggle-electric"
+              : "bg-elevated border-border toggle-shimmer"
           }`}
-          title="Auto-Optimize: automatically find the best hardware configuration"
+          title={t("form.autoTooltip")}
         >
           <span
-            className={`pointer-events-none inline-flex h-[28px] w-[28px] items-center justify-center rounded-full bg-white shadow-lg ring-0 transition-all duration-300 ease-[cubic-bezier(0.68,-0.55,0.265,1.55)] ${
+            className={`pointer-events-none inline-flex h-[28px] w-[28px] items-center justify-center rounded-full bg-surface shadow-card-hover ring-0 transition-all duration-300 ease-[cubic-bezier(0.68,-0.55,0.265,1.55)] ${
               autoMode ? "translate-x-[25px]" : "translate-x-0"
             }`}
           >
             <svg
               className={`w-4 h-4 transition-all duration-200 ${
-                autoMode ? "text-indigo-600" : "text-gray-400"
+                autoMode ? "text-accent" : "text-subtle"
               } ${justActivated ? "bolt-zap" : ""} ${autoMode && !justActivated ? "bolt-glow" : ""}`}
               fill="none"
               stroke="currentColor"
@@ -99,12 +101,12 @@ const ToggleSwitch = ({ autoMode, setAutoMode }) => {
       </div>
       <span
         className={`text-sm font-semibold select-none transition-all duration-300 ${
-          autoMode ? "text-indigo-600" : "text-gray-400"
+          autoMode ? "text-accent" : "text-subtle"
         }`}
       >
-        Auto
+        {t("form.autoOn")}
       </span>
-      <InfoTooltip text="Auto-Optimize: automatically find the best hardware configuration by searching across GPUs, quantization, TP degree, and server layouts." />
+      <InfoTooltip text={t("form.autoTooltip")} />
     </div>
   );
 };
@@ -137,9 +139,9 @@ const TooltipBubble = ({ text, anchorRef, visible, width = 240 }) => {
         pointerEvents: "none",
       }}
     >
-      <div className="px-3 py-2 text-xs font-normal text-white bg-gray-800 rounded-lg shadow-lg text-center leading-relaxed">
+      <div className="px-3 py-2 text-xs font-normal text-white bg-slate-900 dark:bg-slate-800 rounded-lg shadow-elevated text-center leading-relaxed">
         {text}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900 dark:border-t-slate-800" />
       </div>
     </div>,
     document.body,
@@ -166,7 +168,7 @@ const InfoTooltip = ({ text }) => {
       onMouseLeave={onLeave}
     >
       <svg
-        className="w-4 h-4 text-gray-400 hover:text-indigo-500 cursor-help transition-colors"
+        className="w-4 h-4 text-subtle hover:text-accent cursor-help transition-colors"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -212,13 +214,75 @@ const SectionTooltip = ({ text }) => {
   );
 };
 
+// ── Agentic / RAG / Tool-use architecture presets (Appendix В.6 / Table В.1) ──
+// Each preset sets the four agentic input fields (k_calls, sp_tools, c_rag_static
+// + c_rag_dynamic, a_tool). Numbers chosen at the typical midpoint of the
+// methodology's recommended range. Reasoning_MRT stays in the Token Budget
+// section since it overlaps with non-agentic reasoning workloads.
+const AGENTIC_PRESETS = [
+  {
+    id: "single_turn",
+    name: "Single-turn chat",
+    description: "1 LLM call per request, no tools, no RAG. Baseline.",
+    data: { k_calls: 1, sp_tools: 0, c_rag_static: 0, c_rag_dynamic: 0, a_tool: 0 },
+  },
+  {
+    id: "rag",
+    name: "RAG",
+    description: "Retrieval-augmented generation: 1-2 calls + ~3K dynamic context per call.",
+    data: { k_calls: 2, sp_tools: 100, c_rag_static: 0, c_rag_dynamic: 3000, a_tool: 0 },
+  },
+  {
+    id: "agentic_rag",
+    name: "Agentic RAG",
+    description: "LLM picks search queries: 3 calls × ~3K context.",
+    data: { k_calls: 3, sp_tools: 100, c_rag_static: 0, c_rag_dynamic: 3000, a_tool: 0 },
+  },
+  {
+    id: "cot_sc",
+    name: "CoT-SC (self-consistency)",
+    description: "Chain-of-thought with 5 sample paths, majority vote.",
+    data: { k_calls: 5, sp_tools: 0, c_rag_static: 0, c_rag_dynamic: 0, a_tool: 0 },
+  },
+  {
+    id: "self_refine",
+    name: "Self-Refine",
+    description: "5-7 iterative refinement calls (critique + revise loop).",
+    data: { k_calls: 6, sp_tools: 0, c_rag_static: 0, c_rag_dynamic: 0, a_tool: 0 },
+  },
+  {
+    id: "function_calling",
+    name: "Function calling",
+    description: "2-3 calls with tool definitions + tool_call responses.",
+    data: { k_calls: 3, sp_tools: 400, c_rag_static: 0, c_rag_dynamic: 0, a_tool: 150 },
+  },
+  {
+    id: "react_agent",
+    name: "ReAct agent",
+    description: "Thought→Action→Observation loop: 5 calls, ~1K tools, ~2K RAG.",
+    data: { k_calls: 5, sp_tools: 1000, c_rag_static: 0, c_rag_dynamic: 2000, a_tool: 150 },
+  },
+  {
+    id: "multi_agent",
+    name: "Multi-agent system",
+    description: "CrewAI / LangGraph: 10 calls between specialized agents.",
+    data: { k_calls: 10, sp_tools: 1500, c_rag_static: 0, c_rag_dynamic: 3000, a_tool: 150 },
+  },
+  {
+    id: "coding_agent",
+    name: "Coding agent",
+    description: "10 calls with rich tool defs and large code context (Cursor / Aider style).",
+    data: { k_calls: 10, sp_tools: 2000, c_rag_static: 0, c_rag_dynamic: 6000, a_tool: 350 },
+  },
+];
+
 // ── Presets ──
 const PRESETS = [
   {
-    id: "excel_32b_500k",
-    name: "32B / 500K users",
+    id: "excel_32b_100k",
+    name: "32B / 100K users",
     subtitle: "A100 80GB  |  Z = 4",
-    description: "Reference example from Excel calculator (MRT=0, 23 servers)",
+    description: "Reference example from Excel calculator (MRT=0)",
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -242,8 +306,8 @@ const PRESETS = [
       cores: 6912,
     },
     data: {
-      internal_users: 500000,
-      penetration_internal: 0.1,
+      internal_users: 100000,
+      penetration_internal: 0.5,
       concurrency_internal: 0.05,
       external_users: 0,
       penetration_external: 0.0,
@@ -503,12 +567,12 @@ const OPTIMIZATION_MODE_BALANCED = {
 };
 
 const CARD_COLOR_MAP = {
-  blue: { selected: "border-blue-500 bg-blue-50 text-blue-700" },
-  emerald: { selected: "border-emerald-500 bg-emerald-50 text-emerald-700" },
-  rose: { selected: "border-rose-500 bg-rose-50 text-rose-700" },
-  violet: { selected: "border-violet-500 bg-violet-50 text-violet-700" },
-  amber: { selected: "border-amber-500 bg-amber-50 text-amber-700" },
-  indigo: { selected: "border-indigo-500 bg-indigo-50 text-indigo-700" },
+  blue: { selected: "border-info bg-info-soft text-info" },
+  emerald: { selected: "border-success bg-success-soft text-success" },
+  rose: { selected: "border-danger bg-danger-soft text-danger" },
+  violet: { selected: "border-accent bg-accent-soft text-accent" },
+  amber: { selected: "border-warning bg-warning-soft text-warning" },
+  indigo: { selected: "border-accent bg-accent-soft text-accent" },
 };
 
 const ALLOWED_DISCRETE = [1, 2, 4, 6, 8];
@@ -530,8 +594,23 @@ const INITIAL_FORM_DATA = {
   answer_tokens_A: 400,
   dialog_turns: 5,
 
+  // Agentic / RAG / Tool-use overhead (Appendix В) — neutral defaults so
+  // single-call workloads behave like before. Set via the Agentic section
+  // or one of the architecture presets.
+  k_calls: 1,
+  sp_tools: 0,
+  c_rag_static: 0,
+  c_rag_dynamic: 0,
+  a_tool: 0,
+  // Prefix-cache hit fraction (§3.1 H-5). 0.3 = conservative default for
+  // vLLM/SGLang automatic prefix caching (system prompt + tool defs reuse).
+  // Adjust higher (0.5–0.8) for stable agent system prompts, lower (0.1) for
+  // RAG with highly variable contexts.
+  eta_cache: 0.3,
+
   // Model (Section 3.1)
   params_billions: 7,
+  params_active: null, // MoE: active params per token; null = treat as dense (=params_billions)
   bytes_per_param: 2,
   safe_margin: 5.0,
   emp_model: 1.0,
@@ -541,12 +620,14 @@ const INITIAL_FORM_DATA = {
   // KV-cache (Section 3.2)
   num_kv_heads: 32,
   num_attention_heads: 32,
+  head_dim: null, // null → backend computes H/N_attn fallback; non-null → universal head_dim formula
   bytes_per_kv_state: 2,
   emp_kv: 1.0,
   max_context_window_TSmax: 32768,
 
-  // Hardware & TP (Section 4)
-  gpu_mem_gb: 0, // No GPU selected by default
+  // Hardware & TP (Section 4) — default to A100 80GB so a fresh form
+  // submits cleanly without the user having to pick a GPU first.
+  gpu_mem_gb: 80,
   gpus_per_server: 8,
   kavail: 0.9,
   tp_multiplier_Z: 1,
@@ -583,6 +664,7 @@ const CalculatorForm = ({
   appliedConfig,
   onAppliedConfigConsumed,
 }) => {
+  const t = useT();
   // Initial form values based on the SizingInput (Methodology v2)
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
 
@@ -591,6 +673,16 @@ const CalculatorForm = ({
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedModel, setSelectedModel] = useState(null);
+
+  // ── Curated LLM catalog (enterprise fallback for offline/firewalled HF) ──
+  // Three-way mode: 'auto' picks HF when reachable, else curated.
+  // 'hf' forces HF (errors visibly if down). 'curated' forces local catalog.
+  const [llmCatalog, setLlmCatalog] = useState([]);
+  const [llmSourceMode, setLlmSourceMode] = useState(
+    () => (typeof window !== "undefined" && localStorage.getItem("llmSourceMode")) || "auto",
+  );
+  // null = "not probed yet"; toggles to true/false after first probe
+  const [hfReachable, setHfReachable] = useState(null);
 
   // State for GPU selection
   const [selectedGpu, setSelectedGpu] = useState(null);
@@ -603,10 +695,65 @@ const CalculatorForm = ({
     kv: false,
     compute: false,
     sla: false,
+    agentic: false,
   });
+  const [selectedAgenticPreset, setSelectedAgenticPreset] = useState(null);
 
   const [activeTab, setActiveTab] = useState("basic"); // 'basic' or 'advanced'
   const [selectedPreset, setSelectedPreset] = useState(null);
+
+  // Load curated LLM catalog from /v1/llms once on mount.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const resp = await getLLMs({ per_page: 200 });
+      if (cancelled) return;
+      if (resp && !resp.error && Array.isArray(resp.models)) {
+        setLlmCatalog(resp.models);
+      } else if (resp && resp.error) {
+        console.warn("Failed to load curated LLM catalog:", resp.error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Probe HuggingFace reachability once on mount; downstream effective-source
+  // logic uses this to decide between HF live and curated fallback. Skipped
+  // entirely in 'curated' mode — air-gapped deployments must not emit any
+  // outbound traffic to huggingface.co.
+  useEffect(() => {
+    if (llmSourceMode === "curated") {
+      setHfReachable(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const ok = await probeHuggingFace();
+      if (!cancelled) setHfReachable(ok);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [llmSourceMode]);
+
+  // Persist user's chosen source mode across sessions
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("llmSourceMode", llmSourceMode);
+    }
+  }, [llmSourceMode]);
+
+  // Resolve the *effective* source given user's mode + probe result
+  const effectiveLlmSource =
+    llmSourceMode === "hf"
+      ? "hf"
+      : llmSourceMode === "curated"
+        ? "curated"
+        : hfReachable === false
+          ? "curated"
+          : "hf"; // 'auto' default to hf if unknown or reachable
 
   // Load GPU data on component mount
   useEffect(() => {
@@ -707,6 +854,12 @@ const CalculatorForm = ({
       "max_context_window_TSmax",
       "num_kv_heads",
       "num_attention_heads",
+      "head_dim",
+      "k_calls",
+      "sp_tools",
+      "c_rag_static",
+      "c_rag_dynamic",
+      "a_tool",
     ];
 
     const parsedValue = parseFloat(value) || 0;
@@ -726,6 +879,33 @@ const CalculatorForm = ({
       payload.gpu_flops_Fcount === 0
     ) {
       delete payload.gpu_flops_Fcount;
+    }
+    // head_dim=0 / null / "" → drop so backend uses the H/N_attn fallback
+    if (payload.head_dim === null || payload.head_dim === "" || payload.head_dim === 0) {
+      delete payload.head_dim;
+    }
+    // params_active=0 / null / "" → drop so backend treats model as dense
+    // (compute uses params_billions for FPS / memory bandwidth math)
+    if (
+      payload.params_active === null ||
+      payload.params_active === "" ||
+      payload.params_active === 0
+    ) {
+      delete payload.params_active;
+    }
+    // Strip optional MoE / MLA fields when null/0/"" so Pydantic confloat(gt=0)
+    // constraints don't reject them. Backend treats absent fields as "not set".
+    for (const field of [
+      "params_dense",
+      "params_moe",
+      "n_experts",
+      "k_experts",
+      "kv_lora_rank",
+      "qk_rope_head_dim",
+    ]) {
+      if (payload[field] === null || payload[field] === "" || payload[field] === 0) {
+        delete payload[field];
+      }
     }
     if (
       payload.th_prefill_empir === null ||
@@ -754,8 +934,21 @@ const CalculatorForm = ({
     return payload;
   };
 
+  const [validationError, setValidationError] = useState(null);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setValidationError(null);
+    if (autoMode) {
+      if (!selectedModel) {
+        setValidationError(t("form.validate.selectModelAuto"));
+        return;
+      }
+      if (!selectedGpu && (!gpuFilter || gpuFilter.length === 0)) {
+        setValidationError(t("form.validate.selectGpuAuto"));
+        return;
+      }
+    }
     onSubmit(buildPayload());
   };
 
@@ -779,9 +972,39 @@ const CalculatorForm = ({
   };
 
   // Function to search for models on Hugging Face
+  // Format curated catalog entries to the same shape HF search returns so
+  // the result-row UI doesn't need to branch on source.
+  const curatedSearch = (query) => {
+    const q = query.toLowerCase();
+    return llmCatalog
+      .filter(
+        (m) =>
+          m.name.toLowerCase().includes(q) ||
+          (m.hf_id || "").toLowerCase().includes(q) ||
+          (m.family || "").toLowerCase().includes(q) ||
+          (m.vendor || "").toLowerCase().includes(q),
+      )
+      .slice(0, 10)
+      .map((m) => ({
+        id: m.hf_id || `curated:${m.name}`,
+        modelId: m.hf_id || m.name,
+        _curated: m, // attach the full catalog entry for handleModelSelect
+        downloads: 0,
+        likes: 0,
+        pipeline_tag: m.architecture,
+        library_name: m.vendor,
+      }));
+  };
+
   const searchModels = async (query) => {
     if (!query.trim()) {
       setSearchResults([]);
+      return;
+    }
+
+    // Curated mode (forced or auto-fallback) — local substring search
+    if (effectiveLlmSource === "curated") {
+      setSearchResults(curatedSearch(query));
       return;
     }
 
@@ -807,7 +1030,9 @@ const CalculatorForm = ({
       setSearchResults(relevantModels);
     } catch (error) {
       console.error("Error searching for models:", error);
-      setSearchResults([]);
+      // HF unreachable mid-session — fall back to curated even in 'hf'/'auto' mode
+      setHfReachable(false);
+      setSearchResults(curatedSearch(query));
     } finally {
       setIsSearching(false);
     }
@@ -816,20 +1041,72 @@ const CalculatorForm = ({
   // State for model warning
   const [modelWarning, setModelWarning] = useState(null);
 
+  // Apply a curated-catalog entry to formData. Sets all known architecture
+  // fields directly — no HF call needed. Used both for (a) curated-mode
+  // selection and (b) auto-fallback when HF fetch fails in hf/auto mode.
+  const applyCuratedModel = (entry) => {
+    if (!entry) return;
+    const updates = {
+      params_billions: entry.params_total_b,
+      params_active: entry.is_moe ? entry.params_active_b : null,
+      layers_L: entry.layers,
+      hidden_size_H: entry.hidden_size,
+      num_attention_heads: entry.num_attention_heads,
+      num_kv_heads: entry.num_kv_heads,
+      head_dim: entry.head_dim,
+      max_context_window_TSmax: Math.min(entry.max_context, 131072),
+      n_experts: entry.n_experts ?? null,
+      k_experts: entry.k_moe ?? null,
+      params_dense: entry.params_dense_b ?? null,
+      params_moe: entry.params_moe_b ?? null,
+      kv_lora_rank: entry.kv_lora_rank ?? null,
+      qk_rope_head_dim: entry.qk_rope_head_dim ?? null,
+    };
+    setFormData((prev) => ({ ...prev, ...updates }));
+    if (entry.is_moe && !entry.verified) {
+      setModelWarning(
+        `Curated entry for ${entry.name} is not verified against HF config.json — re-check params if accuracy matters.`,
+      );
+    }
+  };
+
   // Handle model selection
   const handleModelSelect = async (model) => {
     setSelectedModel(model);
     setModelSearch("");
     setModelWarning(null);
 
+    // Curated-mode selection: catalog entry was attached to the search
+    // result; apply directly without any HF traffic.
+    if (model._curated) {
+      applyCuratedModel(model._curated);
+      return;
+    }
+
     try {
       const modelId = model.modelId || model.id;
-      const response = await fetch(`https://huggingface.co/api/models/${modelId}`);
-      const modelDetails = await response.json();
+
+      // Fetch HF API metadata (params from safetensors) and the model's
+      // config.json (full architecture) in parallel. config.json fetch may
+      // 404 for gated/private models — auto-fill is best-effort.
+      const [metaResp, configResp] = await Promise.all([
+        fetch(`https://huggingface.co/api/models/${modelId}`),
+        fetch(`https://huggingface.co/${modelId}/resolve/main/config.json`),
+      ]);
+
+      const modelDetails = await metaResp.json();
+      let modelConfig = null;
+      if (configResp.ok) {
+        try {
+          modelConfig = await configResp.json();
+        } catch {
+          /* ignore — config.json may be missing or non-standard */
+        }
+      }
 
       const updatedData = { ...formData };
 
-      // Extract parameter count from safetensors info
+      // ── params_billions: prefer safetensors → cardData tags → name match ──
       if (modelDetails.safetensors && modelDetails.safetensors.parameters) {
         const paramsObj = modelDetails.safetensors.parameters;
         if (paramsObj && typeof paramsObj === "object") {
@@ -846,7 +1123,6 @@ const CalculatorForm = ({
         }
       }
 
-      // Fallback: parse from model card data
       if (
         updatedData.params_billions === formData.params_billions &&
         modelDetails.cardData &&
@@ -864,7 +1140,6 @@ const CalculatorForm = ({
         }
       }
 
-      // Fallback: parse from model name
       if (updatedData.params_billions === formData.params_billions) {
         const modelName = modelId.toLowerCase();
         const paramMatch = modelName.match(/(\d+\.?\d*)([b|m])/i);
@@ -879,15 +1154,132 @@ const CalculatorForm = ({
         }
       }
 
+      // ── params_active: parse from model name "A<N>B" pattern (Qwen3 convention).
+      // Examples: "Qwen3-30B-A3B-Thinking" → 3, "Qwen3-Next-80B-A3B" → 3.
+      // Reset on every model select so a non-MoE model picked after an MoE
+      // one doesn't carry a stale active-params value.
+      updatedData.params_active = null;
+      const activeMatch = modelId.match(/-A(\d+(?:\.\d+)?)B\b/i);
+      if (activeMatch) {
+        const activeVal = parseFloat(activeMatch[1]);
+        if (!isNaN(activeVal) && activeVal > 0) {
+          updatedData.params_active = activeVal;
+        }
+      }
+
+      // ── Architecture from config.json — fixes the "Qwen3 doesn't fit"
+      // class of errors caused by stale form defaults vs real model spec.
+      if (modelConfig) {
+        const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+        const layers = num(modelConfig.num_hidden_layers);
+        if (layers && layers > 0) updatedData.layers_L = layers;
+
+        const hidden = num(modelConfig.hidden_size);
+        if (hidden && hidden > 0) updatedData.hidden_size_H = hidden;
+
+        const nAttn = num(modelConfig.num_attention_heads);
+        if (nAttn && nAttn > 0) updatedData.num_attention_heads = nAttn;
+
+        // Older MHA models omit num_key_value_heads → equals num_attention_heads
+        const nKv = num(modelConfig.num_key_value_heads) ?? nAttn;
+        if (nKv && nKv > 0) updatedData.num_kv_heads = nKv;
+
+        // head_dim: explicit if present (Qwen3, Mistral); else H/N_attn fallback
+        const headDim =
+          num(modelConfig.head_dim) ??
+          (hidden && nAttn && nAttn > 0 ? Math.floor(hidden / nAttn) : null);
+        if (headDim && headDim > 0) updatedData.head_dim = headDim;
+
+        const maxCtx = num(modelConfig.max_position_embeddings);
+        if (maxCtx && maxCtx > 0) {
+          // Cap auto-fill at the form's slider max so the UI stays usable;
+          // user can still type a larger value manually if needed.
+          updatedData.max_context_window_TSmax = Math.min(maxCtx, 131072);
+        }
+
+        // ── MoE: num_experts + num_experts_per_tok ──
+        // Reset on every model select so a non-MoE model after an MoE one
+        // doesn't carry stale expert counts.
+        const nExperts = num(modelConfig.num_experts);
+        const kExperts = num(modelConfig.num_experts_per_tok);
+        updatedData.n_experts = nExperts ?? null;
+        updatedData.k_experts = kExperts ?? null;
+
+        // ── params_dense / params_moe ──
+        // Backend activates "MoE detailed" mode (BS-dependent P_effective)
+        // only when all four of {params_dense, params_moe, n_experts,
+        // k_experts} are set. Compute P_moe from config geometry and derive
+        // P_dense = total - P_moe. Keeps the xlsx-faithful statistical
+        // coverage formula: P_eff = P_dense + P_moe·(1 − (1 − k/n)^BS).
+        updatedData.params_dense = null;
+        updatedData.params_moe = null;
+        if (nExperts && nExperts > 1 && layers && layers > 0 && hidden && hidden > 0) {
+          // Qwen3 uses moe_intermediate_size; Mixtral uses intermediate_size
+          // for its expert FFN. Prefer the explicit MoE field when present.
+          const moeInter =
+            num(modelConfig.moe_intermediate_size) ?? num(modelConfig.intermediate_size);
+          if (moeInter && moeInter > 0) {
+            const pMoeB = (nExperts * layers * 3 * hidden * moeInter) / 1e9;
+            const pDenseB = updatedData.params_billions - pMoeB;
+            // Sanity guard: only auto-fill when the arithmetic produces
+            // sensible positive values for both. Partial-MoE configs
+            // (e.g., DeepSeek V3 keeps the first few layers dense) make
+            // the all-layers formula over-estimate P_moe; skip those and
+            // let the warning fire instead so the user sets values manually.
+            if (pMoeB > 0.5 && pDenseB > 0.5 && pMoeB < updatedData.params_billions) {
+              updatedData.params_moe = Math.round(pMoeB * 100) / 100;
+              updatedData.params_dense = Math.round(pDenseB * 100) / 100;
+            }
+          }
+        }
+
+        // ── MLA (DeepSeek V2/V3/R1): kv_lora_rank triggers MLA mode in backend ──
+        updatedData.kv_lora_rank = num(modelConfig.kv_lora_rank) ?? null;
+        updatedData.qk_rope_head_dim = num(modelConfig.qk_rope_head_dim) ?? null;
+
+        // ── MoE warning: experts detected but detailed-mode fields couldn't
+        // be derived (non-standard config layout, missing moe_intermediate_size
+        // and intermediate_size, etc.). Without detailed-mode fields the
+        // backend falls back to params_active (or params_billions for dense),
+        // which inflates compute load 5–10× for typical MoE models.
+        if (
+          updatedData.n_experts &&
+          updatedData.n_experts > 1 &&
+          !updatedData.params_dense &&
+          !updatedData.params_active
+        ) {
+          setModelWarning(
+            `MoE model detected (${updatedData.n_experts} experts, ${updatedData.k_experts || "?"} active per token), ` +
+              "but params_dense / params_moe could not be derived from config.json. " +
+              "Set params_active manually for accurate compute sizing — otherwise the calc " +
+              "treats the model as dense at total params and overstates compute load.",
+          );
+        }
+      }
+
       setFormData(updatedData);
       setSearchResults([]);
     } catch (error) {
       console.error("Error fetching model details:", error);
       setSelectedModel(model);
-      setModelWarning(
-        "Could not automatically extract model parameters. Please adjust values manually.",
-      );
       setSearchResults([]);
+      // HF fetch failed — try matching to a curated catalog entry by hf_id
+      // before falling back to "fill manually". Updates the source-mode
+      // probe so subsequent searches use curated automatically.
+      const modelId = (model.modelId || model.id || "").toLowerCase();
+      const curatedMatch = llmCatalog.find((m) => (m.hf_id || "").toLowerCase() === modelId);
+      if (curatedMatch) {
+        setHfReachable(false);
+        applyCuratedModel(curatedMatch);
+        setModelWarning(
+          `HuggingFace unreachable — used curated catalog entry for ${curatedMatch.name}. Switch source to 'Curated only' if HF is permanently blocked.`,
+        );
+      } else {
+        setModelWarning(
+          "Could not automatically extract model parameters and no curated catalog match found. Please adjust values manually.",
+        );
+      }
     }
   };
 
@@ -907,11 +1299,11 @@ const CalculatorForm = ({
 
   // Helper function to render a collapsible section
   const renderCollapsibleSection = (key, title, inputs, isExpanded, tooltip = "") => (
-    <div className="bg-gray-50 rounded-lg border border-gray-200 mb-4 overflow-hidden">
+    <div className="bg-elevated rounded-lg border border-border mb-4 overflow-hidden">
       <button
         type="button"
         onClick={() => toggleSection(key)}
-        className="w-full flex justify-between items-center p-4 text-left text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors"
+        className="w-full flex justify-between items-center p-4 text-left text-fg font-medium rounded-lg hover:bg-elevated/70 transition-colors"
       >
         <span className="font-semibold flex items-center">
           {title}
@@ -932,7 +1324,7 @@ const CalculatorForm = ({
           isExpanded ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="p-4 pt-2 border-t border-gray-200">{inputs}</div>
+        <div className="p-4 pt-2 border-t border-border">{inputs}</div>
       </div>
     </div>
   );
@@ -996,17 +1388,19 @@ const CalculatorForm = ({
 
     return (
       <div className={`mb-6 ${disabled ? "opacity-50 pointer-events-none" : ""}`} key={name}>
-        <div className="flex justify-between items-center mb-2">
-          <label className="block text-sm font-medium text-gray-700 flex items-center">
-            {label}
+        <div className="flex justify-between items-center gap-3 mb-2">
+          <label className="text-sm font-medium text-fg flex items-center min-w-0">
+            <span className="truncate">{label}</span>
             {disabled && (
-              <span className="ml-1.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-normal">
-                auto
+              <span className="ml-1.5 text-xs text-warning bg-warning-soft px-1.5 py-0.5 rounded font-normal shrink-0">
+                {t("form.input.auto")}
               </span>
             )}
             {tooltip && <InfoTooltip text={tooltip} />}
           </label>
-          <div className="flex items-center space-x-2">
+          {/* Fixed-width input slot: every row's number box renders at the
+              same x-axis position regardless of label length or unit suffix. */}
+          <div className="flex items-center gap-1.5 shrink-0 w-[120px] justify-end">
             <input
               type="number"
               min={min}
@@ -1015,11 +1409,13 @@ const CalculatorForm = ({
               value={value}
               onChange={handleInputChange}
               disabled={disabled}
-              className={`px-2 py-1 text-sm border border-gray-300 rounded-md text-right ${max >= 1000000 ? "w-28" : "w-20"} ${disabled ? "bg-gray-100" : ""}`}
+              className={`px-2 py-1 text-sm border border-border-strong rounded-md text-right bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent w-full ${disabled ? "bg-elevated text-subtle" : ""}`}
               inputMode={isInteger ? "numeric" : "decimal"}
               placeholder="0"
             />
-            <span className="text-sm text-gray-500 font-medium">{unit}</span>
+            {unit && (
+              <span className="text-xs text-muted font-medium w-7 shrink-0 text-left">{unit}</span>
+            )}
           </div>
         </div>
         <input
@@ -1030,9 +1426,9 @@ const CalculatorForm = ({
           value={value}
           onChange={handleSliderChange}
           disabled={disabled}
-          className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
+          className="w-full rounded-lg appearance-none cursor-pointer accent-accent"
         />
-        <div className="flex justify-between text-xs text-gray-500 mt-1">
+        <div className="flex justify-between text-xs text-muted mt-1">
           <span>
             {typeof min === "number" && min >= 1000 ? min.toLocaleString() : min}
             {unit}
@@ -1048,60 +1444,119 @@ const CalculatorForm = ({
 
   // Basic configuration inputs
   const basicInputs = (
-    <div className="space-y-6">
-      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-        <h3 className="text-lg font-medium text-blue-800 mb-4 flex items-center">
-          Users
-          <SectionTooltip text="Define the total user base. Fine-tune adoption and concurrency rates in the Advanced tab." />
-        </h3>
+    <div className="space-y-4">
+      {/* Section: Users & workload — neutral card, accent dot for identity */}
+      <section className="bg-surface rounded-xl p-5 border border-border shadow-card">
+        <header className="flex items-center gap-2 mb-4">
+          <span className="h-2 w-2 rounded-full bg-info" aria-hidden />
+          <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted">
+            {t("form.section.users")}
+          </h3>
+          <SectionTooltip text={t("form.section.usersTooltip")} />
+        </header>
         {renderSliderInput(
           "internal_users",
-          "Total Users",
+          t("form.input.totalUsers"),
           0,
-          100000000,
-          1000,
+          100000,
+          100,
           formData.internal_users,
           "",
-          "Total number of internal users who may access the AI service.",
+          t("form.input.totalUsersTooltip"),
         )}
-      </div>
+      </section>
 
-      <div className="bg-green-50 rounded-lg p-4 border border-green-200" data-tour="model-search">
-        <h3 className="text-lg font-medium text-green-800 mb-4 flex items-center">
-          Model
-          <SectionTooltip text="Search for a model on Hugging Face to auto-fill architecture parameters, or set them manually in the Advanced tab." />
-        </h3>
+      {/* Section: Model — same clean pattern, success-toned accent */}
+      <section
+        className="bg-surface rounded-xl p-5 border border-border shadow-card"
+        data-tour="model-search"
+      >
+        <header className="flex items-center gap-2 mb-4">
+          <span className="h-2 w-2 rounded-full bg-success" aria-hidden />
+          <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted">
+            {t("form.section.model")}
+          </h3>
+          <SectionTooltip text={t("form.section.modelTooltip")} />
+        </header>
+
+        {/* Source toggle: Auto / HF live / Curated only */}
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-muted font-medium">{t("form.dataSource")}:</span>
+          <div className="inline-flex rounded-lg border border-border bg-elevated p-0.5">
+            {[
+              { id: "auto", label: t("form.source.auto") },
+              { id: "hf", label: t("form.source.hf") },
+              { id: "curated", label: t("form.source.curated") },
+            ].map((opt) => {
+              const active = llmSourceMode === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setLlmSourceMode(opt.id)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    active ? "bg-surface text-fg shadow-sm" : "text-muted hover:text-fg"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          {/* Effective-source badge — only shown when the *effective* source
+              differs from what the user picked (e.g. Auto + HF unreachable
+              ⇒ silently fell back to curated). Otherwise the active button
+              already conveys the state and the badge wraps to a new line in
+              languages with longer source labels. */}
+          {((llmSourceMode === "auto" && effectiveLlmSource !== "hf") ||
+            (hfReachable === false && llmSourceMode !== "curated")) && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-warning-soft text-warning"
+              title={
+                effectiveLlmSource === "hf"
+                  ? "Currently reading from HuggingFace API"
+                  : "Currently reading from bundled curated catalog"
+              }
+            >
+              <span aria-hidden>📁</span>
+              {t("form.badge.curated")}
+              {hfReachable === false && llmSourceMode !== "curated" && (
+                <span className="ml-1 normal-case opacity-80">{t("form.badge.unreachable")}</span>
+              )}
+            </span>
+          )}
+        </div>
 
         {/* Model search */}
         <div className="mb-4 relative">
-          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-            Search Model
-            <InfoTooltip text="Search Hugging Face to find your model. Parameters like size, layers, and hidden dim will be filled automatically." />
+          <label className="text-sm font-medium text-fg mb-2 flex items-center">
+            {t("form.search.model")}
+            <InfoTooltip text={t("form.search.tooltip")} />
           </label>
           <input
             type="text"
             value={modelSearch}
             onChange={handleSearchChange}
-            placeholder="Search for a model (e.g., llama, gpt, etc.)"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            placeholder={t("form.search.placeholder")}
+            className="w-full px-3 py-2 border border-border rounded-md shadow-sm bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
           />
 
           {isSearching && (
             <div className="absolute right-3 top-2">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-accent"></div>
             </div>
           )}
 
           {searchResults.length > 0 && (
-            <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto">
+            <div className="absolute z-10 mt-1 w-full bg-surface border border-border shadow-elevated rounded-md max-h-60 overflow-auto">
               {searchResults.map((model, index) => (
                 <div
                   key={index}
                   onClick={() => handleModelSelect(model)}
-                  className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  className="px-4 py-2 text-sm text-fg hover:bg-accent-soft cursor-pointer border-b border-border last:border-b-0"
                 >
                   <div className="font-medium">{model.modelId || model.id}</div>
-                  <div className="text-xs text-gray-500 truncate">
+                  <div className="text-xs text-muted truncate">
                     {getModelSubtitle(model) || "—"}
                   </div>
                 </div>
@@ -1112,11 +1567,11 @@ const CalculatorForm = ({
 
         {selectedModel && (
           <div className="mt-4 mb-4">
-            <div className="p-3 bg-green-50 border-2 border-green-400 rounded-md shadow-sm">
+            <div className="p-3 bg-success-soft border-2 border-success/50 rounded-md shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0">
                   <svg
-                    className="w-5 h-5 text-green-600 mr-2 flex-shrink-0"
+                    className="w-5 h-5 text-success mr-2 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1129,10 +1584,10 @@ const CalculatorForm = ({
                     />
                   </svg>
                   <div className="min-w-0">
-                    <div className="text-xs font-medium text-green-700 uppercase tracking-wide mb-0.5">
+                    <div className="text-xs font-medium text-success uppercase tracking-wide mb-0.5">
                       Selected Model
                     </div>
-                    <div className="text-sm font-semibold text-green-900 truncate">
+                    <div className="text-sm font-semibold text-fg truncate">
                       {selectedModel.modelId || selectedModel.id}
                     </div>
                   </div>
@@ -1141,8 +1596,8 @@ const CalculatorForm = ({
                   href={`https://huggingface.co/${selectedModel.modelId || selectedModel.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ml-2 p-1 rounded-lg hover:bg-yellow-50 transition-colors flex-shrink-0"
-                  title="Open on Hugging Face"
+                  className="ml-2 p-1 rounded-lg hover:bg-warning-soft transition-colors flex-shrink-0"
+                  title={t("ui.openOnHuggingFace")}
                 >
                   <img src="/huggingface-color.png" alt="Hugging Face" className="w-6 h-6" />
                 </a>
@@ -1150,12 +1605,12 @@ const CalculatorForm = ({
             </div>
 
             {modelWarning && (
-              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md flex justify-between items-start">
-                <div className="text-sm text-yellow-800">{modelWarning}</div>
+              <div className="mt-2 p-3 bg-warning-soft border border-warning/30 rounded-md flex justify-between items-start">
+                <div className="text-sm text-warning">{modelWarning}</div>
                 <button
                   type="button"
                   onClick={() => setModelWarning(null)}
-                  className="text-yellow-800 hover:text-yellow-900"
+                  className="text-warning hover:text-warning/80"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -1170,20 +1625,23 @@ const CalculatorForm = ({
             )}
           </div>
         )}
-      </div>
+      </section>
 
-      <div className="bg-purple-50 rounded-lg p-4 border border-purple-200" data-tour="gpu-search">
-        <h3 className="text-lg font-medium text-purple-800 mb-4 flex items-center">
-          Hardware
-          <SectionTooltip text="Choose the GPU accelerator and server layout. Memory and TFLOPS are auto-filled from the GPU catalog." />
+      <div
+        className="bg-surface rounded-xl p-5 border border-border shadow-card"
+        data-tour="gpu-search"
+      >
+        <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-accent before:content-['']">
+          {t("form.section.hardware")}
+          <SectionTooltip text={t("form.section.hardwareTooltip")} />
         </h3>
 
         {/* GPU Selection with Search — or GPU Filter in autoMode */}
         {autoMode ? (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+            <label className="block text-sm font-medium text-fg mb-2 flex items-center">
               GPU Selection
-              <span className="ml-1.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-normal">
+              <span className="ml-1.5 text-xs text-warning bg-warning-soft px-1.5 py-0.5 rounded font-normal">
                 auto
               </span>
               <InfoTooltip text="In auto-optimize mode GPUs are selected automatically. Use the filter to restrict which GPUs to consider." />
@@ -1191,7 +1649,7 @@ const CalculatorForm = ({
             <button
               type="button"
               onClick={onOpenGpuFilter}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-100 hover:border-purple-400 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-accent/40 rounded-lg text-sm font-medium text-accent hover:bg-accent-soft/80 hover:border-accent/60 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -1201,22 +1659,22 @@ const CalculatorForm = ({
                   d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                 />
               </svg>
-              GPU Filter
+              {t("form.gpuFilterLabel")}
               {gpuFilter && gpuFilter.length > 0
-                ? ` (${gpuFilter.length} selected)`
-                : " (all GPUs)"}
+                ? t("form.gpuFilterCount").replace("{count}", String(gpuFilter.length))
+                : t("form.gpuFilterAll")}
             </button>
           </div>
         ) : (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+            <label className="block text-sm font-medium text-fg mb-2 flex items-center">
               GPU
-              <InfoTooltip text="Open the catalog to choose one GPU. Memory and compute specs will be filled in automatically." />
+              <InfoTooltip text={t("form.gpuPicker.tooltip")} />
             </label>
             <button
               type="button"
               onClick={() => onOpenGpuPicker(selectedGpu?.id)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-400 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-accent/40 rounded-lg text-sm font-medium text-accent hover:bg-accent-soft/60 hover:border-accent/60 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -1231,10 +1689,10 @@ const CalculatorForm = ({
                 : "Select GPU"}
             </button>
             {selectedGpu && (
-              <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <div className="mt-3 p-3 bg-accent-soft border border-accent/30 rounded-lg">
                 <div className="flex items-center">
                   <svg
-                    className="w-5 h-5 text-purple-600 mr-2 flex-shrink-0"
+                    className="w-5 h-5 text-accent mr-2 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1247,12 +1705,12 @@ const CalculatorForm = ({
                     />
                   </svg>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium text-purple-700 uppercase tracking-wide mb-0.5">
+                    <div className="text-xs font-medium text-accent uppercase tracking-wide mb-0.5">
                       Selected GPU
                     </div>
-                    <div className="text-sm font-semibold text-purple-900">
+                    <div className="text-sm font-semibold text-fg">
                       {selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`}
-                      <span className="text-purple-700 font-normal ml-1">
+                      <span className="text-accent font-normal ml-1">
                         ({selectedGpu.memory_size_formatted || `${selectedGpu.memory_gb} GB`})
                         {selectedGpu.tflops ? ` | ${selectedGpu.tflops} TFLOPS` : ""}
                       </span>
@@ -1287,18 +1745,18 @@ const CalculatorForm = ({
               key="gpus_per_server"
             >
               <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700 flex items-center">
+                <label className="block text-sm font-medium text-fg flex items-center">
                   GPUs per Server
                   {gpuLocked && (
-                    <span className="ml-1.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-normal">
+                    <span className="ml-1.5 text-xs text-warning bg-warning-soft px-1.5 py-0.5 rounded font-normal">
                       auto
                     </span>
                   )}
                   <InfoTooltip text="Number of GPU accelerators installed in each physical server. Allowed: 1, 2, 4, 6, 8." />
                 </label>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center w-[120px] justify-end">
                   <span
-                    className={`px-2 py-1 text-sm border border-gray-300 rounded-md text-right w-20 inline-block text-center font-medium ${gpuLocked ? "bg-gray-100" : "bg-white"}`}
+                    className={`px-2 py-1 text-sm border border-border-strong rounded-md text-center font-medium w-full ${gpuLocked ? "bg-elevated text-subtle" : "bg-surface text-fg"}`}
                   >
                     {displayVal}
                   </span>
@@ -1315,9 +1773,9 @@ const CalculatorForm = ({
                   handleChange("gpus_per_server", gpuPerServerAllowed[parseInt(e.target.value)])
                 }
                 disabled={gpuLocked}
-                className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className="w-full rounded-lg appearance-none cursor-pointer accent-accent"
               />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-muted mt-1">
                 <span>{gpuPerServerAllowed[0]}</span>
                 <span>{gpuPerServerAllowed[gpuPerServerAllowed.length - 1]}</span>
               </div>
@@ -1336,8 +1794,8 @@ const CalculatorForm = ({
         )}
       </div>
 
-      <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-        <h3 className="text-lg font-medium text-orange-800 mb-4 flex items-center">
+      <div className="bg-surface rounded-xl p-5 border border-border shadow-card">
+        <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-warning before:content-['']">
           Tensor Parallelism
           <SectionTooltip text="Tensor parallelism splits one model across multiple GPUs, increasing available memory per instance." />
         </h3>
@@ -1360,18 +1818,18 @@ const CalculatorForm = ({
           return (
             <div className={`mb-6 ${tpLocked ? "opacity-50 pointer-events-none" : ""}`}>
               <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700 flex items-center">
+                <label className="block text-sm font-medium text-fg flex items-center">
                   TP Degree (Z)
                   {tpLocked && (
-                    <span className="ml-1.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-normal">
+                    <span className="ml-1.5 text-xs text-warning bg-warning-soft px-1.5 py-0.5 rounded font-normal">
                       auto
                     </span>
                   )}
                   <InfoTooltip text="Number of GPUs across which the model is split. Z=1 means no parallelism; higher even values increase memory per instance but add inter-GPU communication." />
                 </label>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center w-[120px] justify-end">
                   <span
-                    className={`px-2 py-1 text-sm border border-gray-300 rounded-md text-right w-20 inline-block text-center font-medium ${tpLocked ? "bg-gray-100" : "bg-white"}`}
+                    className={`px-2 py-1 text-sm border border-border-strong rounded-md text-center font-medium w-full ${tpLocked ? "bg-elevated text-subtle" : "bg-surface text-fg"}`}
                   >
                     {formData.tp_multiplier_Z}
                   </span>
@@ -1387,9 +1845,9 @@ const CalculatorForm = ({
                   !tpLocked && handleChange("tp_multiplier_Z", tpAllowed[parseInt(e.target.value)])
                 }
                 disabled={tpLocked}
-                className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className="w-full rounded-lg appearance-none cursor-pointer accent-accent"
               />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-muted mt-1">
                 <span>{tpAllowed[0]}</span>
                 <span>{tpAllowed[tpAllowed.length - 1]}</span>
               </div>
@@ -1408,9 +1866,12 @@ const CalculatorForm = ({
         )}
       </div>
 
-      <div className="bg-amber-50 rounded-lg p-4 border border-amber-200" data-tour="sla-targets">
-        <h3 className="text-lg font-medium text-amber-800 mb-4 flex items-center">
-          SLA Targets
+      <div
+        className="bg-surface rounded-xl p-5 border border-border shadow-card"
+        data-tour="sla-targets"
+      >
+        <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-warning before:content-['']">
+          {t("form.section.sla")}
           <SectionTooltip text="Time To First Token (TTFT) and end-to-end latency limits used to validate the configuration against your service-level requirements." />
         </h3>
         {renderSliderInput(
@@ -1427,7 +1888,7 @@ const CalculatorForm = ({
           "e2e_latency_sla",
           "e2e Latency Target (SLA)",
           0,
-          300,
+          1000,
           1,
           formData.e2e_latency_sla ?? 2,
           "sec",
@@ -1443,17 +1904,27 @@ const CalculatorForm = ({
       {/* Model Section */}
       {renderCollapsibleSection(
         "model",
-        "Model Architecture",
+        t("form.section.modelArch"),
         <>
           {renderSliderInput(
             "params_billions",
-            "Parameters",
+            "Parameters (total)",
             0.1,
             200,
             0.1,
             formData.params_billions,
             "B",
-            "Total number of trainable parameters in the model (in billions).",
+            "Total number of trainable parameters in the model (in billions). Used for memory sizing — full weights must fit in GPU memory.",
+          )}
+          {renderSliderInput(
+            "params_active",
+            "Parameters (active, MoE)",
+            0,
+            200,
+            0.1,
+            formData.params_active || 0,
+            "B",
+            "MoE only: parameters activated per token. Auto-filled from model name pattern (e.g., 'Qwen3-30B-A3B' → 3). For Mixtral-8x7B set to ~13. Leave 0 for dense models — backend treats as dense at total params. Wrong value here drives a runaway in §6.4 server count.",
           )}
           {renderSliderInput(
             "bytes_per_param",
@@ -1507,13 +1978,13 @@ const CalculatorForm = ({
           )}
         </>,
         expandedSections.model,
-        "Core architecture parameters that determine the model's memory footprint on GPU.",
+        t("form.section.modelArchTooltip"),
       )}
 
       {/* Users & Behavior */}
       {renderCollapsibleSection(
         "users",
-        "User Behavior",
+        t("form.section.userBehavior"),
         <>
           {renderSliderInput(
             "penetration_internal",
@@ -1547,13 +2018,13 @@ const CalculatorForm = ({
           )}
         </>,
         expandedSections.users,
-        "Controls how many users are active simultaneously and how they generate load.",
+        t("form.section.userBehaviorTooltip"),
       )}
 
       {/* Tokens Section */}
       {renderCollapsibleSection(
         "tokens",
-        "Token Budget",
+        t("form.section.tokenBudget"),
         <>
           {renderSliderInput(
             "system_prompt_tokens_SP",
@@ -1607,13 +2078,186 @@ const CalculatorForm = ({
           )}
         </>,
         expandedSections.tokens,
-        "Token counts that define a typical request and conversation. These determine memory and compute requirements.",
+        t("form.section.tokenBudgetTooltip"),
+      )}
+
+      {/* Agentic / RAG / Tool-Use Section */}
+      {renderCollapsibleSection(
+        "agentic",
+        t("form.section.agentic"),
+        <>
+          {/* Architecture pattern presets — Appendix В Table В.1 */}
+          <div>
+            <label className="block text-xs font-medium text-muted mb-2">
+              Architecture pattern
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {AGENTIC_PRESETS.map((preset) => {
+                const isActive = selectedAgenticPreset === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => {
+                      setFormData((prev) => ({ ...prev, ...preset.data }));
+                      setSelectedAgenticPreset(preset.id);
+                    }}
+                    title={preset.description}
+                    className={`text-left px-2.5 py-1.5 rounded-md border text-xs transition-all ${
+                      isActive
+                        ? "bg-accent border-accent text-accent-fg shadow-card"
+                        : "bg-surface border-border text-fg hover:border-accent/40 hover:bg-accent-soft"
+                    }`}
+                  >
+                    <span className="font-semibold leading-tight">{preset.name}</span>
+                    <span
+                      className={`block text-[10px] mt-0.5 ${
+                        isActive ? "opacity-80" : "text-muted"
+                      }`}
+                    >
+                      k={preset.data.k_calls}
+                      {preset.data.sp_tools ? `, tools=${preset.data.sp_tools}` : ""}
+                      {preset.data.c_rag_dynamic ? `, rag=${preset.data.c_rag_dynamic}` : ""}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {renderSliderInput(
+            "k_calls",
+            "K_calls (LLM calls per request)",
+            1,
+            20,
+            1,
+            formData.k_calls,
+            "",
+            "Number of LLM calls per user request. 1=single-turn / RAG. 3-10=ReAct, Self-Refine. 6-20=multi-agent. Multiplies request rate (R_eff = R × K_calls).",
+          )}
+          {renderSliderInput(
+            "sp_tools",
+            "Tool definitions",
+            0,
+            5000,
+            50,
+            formData.sp_tools,
+            "tok",
+            "Tokens for tool definitions added to system prompt (Appendix В.1). 0=no tools. ReAct typically 500-2000. Coding agent 1000-3000.",
+          )}
+          {renderSliderInput(
+            "c_rag_static",
+            "RAG context (static)",
+            0,
+            10000,
+            100,
+            formData.c_rag_static,
+            "tok",
+            "Static RAG context loaded once per session (Appendix В.1). E.g., a long document the agent reasons over.",
+          )}
+          {renderSliderInput(
+            "c_rag_dynamic",
+            "RAG context (dynamic)",
+            0,
+            10000,
+            100,
+            formData.c_rag_dynamic,
+            "tok",
+            "Dynamic RAG context fetched per call (Appendix В.2). Typical 500-5000 per retrieval.",
+          )}
+          {renderSliderInput(
+            "a_tool",
+            "Tool-call response tokens",
+            0,
+            1000,
+            10,
+            formData.a_tool,
+            "tok",
+            "Extra response tokens for tool_call JSON (Appendix В.3). Typical 50-200 for function-calling, 200-500 for coding agents.",
+          )}
+          {renderSliderInput(
+            "eta_cache",
+            "Prefix cache hit (η_cache)",
+            0,
+            1,
+            0.05,
+            formData.eta_cache,
+            "",
+            "Fraction of prefill served from prefix-cache (§3.1 H-5). 0 = no caching. 0.3 = vLLM/SGLang auto prefix-cache default. 0.5–0.8 for stable agent prompts. 0.1–0.3 for RAG with variable context.",
+          )}
+
+          {/* Effective values preview */}
+          <div className="mt-3 p-3 rounded-lg bg-accent-soft border border-accent/30">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">
+              Effective values applied to sizing
+            </p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono text-fg">
+              <div>
+                SP_eff ={" "}
+                <span className="text-accent font-semibold">
+                  {(formData.system_prompt_tokens_SP || 0) +
+                    (formData.sp_tools || 0) +
+                    (formData.c_rag_static || 0)}
+                </span>{" "}
+                tok
+              </div>
+              <div>
+                Prp_eff ={" "}
+                <span className="text-accent font-semibold">
+                  {(formData.user_prompt_tokens_Prp || 0) + (formData.c_rag_dynamic || 0)}
+                </span>{" "}
+                tok
+              </div>
+              <div>
+                A_eff ={" "}
+                <span className="text-accent font-semibold">
+                  {(formData.answer_tokens_A || 0) + (formData.a_tool || 0)}
+                </span>{" "}
+                tok
+              </div>
+              <div>
+                R_eff ={" "}
+                <span className="text-accent font-semibold">
+                  {((formData.rps_per_session_R || 0) * (formData.k_calls || 1)).toFixed(4)}
+                </span>{" "}
+                req/s
+              </div>
+              <div className="col-span-2">
+                TS_agent ={" "}
+                <span className="text-accent font-semibold">
+                  {(
+                    (formData.system_prompt_tokens_SP || 0) +
+                    (formData.sp_tools || 0) +
+                    (formData.c_rag_static || 0) +
+                    (formData.dialog_turns || 0) *
+                      (formData.k_calls || 1) *
+                      ((formData.user_prompt_tokens_Prp || 0) +
+                        (formData.c_rag_dynamic || 0) +
+                        (formData.reasoning_tokens_MRT || 0) +
+                        (formData.answer_tokens_A || 0) +
+                        (formData.a_tool || 0))
+                  ).toLocaleString()}
+                </span>{" "}
+                tok &nbsp;
+                <span className="text-muted">
+                  (full session, drives KV-cache via SL = min(TS, max_context))
+                </span>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted mt-2 leading-snug">
+              These derive from your token + agentic inputs. Backend recomputes them per §2.2 /
+              Appendix В when you Calculate — no need to re-enter values manually.
+            </p>
+          </div>
+        </>,
+        expandedSections.agentic,
+        t("form.section.agenticTooltip"),
       )}
 
       {/* KV-Cache Section */}
       {renderCollapsibleSection(
         "kv",
-        "KV-Cache",
+        t("form.section.kvCache"),
         <>
           {renderSliderInput(
             "num_kv_heads",
@@ -1634,6 +2278,16 @@ const CalculatorForm = ({
             formData.num_attention_heads,
             "",
             "Number of attention heads in the transformer. Found in model config as num_attention_heads.",
+          )}
+          {renderSliderInput(
+            "head_dim",
+            "Head Dim",
+            0,
+            256,
+            1,
+            formData.head_dim || 0,
+            "",
+            "Per-head dimension. For most models head_dim = hidden_size / num_attention_heads, but Qwen3, Mistral, and some others use a non-standard value. Leave at 0 to fall back to H/Nattention; set explicitly when the model config specifies head_dim.",
           )}
           {renderSliderInput(
             "bytes_per_kv_state",
@@ -1667,13 +2321,13 @@ const CalculatorForm = ({
           )}
         </>,
         expandedSections.kv,
-        "Key-Value cache stores attention states for each session. Larger contexts and more sessions require more GPU memory.",
+        t("form.section.kvCacheTooltip"),
       )}
 
       {/* Compute Section */}
       {renderCollapsibleSection(
         "compute",
-        "Compute & Throughput",
+        t("form.section.compute"),
         <>
           {renderSliderInput(
             "gpu_flops_Fcount",
@@ -1705,9 +2359,9 @@ const CalculatorForm = ({
             "",
             "GPU utilization during the decode phase (generating tokens). Typically 0.10–0.20.",
           )}
-          <div className="text-xs text-gray-500 mb-4 p-2 bg-blue-50 rounded flex items-center">
+          <div className="text-xs text-muted mb-4 p-2 bg-info-soft rounded flex items-center">
             <svg
-              className="w-4 h-4 mr-1.5 text-blue-400 flex-shrink-0"
+              className="w-4 h-4 mr-1.5 text-info flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1744,13 +2398,13 @@ const CalculatorForm = ({
           )}
         </>,
         expandedSections.compute,
-        "GPU compute capacity and throughput estimation. Determines how many requests each server can handle.",
+        t("form.section.computeTooltip"),
       )}
 
       {/* SLA Section */}
       {renderCollapsibleSection(
         "sla",
-        "SLA & Load",
+        t("form.section.slaLoad"),
         <>
           {renderSliderInput(
             "rps_per_session_R",
@@ -1774,17 +2428,17 @@ const CalculatorForm = ({
           )}
         </>,
         expandedSections.sla,
-        "Service-level parameters that add safety margin to the final server count.",
+        t("form.section.slaLoadTooltip"),
       )}
     </div>
   );
 
   return (
-    <form onSubmit={handleSubmit} className="gap-6 flex flex-col flex-1">
+    <form onSubmit={handleSubmit} noValidate className="gap-6 flex flex-col flex-1">
       {/* Header with toggle switch */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <h2 className="text-lg sm:text-2xl font-semibold text-gray-800 min-w-0 truncate">
-          Configuration Parameters
+        <h2 className="text-lg sm:text-2xl font-semibold text-fg min-w-0 truncate">
+          {t("form.title")}
         </h2>
         <div data-tour="auto-optimize" className="shrink-0">
           <ToggleSwitch autoMode={autoMode} setAutoMode={setAutoMode} />
@@ -1794,7 +2448,7 @@ const CalculatorForm = ({
       {/* Presets (normal mode) or Optimization Mode cards (auto mode) */}
       {autoMode ? (
         <div className="mb-2" data-tour="optimize-mode">
-          <label className="block text-sm font-medium text-gray-600 mb-2">Optimization Mode</label>
+          <label className="block text-sm font-medium text-muted mb-2">Optimization Mode</label>
           <div className="grid grid-cols-2 gap-2">
             {OPTIMIZATION_MODES_GRID.map((mode) => {
               const isSelected = optimizeMode === mode.id;
@@ -1806,8 +2460,8 @@ const CalculatorForm = ({
                   onClick={() => setOptimizeMode(mode.id)}
                   className={`p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
                     isSelected
-                      ? `${colors.selected} border-current shadow-sm`
-                      : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                      ? `${colors.selected} border-current shadow-card`
+                      : "border-border text-muted hover:border-border-strong hover:bg-elevated"
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-0.5">
@@ -1829,8 +2483,8 @@ const CalculatorForm = ({
                 onClick={() => setOptimizeMode(mode.id)}
                 className={`mt-2 w-full p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
                   isSelected
-                    ? `${colors.selected} border-current shadow-sm`
-                    : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                    ? `${colors.selected} border-current shadow-card`
+                    : "border-border text-muted hover:border-border-strong hover:bg-elevated"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-0.5">
@@ -1845,7 +2499,9 @@ const CalculatorForm = ({
         </div>
       ) : (
         <div className="mb-2" data-tour="presets">
-          <label className="block text-sm font-medium text-gray-600 mb-2">Quick Presets</label>
+          <label className="block text-sm font-medium text-muted mb-2">
+            {t("form.preset.select")}
+          </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {PRESETS.map((preset) => {
               const isActive = selectedPreset === preset.id;
@@ -1858,8 +2514,8 @@ const CalculatorForm = ({
                   title={preset.description}
                   className={`p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
                     isActive
-                      ? `${colors.selected} border-current shadow-sm`
-                      : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                      ? `${colors.selected} border-current shadow-card`
+                      : "border-border text-muted hover:border-border-strong hover:bg-elevated"
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-0.5">
@@ -1875,30 +2531,30 @@ const CalculatorForm = ({
       )}
 
       {/* Tab Navigation */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-border">
         <button
           type="button"
           data-tour="basic-tab"
           className={`py-2 px-4 font-medium text-sm ${
             activeTab === "basic"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500 hover:text-gray-700"
+              ? "text-accent border-b-2 border-accent"
+              : "text-muted hover:text-fg"
           }`}
           onClick={() => setActiveTab("basic")}
         >
-          Basic Configuration
+          {t("form.tab.basic")}
         </button>
         <button
           type="button"
           data-tour="advanced-tab"
           className={`py-2 px-4 font-medium text-sm ${
             activeTab === "advanced"
-              ? "text-gray-600 border-b-2 border-gray-600 bg-gray-50"
-              : "text-gray-400 hover:text-gray-600 bg-gray-50"
+              ? "text-accent border-b-2 border-accent"
+              : "text-muted hover:text-fg"
           }`}
           onClick={() => setActiveTab("advanced")}
         >
-          Advanced
+          {t("form.tab.advanced")}
         </button>
       </div>
 
@@ -1908,25 +2564,38 @@ const CalculatorForm = ({
         {activeTab === "advanced" && advancedInputs}
       </div>
 
+      {validationError && (
+        <div className="bg-danger-soft border border-danger/30 rounded-md p-3 text-sm text-danger flex items-start gap-2">
+          <svg
+            className="w-4 h-4 mt-0.5 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <span>{validationError}</span>
+        </div>
+      )}
+
       {/* Calculate / Find Best Configs button */}
       <button
         type="submit"
         data-tour="calculate-btn"
         disabled={loading}
-        className={`mt-auto w-full py-3 px-4 rounded-lg font-semibold text-lg transition-colors ${
-          loading
-            ? autoMode
-              ? "bg-indigo-300 text-white cursor-not-allowed"
-              : "bg-blue-300 text-white cursor-not-allowed"
-            : autoMode
-              ? "bg-indigo-600 text-white hover:bg-indigo-700 calc-btn-glow"
-              : "bg-blue-600 text-white hover:bg-blue-700 calc-btn-glow"
+        className={`mt-auto w-full py-3 px-4 rounded-lg font-semibold text-lg transition-colors text-accent-fg ${
+          loading ? "bg-accent/60 cursor-not-allowed" : "bg-accent hover:bg-accent/90 calc-btn-glow"
         }`}
       >
         {loading ? (
           <span className="flex items-center justify-center">
-            <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></span>
-            {autoMode ? "Searching configurations..." : "Calculating..."}
+            <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></span>
+            {autoMode ? t("form.searching") : t("form.calculating")}
           </span>
         ) : autoMode ? (
           <span className="flex items-center justify-center gap-2">
@@ -1938,10 +2607,10 @@ const CalculatorForm = ({
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-            Find Best Configs
+            {t("form.findBest")}
           </span>
         ) : (
-          "Calculate"
+          t("form.calculate")
         )}
       </button>
     </form>

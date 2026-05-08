@@ -23,13 +23,16 @@ ENV NODE_ENV=production
 # Собираем приложение для продакшена
 RUN npm run build
 
-# Используем nginx для раздачи статических файлов
+# Serve the static SPA AND reverse-proxy /v1/* to the backend Service.
+# `nginx:alpine` runs *.conf.template files in /etc/nginx/templates/
+# through envsubst at container start, so referencing ${BACKEND_URL} in
+# the template is enough.
 FROM nginx:alpine
 
-# Копируем собранное приложение в nginx
 COPY --from=build /app/build /usr/share/nginx/html
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
-# Открываем порт 80
+# Default for local docker run; in k8s the deployment overrides this.
+ENV BACKEND_URL="http://localhost:8000"
+
 EXPOSE 80
-
-# Nginx запускается автоматически

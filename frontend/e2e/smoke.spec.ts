@@ -113,8 +113,14 @@ test("smoke: open app and run single sizing calculation", async ({ page }) => {
   await page.locator('[data-tour="calculate-btn"]').click();
 
   await expect(page.getByRole("heading", { name: "Calculation Results" })).toBeVisible();
-  await expect(page.getByText("Servers Required")).toBeVisible();
-  await expect(page.getByText(/max\(mem:/)).toContainText("22");
+  await expect(page.getByText("Infrastructure Required")).toBeVisible();
+  // Infrastructure tile carries the mem/compute breakdown in its native
+  // browser title attribute (hover tooltip) — assert against that, not
+  // visible text.
+  await expect(page.locator('[title^="max(mem:"]').first()).toHaveAttribute(
+    "title",
+    /22/,
+  );
 });
 
 test("smoke: auto-optimize mode renders optimization table", async ({ page }) => {
@@ -127,6 +133,10 @@ test("smoke: auto-optimize mode renders optimization table", async ({ page }) =>
   });
 
   await page.goto("/");
+
+  // Pre-submit validation now requires a model and a GPU before
+  // running auto-optimize — apply a preset first so both are selected.
+  await page.locator('[data-tour="presets"] button').first().click();
 
   await page.locator('[data-tour="auto-optimize"] button').click();
   await expect(page.locator('[data-tour="calculate-btn"]')).toContainText("Find Best Configs");

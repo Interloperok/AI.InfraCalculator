@@ -29,7 +29,7 @@ def get_gpus_handler(
     per_page: int,
     search: str | None,
 ) -> GPUListResponse:
-    """Получить список GPU с фильтрацией и пагинацией."""
+    """Return a paginated, filtered list of GPUs."""
     try:
         return list_gpus(
             vendor=vendor,
@@ -50,7 +50,7 @@ def get_gpus_handler(
 
 
 def export_gpu_catalog_handler() -> FileResponse:
-    """Скачать нормализованный каталог GPU в формате JSON."""
+    """Download the normalized GPU catalog as JSON."""
     gpu_data_path = export_gpu_catalog_path()
     if not gpu_data_path.exists():
         raise to_http_exception(NotFoundAppError("GPU data not found. Run /v1/gpus/refresh first."))
@@ -63,7 +63,7 @@ def export_gpu_catalog_handler() -> FileResponse:
 
 
 def get_gpu_details_handler(gpu_id: str) -> GPUInfo:
-    """Получить детальную информацию о конкретном GPU."""
+    """Return detailed info for a specific GPU."""
     try:
         return get_gpu_details(gpu_id)
     except FileNotFoundError as exc:
@@ -75,7 +75,7 @@ def get_gpu_details_handler(gpu_id: str) -> GPUInfo:
 def refresh_gpu_data_handler(
     refresh_fn: Callable[[], bool] = refresh_gpu_data_internal,
 ) -> GPURefreshResponse:
-    """Обновить каталог GPU из внешнего источника."""
+    """Refresh the GPU catalog from an external source."""
     success = refresh_fn()
     if not success:
         raise to_http_exception(ServiceAppError("Failed to refresh GPU data"))
@@ -94,7 +94,7 @@ def refresh_gpu_data_handler(
 
 
 def get_gpu_stats_handler() -> GPUStats:
-    """Получить статистику по каталогу GPU."""
+    """Return GPU catalog statistics."""
     try:
         return get_gpu_stats()
     except FileNotFoundError as exc:

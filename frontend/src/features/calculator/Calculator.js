@@ -1,11 +1,31 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import { useT } from "../../contexts/I18nContext";
 import CalculatorForm from "./CalculatorForm";
 import ResultsDisplay from "./ResultsDisplay";
+import ModeSwitcher from "./ModeSwitcher";
+import VLMCalculatorForm from "./VLMCalculatorForm";
+import VLMResultsDisplay from "./VLMResultsDisplay";
+import OCRCalculatorForm from "./OCRCalculatorForm";
+import OCRResultsDisplay from "./OCRResultsDisplay";
 import OptimizeResultsTable from "../optimization/OptimizeResultsTable";
 import GpuFilterModal from "../gpu/GpuFilterModal";
-import { calculateServerRequirements, autoOptimize } from "../../services/api";
+import {
+  calculateServerRequirements,
+  calculateVLMSizing,
+  calculateOCRSizing,
+  autoOptimize,
+} from "../../services/api";
+
+const VALID_MODES = ["llm", "vlm", "ocr"];
 
 const Calculator = () => {
+  const t = useT();
+  // ── Calculator mode (LLM by default; VLM/OCR placeholders until P12c/d) ──
+  const [mode, setMode] = useState(() => {
+    const saved = typeof window !== "undefined" && localStorage.getItem("calculatorMode");
+    return saved && VALID_MODES.includes(saved) ? saved : "llm";
+  });
+
   // ── Standard calculator state ──
   const [results, setResults] = useState(null);
   const [inputData, setInputData] = useState(null);
@@ -69,6 +89,34 @@ const Calculator = () => {
   useEffect(() => {
     localStorage.setItem("useCustomCatalog", String(useCustomCatalog));
   }, [useCustomCatalog]);
+
+  // Persist calculator mode
+  useEffect(() => {
+    localStorage.setItem("calculatorMode", mode);
+  }, [mode]);
+
+  const handleModeChange = useCallback(
+    (newMode) => {
+      if (newMode === mode || !VALID_MODES.includes(newMode)) return;
+      setMode(newMode);
+      // Clear any results/state from the previous mode so the user starts fresh
+      setResults(null);
+      setInputData(null);
+      setError(null);
+      setOptimizeResults(null);
+      setOptimizeError(null);
+      setOptimizeStats(null);
+      setSelectedConfigIdx(null);
+      setAppliedConfig(null);
+      setGpuModalOpen(false);
+      setGpuPickerResult(null);
+      // Auto-Optimize is LLM-only; force off when leaving LLM mode
+      if (newMode !== "llm") {
+        setAutoMode(false);
+      }
+    },
+    [mode],
+  );
 
   // Custom catalog handlers
   const handleCustomCatalogUpload = useCallback((catalog, fileName) => {
@@ -201,9 +249,10 @@ const Calculator = () => {
       } else {
         const Z = payload.tp_multiplier_Z || 1;
         const gpuPerInst = response.gpus_per_instance || 1;
+        const gpusPerServer = response.gpus_per_server ?? payload.gpus_per_server;
         setResults({
           ...response,
-          gpus_per_server: response.gpus_per_server ?? payload.gpus_per_server,
+          gpus_per_server: gpusPerServer,
           gpus_per_instance: response.gpus_per_instance ?? gpuPerInst,
           gpus_per_instance_tp: Z * gpuPerInst,
           instances_per_server_tp:
@@ -218,6 +267,8 @@ const Calculator = () => {
               Z * gpuPerInst * (payload.gpu_mem_gb || 0) * (payload.kavail || 0.9) -
                 (response.model_mem_gb || 0),
             ),
+          total_gpu_count:
+            response.total_gpu_count ?? (response.servers_final || 0) * (gpusPerServer || 0),
         });
         setInputData(payload);
         setError(null);
@@ -287,6 +338,68 @@ const Calculator = () => {
     }
   };
 
+  // ── Generic VLM/OCR submit handler ──
+  const handleSpecialSizingResponse = (response, payload) => {
+    if (!response) {
+      setError("No response from server. Check that the backend is running.");
+      setResults(null);
+      setInputData(null);
+      return;
+    }
+    if (response.error) {
+      setError(response.error);
+      setResults(null);
+      setInputData(null);
+      return;
+    }
+    setResults({
+      ...response,
+      gpus_per_server: response.gpus_per_server ?? payload.gpus_per_server,
+    });
+    setInputData(payload);
+    setError(null);
+    if (window.innerWidth < 1024 && swipeRef.current) {
+      setTimeout(() => {
+        swipeRef.current?.scrollTo({
+          left: swipeRef.current.scrollWidth - swipeRef.current.clientWidth,
+          behavior: "smooth",
+        });
+      }, 100);
+    }
+  };
+
+  // ── VLM calculate handler ──
+  const handleVLMCalculate = async (data) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await calculateVLMSizing(data);
+      handleSpecialSizingResponse(response, data);
+    } catch (err) {
+      setError(err.message || "Unexpected error");
+      setResults(null);
+      setInputData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── OCR + LLM calculate handler ──
+  const handleOCRCalculate = async (data) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await calculateOCRSizing(data);
+      handleSpecialSizingResponse(response, data);
+    } catch (err) {
+      setError(err.message || "Unexpected error");
+      setResults(null);
+      setInputData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ── Handle selecting a row in the optimization table ──
   const handleSelectRow = useCallback(
     async (idx) => {
@@ -334,9 +447,10 @@ const Calculator = () => {
           const Z = (config.sizing_input || configForForm).tp_multiplier_Z || 1;
           const gpuPerInst = response.gpus_per_instance || 1;
           const fullInput = config.sizing_input || configForForm;
+          const gpusPerServer = response.gpus_per_server ?? fullInput.gpus_per_server;
           setResults({
             ...response,
-            gpus_per_server: response.gpus_per_server ?? fullInput.gpus_per_server,
+            gpus_per_server: gpusPerServer,
             gpus_per_instance: response.gpus_per_instance ?? gpuPerInst,
             gpus_per_instance_tp: Z * gpuPerInst,
             instances_per_server_tp:
@@ -351,6 +465,8 @@ const Calculator = () => {
                 Z * gpuPerInst * (fullInput.gpu_mem_gb || 0) * (fullInput.kavail || 0.9) -
                   (response.model_mem_gb || 0),
               ),
+            total_gpu_count:
+              response.total_gpu_count ?? (response.servers_final || 0) * (gpusPerServer || 0),
             cost_estimate_usd: response.cost_estimate_usd ?? config.cost_estimate_usd ?? null,
           });
           setInputData(fullInput);
@@ -390,10 +506,10 @@ const Calculator = () => {
           type="button"
           onClick={() => swipeRef.current?.scrollTo({ left: 0, behavior: "smooth" })}
           className={`w-2.5 h-2.5 rounded-full transition-colors ${
-            swipeIndex === 0 ? "bg-indigo-500" : "bg-gray-300 hover:bg-gray-400"
+            swipeIndex === 0 ? "bg-accent" : "bg-subtle hover:bg-muted"
           }`}
-          aria-label="Configuration"
-          title="Configuration"
+          aria-label={t("ui.swipe.configuration")}
+          title={t("ui.swipe.configuration")}
         />
         <button
           type="button"
@@ -404,10 +520,10 @@ const Calculator = () => {
             }
           }}
           className={`w-2.5 h-2.5 rounded-full transition-colors ${
-            swipeIndex === 1 ? "bg-indigo-500" : "bg-gray-300 hover:bg-gray-400"
+            swipeIndex === 1 ? "bg-accent" : "bg-subtle hover:bg-muted"
           }`}
-          aria-label="Results"
-          title="Results"
+          aria-label={t("ui.swipe.results")}
+          title={t("ui.swipe.results")}
         />
       </div>
 
@@ -417,46 +533,93 @@ const Calculator = () => {
         className="grid grid-flow-col auto-cols-[100%] overflow-x-auto snap-x snap-mandatory lg:grid-flow-row lg:grid-cols-2 lg:auto-cols-auto lg:overflow-visible lg:gap-8 swipe-panels"
       >
         <div className="snap-start overflow-hidden">
-          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col overflow-hidden">
-            <CalculatorForm
-              onSubmit={handleCalculate}
-              loading={autoMode ? optimizeLoading : loading}
-              autoMode={autoMode}
-              setAutoMode={setAutoMode}
-              optimizeMode={optimizeMode}
-              setOptimizeMode={setOptimizeMode}
-              gpuFilter={gpuFilter}
-              onOpenGpuFilter={() => {
-                setGpuModalMode("filter");
-                setGpuModalOpen(true);
-              }}
-              onOpenGpuPicker={(selectedGpuId) => {
-                setGpuPickerInitialId(selectedGpuId || null);
-                setGpuModalMode("picker");
-                setGpuModalOpen(true);
-              }}
-              gpuPickerResult={gpuPickerResult}
-              onClearGpuPickerResult={() => setGpuPickerResult(null)}
-              appliedConfig={appliedConfig}
-              onAppliedConfigConsumed={handleAppliedConfigConsumed}
-            />
+          <div className="bg-surface border border-border rounded-xl shadow-card p-4 sm:p-6 flex flex-col overflow-hidden">
+            <ModeSwitcher mode={mode} onChange={handleModeChange} />
+            {mode === "llm" && (
+              <CalculatorForm
+                onSubmit={handleCalculate}
+                loading={autoMode ? optimizeLoading : loading}
+                autoMode={autoMode}
+                setAutoMode={setAutoMode}
+                optimizeMode={optimizeMode}
+                setOptimizeMode={setOptimizeMode}
+                gpuFilter={gpuFilter}
+                onOpenGpuFilter={() => {
+                  setGpuModalMode("filter");
+                  setGpuModalOpen(true);
+                }}
+                onOpenGpuPicker={(selectedGpuId) => {
+                  setGpuPickerInitialId(selectedGpuId || null);
+                  setGpuModalMode("picker");
+                  setGpuModalOpen(true);
+                }}
+                gpuPickerResult={gpuPickerResult}
+                onClearGpuPickerResult={() => setGpuPickerResult(null)}
+                appliedConfig={appliedConfig}
+                onAppliedConfigConsumed={handleAppliedConfigConsumed}
+              />
+            )}
+            {mode === "vlm" && (
+              <VLMCalculatorForm
+                onSubmit={handleVLMCalculate}
+                loading={loading}
+                onOpenGpuPicker={(selectedGpuId) => {
+                  setGpuPickerInitialId(selectedGpuId || null);
+                  setGpuModalMode("picker");
+                  setGpuModalOpen(true);
+                }}
+                gpuPickerResult={gpuPickerResult}
+                onClearGpuPickerResult={() => setGpuPickerResult(null)}
+              />
+            )}
+            {mode === "ocr" && (
+              <OCRCalculatorForm
+                onSubmit={handleOCRCalculate}
+                loading={loading}
+                onOpenGpuPicker={(selectedGpuId) => {
+                  setGpuPickerInitialId(selectedGpuId || null);
+                  setGpuModalMode("picker");
+                  setGpuModalOpen(true);
+                }}
+                gpuPickerResult={gpuPickerResult}
+                onClearGpuPickerResult={() => setGpuPickerResult(null)}
+              />
+            )}
           </div>
         </div>
 
         <div className="snap-start overflow-hidden">
-          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col overflow-hidden">
-            <ResultsDisplay
-              results={results}
-              loading={loading}
-              error={error}
-              inputData={inputData}
-            />
+          <div className="bg-surface border border-border rounded-xl shadow-card p-4 sm:p-6 flex flex-col overflow-hidden">
+            {mode === "vlm" && (
+              <VLMResultsDisplay
+                results={results}
+                loading={loading}
+                error={error}
+                inputData={inputData}
+              />
+            )}
+            {mode === "ocr" && (
+              <OCRResultsDisplay
+                results={results}
+                loading={loading}
+                error={error}
+                inputData={inputData}
+              />
+            )}
+            {mode === "llm" && (
+              <ResultsDisplay
+                results={results}
+                loading={loading}
+                error={error}
+                inputData={inputData}
+              />
+            )}
           </div>
         </div>
       </div>
 
-      {/* ── Optimization Results Side Panel (fixed left edge) ── */}
-      {autoMode && (
+      {/* ── Optimization Results Side Panel (LLM mode only) ── */}
+      {autoMode && mode === "llm" && (
         <>
           {/* Panel + toggle as one unit so they move together */}
           <div
@@ -468,21 +631,21 @@ const Calculator = () => {
             }}
           >
             {/* Panel body */}
-            <div className="absolute inset-0 bg-white shadow-2xl flex flex-col">
+            <div className="absolute inset-0 bg-surface shadow-elevated flex flex-col">
               {/* Drag handle — right edge */}
               <div
                 onMouseDown={handleDragStart}
                 className="absolute right-0 top-0 h-full w-2 cursor-col-resize z-10 group"
-                title="Drag to resize"
+                title={t("ui.dragToResize")}
               >
-                <div className="absolute right-0 top-0 h-full w-1 bg-transparent group-hover:bg-indigo-400/50 transition-colors" />
+                <div className="absolute right-0 top-0 h-full w-1 bg-transparent group-hover:bg-accent/50 transition-colors" />
               </div>
 
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
                 <div className="flex items-center gap-2">
                   <svg
-                    className="w-5 h-5 text-indigo-500"
+                    className="w-5 h-5 text-accent"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -494,7 +657,7 @@ const Calculator = () => {
                       d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                     />
                   </svg>
-                  <h2 className="text-lg font-semibold text-gray-800">Optimization Results</h2>
+                  <h2 className="text-lg font-semibold text-fg">Optimization Results</h2>
                 </div>
               </div>
 
@@ -522,7 +685,7 @@ const Calculator = () => {
               type="button"
               data-tour="optimize-results"
               onClick={() => setDrawerOpen((prev) => !prev)}
-              className="absolute top-1/2 -translate-y-1/2 h-16 w-6 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-r-lg shadow-lg"
+              className="absolute top-1/2 -translate-y-1/2 h-16 w-6 flex items-center justify-center bg-accent hover:bg-accent/90 text-accent-fg rounded-r-lg shadow-card-hover"
               style={{ left: "100%" }}
               title={drawerOpen ? "Collapse results panel" : "Show results panel"}
             >
@@ -560,8 +723,8 @@ const Calculator = () => {
           setGpuModalOpen(false);
         }}
         singleSelection={gpuModalMode === "picker"}
-        modalTitle="Select GPU"
-        modalSubtitle="Choose one GPU for calculation"
+        modalTitle={t("gpuFilter.title.single")}
+        modalSubtitle={t("gpuFilter.subtitle.single")}
         customCatalog={customCatalog}
         customCatalogName={customCatalogName}
         useCustomCatalog={useCustomCatalog}

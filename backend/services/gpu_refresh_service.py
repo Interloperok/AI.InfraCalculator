@@ -18,14 +18,14 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
 def refresh_gpu_data_internal() -> bool:
-    """Обновить нормализованный каталог GPU из скрапера."""
+    """Refresh the normalized GPU catalog from the scraper."""
     try:
         logger.info("Начинаем обновление данных GPU...")
 
         raw_path = BACKEND_DIR / "gpu_data_raw.json"
         out_path = BACKEND_DIR / "gpu_data.json"
 
-        # На Windows stdout может не поддерживать UTF-8 emoji из скрапера.
+        # On Windows, stdout may not support UTF-8 emoji from the scraper.
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
         try:
@@ -45,7 +45,7 @@ def refresh_gpu_data_internal() -> bool:
 
 
 def scheduled_refresh(refresh_fn: Callable[[], bool] = refresh_gpu_data_internal) -> None:
-    """Запустить одно запланированное обновление каталога GPU."""
+    """Run one scheduled GPU catalog refresh."""
     logger.info("⏰ Запуск запланированного обновления GPU данных...")
     refresh_fn()
 
@@ -54,7 +54,7 @@ def start_scheduler(
     refresh_fn: Callable[[], bool] = refresh_gpu_data_internal,
     interval_hours: int | None = None,
 ) -> BackgroundScheduler:
-    """Запустить планировщик почасового обновления GPU-каталога."""
+    """Start the hourly GPU-catalog refresh scheduler."""
     if interval_hours is None:
         interval_hours = get_settings().gpu_refresh_interval_hours
 

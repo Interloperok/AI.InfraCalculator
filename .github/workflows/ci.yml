@@ -52,12 +52,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          # Full history needed by gitleaks-action's PR-diff scan; without it
+          # the action can't resolve the parent commit and exits non-zero.
+          fetch-depth: 0
 
       - name: Setup uv and Python 3.14
         uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.14"
           enable-cache: true
+
+      - name: Verify version sync
+        run: ./scripts/sync_version.sh --check
 
       - name: Trim trailing whitespace
         run: uvx pre-commit run trailing-whitespace --all-files

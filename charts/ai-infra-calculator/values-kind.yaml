@@ -1,0 +1,37 @@
+# Override values tuned specifically for kind cluster on docker desktop.
+#
+# Usage:
+#   helm install calc ./charts/ai-infra-calculator -f charts/ai-infra-calculator/values-kind.yaml
+#
+# Prerequisites: see chart README "Kind cluster workflow".
+
+backend:
+  image:
+    tag: dev
+    pullPolicy: IfNotPresent  # use kind-loaded local image
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+frontend:
+  image:
+    tag: dev
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: "25m"
+      memory: "32Mi"
+    limits:
+      cpu: "100m"
+      memory: "128Mi"
+
+# Ingress: disabled by default. Toggle to true if nginx-ingress is installed.
+# See chart README for ingress setup with kind extra port mappings.
+ingress:
+  enabled: false

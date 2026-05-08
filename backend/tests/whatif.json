@@ -31,11 +31,11 @@
     "gpus_per_server": 8,
     "kavail": 0.9,
     "tp_multiplier_Z": 1,
-    "saturation_coeff_C": 8.0,
+    "saturation_coeff_C": 6.0,
 
     "gpu_flops_Fcount": 312,
-    "eta_prefill": 0.20,
-    "eta_decode": 0.15,
+    "eta_prefill": 0.167,
+    "eta_decode": 0.20,
 
     "rps_per_session_R": 0.02,
     "sla_reserve_KSLA": 1.25

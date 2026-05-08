@@ -22,10 +22,28 @@ jest.mock("react-joyride", () => {
   };
 });
 
+// mammoth is dynamically imported only when the docs drawer opens. Stub it so
+// the docx-load effect resolves immediately under jsdom.
+jest.mock("mammoth/mammoth.browser", () => ({
+  __esModule: true,
+  default: {
+    convertToHtml: jest.fn().mockResolvedValue({ value: "<p>Methodology stub</p>" }),
+  },
+}));
+
 describe("App shell", () => {
   beforeEach(() => {
     joyrideProps = null;
     jest.useRealTimers();
+    // Stub fetch for the methodology docx fetch.
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
+    });
+  });
+
+  afterEach(() => {
+    delete global.fetch;
   });
 
   it("renders header, calculator, and github links", () => {
@@ -40,14 +58,14 @@ describe("App shell", () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: "Documentation" }));
-    expect(screen.getByText("Open in Google Docs")).toBeInTheDocument();
+    expect(screen.getByText("Download .docx")).toBeInTheDocument();
 
     fireEvent.click(screen.getByTitle("Close (Esc)"));
-    expect(screen.queryByText("Open in Google Docs")).not.toBeInTheDocument();
+    expect(screen.queryByText("Download .docx")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Documentation" }));
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(screen.queryByText("Open in Google Docs")).not.toBeInTheDocument();
+    expect(screen.queryByText("Download .docx")).not.toBeInTheDocument();
   });
 
   it("handles guided tour callback transitions and finish", () => {
@@ -65,7 +83,7 @@ describe("App shell", () => {
         index: 0,
       });
     });
-    expect(screen.getByText("Open in Google Docs")).toBeInTheDocument();
+    expect(screen.getByText("Download .docx")).toBeInTheDocument();
 
     act(() => {
       joyrideProps.callback({
@@ -76,7 +94,7 @@ describe("App shell", () => {
       });
       jest.runOnlyPendingTimers();
     });
-    expect(screen.queryByText("Open in Google Docs")).not.toBeInTheDocument();
+    expect(screen.queryByText("Download .docx")).not.toBeInTheDocument();
 
     act(() => {
       joyrideProps.callback({
