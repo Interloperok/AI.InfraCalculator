@@ -12,7 +12,7 @@ license = { text = "MIT" }
 authors = [{ name = "AI Server Calculator Maintainers" }]
 dependencies = [
   "apscheduler==3.11.2",
-  "fastapi==0.135.3",
+  "fastapi==0.136.1",
   # Pinned >=6.1.0 to avoid CVE-2026-41066 (lxml 6.0.x XML external entity).
   "lxml>=6.1.0",
   "openpyxl>=3.1.0",
