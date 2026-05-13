@@ -33,7 +33,7 @@ dev = [
   # 9.0.3 fixes CVE-2025-71176.
   "pytest==9.0.3",
   "pytest-cov==7.1.0",
-  "ruff==0.15.9",
+  "ruff==0.15.12",
   "ty==0.0.35",
   "types-requests==2.33.0.20260513",
 ]
