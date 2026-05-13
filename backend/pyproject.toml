@@ -16,7 +16,7 @@ dependencies = [
   # Pinned >=6.1.0 to avoid CVE-2026-41066 (lxml 6.0.x XML external entity).
   "lxml>=6.1.0",
   "openpyxl>=3.1.0",
-  "pandas>=2.2.0",
+  "pandas>=3.0.3",
   "pydantic>=2.13.4,<3",
   "requests==2.33.1",
   "uvicorn==0.46.0",
