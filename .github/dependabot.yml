@@ -46,3 +46,11 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # Pinned in package.json: lucide-react ^0.288.0 (0.460+ ships broken
+      # sourcemaps; 1.x renames/removes icon exports — see PR #83 / PR #71).
+      - dependency-name: "lucide-react"
+        update-types: ["version-update:semver-major"]
+      # Pinned in package.json: react-joyride ^2.9.3 (3.x dropped Skip/Back/
+      # step counter chrome — see PR #71).
+      - dependency-name: "react-joyride"
+        update-types: ["version-update:semver-major"]
