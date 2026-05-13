@@ -16,9 +16,9 @@ dependencies = [
   # Pinned >=6.1.0 to avoid CVE-2026-41066 (lxml 6.0.x XML external entity).
   "lxml>=6.1.0",
   "openpyxl>=3.1.0",
-  "pandas>=2.2.0",
+  "pandas>=3.0.3",
   "pydantic>=2.13.4,<3",
-  "requests==2.33.1",
+  "requests==2.34.1",
   "uvicorn==0.46.0",
 ]
 
@@ -26,7 +26,7 @@ dependencies = [
 dev = [
   "coverage==7.14.0",
   "httpx==0.28.1",
-  "hypothesis==6.152.5",
+  "hypothesis==6.152.7",
   "mypy==2.1.0",
   # Transitive via pytest; pinned >=2.20.0 to avoid CVE-2026-4539.
   "pygments>=2.20.0",
