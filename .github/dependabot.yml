@@ -11,6 +11,15 @@ updates:
     labels:
       - dependencies
       - github-actions
+    # One combined PR per week for non-breaking GitHub Actions updates.
+    # Majors still open as individual PRs so they get focused review.
+    groups:
+      github-actions-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: uv
     directory: "/backend"
@@ -23,6 +32,15 @@ updates:
     labels:
       - dependencies
       - backend
+    # One combined PR per week for non-breaking backend updates.
+    # Majors still open as individual PRs so they get focused review.
+    groups:
+      backend-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: npm
     directory: "/frontend"
@@ -35,6 +53,17 @@ updates:
     labels:
       - dependencies
       - frontend
+    # One combined PR per week for non-breaking frontend updates.
+    # Majors still open as individual PRs so they get focused review
+    # (and so the `ignore` rules below continue to gate the known-broken
+    # major bumps for pinned packages).
+    groups:
+      frontend-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
     ignore:
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
