@@ -20,12 +20,12 @@ ENV REACT_APP_API_URL=${REACT_APP_API_URL}
 # Устанавливаем NODE_ENV=production для сборки
 ENV NODE_ENV=production
 
-# Production deploy host (957 MB RAM, 2 GB swap) hits a V8 heap-limit
-# OOM at ~492 MB during `react-scripts build` since 2026-05-13 — Node 18's
-# default max_old_space_size (~512 MB) is no longer enough for the
-# accumulated bundle. Raise the heap to 768 MB (fits with margin on the
-# production host) and skip source map generation (cuts memory ~30%;
-# production rarely needs source maps — rebuild locally if debugging).
+# Raise the V8 heap and skip source map generation for the frontend
+# Docker build. `react-scripts build` hits a V8 heap-limit OOM on
+# memory-constrained build environments — Node 18's default
+# max_old_space_size (~512 MB) is no longer enough for the accumulated
+# bundle. Disabling source maps cuts build memory by roughly a third;
+# production rarely needs them — rebuild locally for a debug build.
 ENV NODE_OPTIONS=--max-old-space-size=768
 ENV GENERATE_SOURCEMAP=false
 
