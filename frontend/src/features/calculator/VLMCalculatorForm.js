@@ -44,10 +44,20 @@ const SECTION_STYLES = {
       "bg-green-50 rounded-lg p-4 border border-green-200 dark:bg-surface dark:border-border dark:rounded-xl dark:p-5",
     dot: "bg-green-500",
   },
+  green: {
+    section:
+      "bg-green-50 rounded-lg p-4 border border-green-200 dark:bg-surface dark:border-border dark:rounded-xl dark:p-5",
+    dot: "bg-green-500",
+  },
   purple: {
     section:
       "bg-purple-50 rounded-lg p-4 border border-purple-200 dark:bg-surface dark:border-border dark:rounded-xl dark:p-5",
     dot: "bg-purple-500",
+  },
+  orange: {
+    section:
+      "bg-orange-50 rounded-lg p-4 border border-orange-200 dark:bg-surface dark:border-border dark:rounded-xl dark:p-5",
+    dot: "bg-orange-500",
   },
   amber: {
     section:
@@ -172,36 +182,131 @@ export const VLM_PRESETS = [
   },
 ];
 
-const NumberInput = ({ name, label, value, onChange, min, max, step, suffix, hint, tooltip }) => (
-  <div>
-    <label
-      className="block text-sm font-medium text-fg mb-2 flex items-center flex-wrap gap-x-1"
-      htmlFor={`vlm-${name}`}
-    >
-      {label}
-      {hint && <span className="text-subtle font-normal">· {hint}</span>}
-      {tooltip && <InfoTooltip text={tooltip} />}
-    </label>
-    <div className="relative">
+
+const INTEGER_FIELDS = new Set([
+  "c_peak", "w_px", "h_px", "patch_eff", "n_prompt_txt", "n_fields", "tok_field",
+  "layers_L", "hidden_size_H", "num_kv_heads", "num_attention_heads",
+  "max_context_window_TSmax", "gpu_mem_gb", "gpu_flops_Fcount",
+]);
+
+const GPU_PER_SERVER_ALLOWED = [1, 2, 4, 6, 8];
+const TP_ALLOWED = [1, 2, 4, 6, 8];
+
+const nearestAllowedIndex = (allowed, value) =>
+  Math.max(
+    0,
+    allowed.indexOf(value) !== -1
+      ? allowed.indexOf(value)
+      : allowed.reduce(
+          (best, v, i) =>
+            Math.abs(v - value) < Math.abs(allowed[best] - value) ? i : best,
+          0,
+        ),
+  );
+
+const SliderInput = ({ name, label, value, onChange, min, max, step, unit, hint, tooltip }) => {
+  const isInteger = INTEGER_FIELDS.has(name);
+  const numericValue = value ?? min;
+
+  const commit = (raw) => {
+    if (raw === "") {
+      onChange(name, "");
+      return;
+    }
+    let next = isInteger ? Math.round(parseFloat(raw) || 0) : parseFloat(raw) || 0;
+    if (!Number.isNaN(next)) {
+      next = Math.min(Math.max(next, min), max);
+      onChange(name, next);
+    }
+  };
+
+  return (
+    <div className="mb-6" key={name}>
+      <div className="flex justify-between items-center gap-3 mb-2">
+        <label
+          className="text-sm font-medium text-fg flex items-center min-w-0 flex-wrap gap-x-1"
+          htmlFor={`vlm-${name}`}
+        >
+          <span className="truncate">{label}</span>
+          {hint && <span className="text-subtle font-normal">· {hint}</span>}
+          {tooltip && <InfoTooltip text={tooltip} />}
+        </label>
+        <div className="flex items-center gap-1.5 shrink-0 w-[120px] justify-end">
+          <input
+            id={`vlm-${name}`}
+            type="number"
+            min={min}
+            max={max}
+            step={isInteger ? 1 : step ?? "any"}
+            value={numericValue}
+            onChange={(e) => commit(e.target.value)}
+            className="px-2 py-1 text-sm border border-border-strong rounded-md text-right bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+            inputMode={isInteger ? "numeric" : "decimal"}
+          />
+          {unit && (
+            <span className="text-xs text-muted font-medium w-7 shrink-0 text-left">{unit}</span>
+          )}
+        </div>
+      </div>
       <input
-        id={`vlm-${name}`}
-        type="number"
-        name={name}
-        value={value ?? ""}
-        onChange={(e) => onChange(name, e.target.value === "" ? "" : Number(e.target.value))}
+        type="range"
         min={min}
         max={max}
-        step={step ?? "any"}
-        className="w-full px-3 py-2 text-sm border border-border rounded-md shadow-sm bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        step={step}
+        value={numericValue}
+        onChange={(e) =>
+          onChange(name, isInteger ? Math.round(Number(e.target.value)) : Number(e.target.value))
+        }
+        className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
       />
-      {suffix && (
-        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-subtle pointer-events-none">
-          {suffix}
+      <div className="flex justify-between text-xs text-muted mt-1">
+        <span>
+          {typeof min === "number" && min >= 1000 ? min.toLocaleString() : min}
+          {unit}
         </span>
-      )}
+        <span>
+          {typeof max === "number" && max >= 1000 ? max.toLocaleString() : max}
+          {unit}
+        </span>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+const DiscreteSliderInput = ({ name, label, value, allowed, onChange, hint, tooltip }) => {
+  const currentIdx = nearestAllowedIndex(allowed, value);
+  const displayVal = allowed[currentIdx];
+
+  return (
+    <div className="mb-6" key={name}>
+      <div className="flex justify-between items-center gap-3 mb-2">
+        <label className="text-sm font-medium text-fg flex items-center min-w-0 flex-wrap gap-x-1">
+          <span className="truncate">{label}</span>
+          {hint && <span className="text-subtle font-normal">· {hint}</span>}
+          {tooltip && <InfoTooltip text={tooltip} />}
+        </label>
+        <div className="flex items-center w-[120px] justify-end">
+          <span className="px-2 py-1 text-sm border border-border-strong rounded-md text-center font-medium w-full bg-surface text-fg">
+            {displayVal}
+          </span>
+        </div>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={allowed.length - 1}
+        step={1}
+        value={currentIdx}
+        onChange={(e) => onChange(name, allowed[parseInt(e.target.value, 10)])}
+        className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
+      />
+      <div className="flex justify-between text-xs text-muted mt-1">
+        <span>{allowed[0]}</span>
+        <span>{allowed[allowed.length - 1]}</span>
+      </div>
+    </div>
+  );
+};
 
 const SelectInput = ({ name, label, value, options, onChange }) => (
   <div>
@@ -234,7 +339,7 @@ const Section = ({ title, color = "blue", dataTour, children }) => {
           {title}
         </h3>
       </header>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{children}</div>
+      <div className="space-y-1">{children}</div>
     </section>
   );
 };
@@ -251,6 +356,7 @@ const VLMCalculatorForm = ({
   const [selectedGpu, setSelectedGpu] = useState(null);
   const [selectedPreset, setSelectedPreset] = useState(null);
   const [validationError, setValidationError] = useState(null);
+  const [activeTab, setActiveTab] = useState("basic");
 
   const handleGpuSelect = useCallback((gpu) => {
     setSelectedGpu(gpu);
@@ -315,196 +421,56 @@ const VLMCalculatorForm = ({
     onSubmit(formData);
   };
 
-  return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6 flex-1">
-      {/* Presets */}
-      <div className="mb-2" data-tour="vlm-presets">
-        <label className="block text-sm font-medium text-muted mb-2">
-          {t("vmForm.quickPresets")}
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {VLM_PRESETS.map((preset) => {
-            const isActive = selectedPreset === preset.id;
-            const colors = CARD_COLOR_MAP[preset.color] || CARD_COLOR_MAP.indigo;
-            return (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => applyPreset(preset)}
-                title={preset.description}
-                className={`p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
-                  isActive
-                    ? `${colors.selected} border-current shadow-card`
-                    : "border-blue-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50"
-                }`}
-              >
-                <p className="text-sm font-semibold leading-tight">{preset.name}</p>
-                <p className="text-xs opacity-60 leading-snug mt-0.5">{preset.subtitle}</p>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Workload */}
-      <Section title={t("vmForm.workloadOnline")} color="blue" dataTour="vlm-workload">
-        <NumberInput
+  const basicInputs = (
+    <div className="space-y-4">
+      <Section title={t("form.section.users")} color="blue" dataTour="vlm-workload">
+        <SliderInput
           name="lambda_online"
           label={t("vmForm.pagesPerSecond")}
           value={formData.lambda_online}
           onChange={handleFieldChange}
-          min={0}
-          step="0.1"
-          suffix="pps"
+          min={0.1}
+          max={50}
+          step={0.1}
+          unit="pps"
           tooltip={t("vmForm.pagesPerSecond.tooltip")}
         />
-        <NumberInput
+        <SliderInput
           name="c_peak"
           label={t("vmForm.peakConcurrent")}
           value={formData.c_peak}
           onChange={handleFieldChange}
           min={1}
-          step="1"
+          max={100}
+          step={1}
           tooltip={t("vmForm.peakConcurrent.tooltip")}
         />
-        <NumberInput
-          name="sla_page"
-          label={t("vmForm.slaPerPage")}
-          value={formData.sla_page}
-          onChange={handleFieldChange}
-          min={0}
-          step="0.1"
-          suffix="sec"
-          tooltip={t("vmForm.slaPerPage.tooltip")}
-        />
       </Section>
 
-      {/* Image / token profile */}
-      <Section title={t("vlmForm.imageTokenProfile")} color="emerald">
-        <NumberInput
-          name="w_px"
-          label={t("vlmForm.imageWidth")}
-          value={formData.w_px}
-          onChange={handleFieldChange}
-          min={1}
-          step="1"
-          suffix="px"
-          tooltip={t("vlmForm.imageWidth.tooltip")}
-        />
-        <NumberInput
-          name="h_px"
-          label={t("vlmForm.imageHeight")}
-          value={formData.h_px}
-          onChange={handleFieldChange}
-          min={1}
-          step="1"
-          suffix="px"
-          tooltip={t("vlmForm.imageHeight.tooltip")}
-        />
-        <NumberInput
-          name="patch_eff"
-          label={t("vlmForm.patchSize")}
-          value={formData.patch_eff}
-          onChange={handleFieldChange}
-          min={1}
-          step="1"
-          hint={t("vlmForm.patchHint")}
-          tooltip={t("vlmForm.patchSize.tooltip")}
-        />
-        <NumberInput
-          name="n_prompt_txt"
-          label={t("vlmForm.promptTokens")}
-          value={formData.n_prompt_txt}
-          onChange={handleFieldChange}
-          min={0}
-          step="1"
-          tooltip={t("vlmForm.promptTokens.tooltip")}
-        />
-        <NumberInput
-          name="n_fields"
-          label={t("vmForm.jsonFields")}
-          value={formData.n_fields}
-          onChange={handleFieldChange}
-          min={1}
-          step="1"
-          tooltip={t("vmForm.jsonFields.tooltip")}
-        />
-        <NumberInput
-          name="tok_field"
-          label={t("vmForm.tokensPerField")}
-          value={formData.tok_field}
-          onChange={handleFieldChange}
-          min={1}
-          step="1"
-          hint={t("vmForm.tokensPerFieldHint")}
-          tooltip={t("vmForm.tokensPerField.tooltip")}
-        />
-      </Section>
-
-      {/* Model */}
-      <Section title={t("vlmForm.modelTitle")} color="purple">
-        <NumberInput
+      <Section title={t("form.section.model")} color="green">
+        <SliderInput
           name="params_billions"
           label={t("vmForm.parameters")}
           value={formData.params_billions}
           onChange={handleFieldChange}
-          min={0}
-          step="0.1"
-          suffix="B"
+          min={0.1}
+          max={200}
+          step={0.1}
+          unit="B"
         />
-        <SelectInput
-          name="bytes_per_param"
-          label={t("vmForm.quantization")}
-          value={formData.bytes_per_param}
-          options={QUANTIZATION_OPTIONS}
-          onChange={handleFieldChange}
-        />
-        <NumberInput
-          name="layers_L"
-          label={t("vmForm.layers")}
-          value={formData.layers_L}
-          onChange={handleFieldChange}
-          min={1}
-          step="1"
-        />
-        <NumberInput
-          name="hidden_size_H"
-          label={t("vmForm.hiddenSize")}
-          value={formData.hidden_size_H}
-          onChange={handleFieldChange}
-          min={1}
-          step="1"
-        />
-        <NumberInput
-          name="num_kv_heads"
-          label={t("vmForm.kvHeads")}
-          value={formData.num_kv_heads}
-          onChange={handleFieldChange}
-          min={1}
-          step="1"
-        />
-        <NumberInput
-          name="num_attention_heads"
-          label={t("vmForm.attnHeads")}
-          value={formData.num_attention_heads}
-          onChange={handleFieldChange}
-          min={1}
-          step="1"
-        />
-        <NumberInput
-          name="max_context_window_TSmax"
-          label={t("vmForm.maxContext")}
-          value={formData.max_context_window_TSmax}
-          onChange={handleFieldChange}
-          min={1}
-          step="1"
-          suffix={t("vmForm.tokensSuffix")}
-        />
+        <div className="mb-6">
+          <SelectInput
+            name="bytes_per_param"
+            label={t("vmForm.quantization")}
+            value={formData.bytes_per_param}
+            options={QUANTIZATION_OPTIONS}
+            onChange={handleFieldChange}
+          />
+        </div>
       </Section>
 
-      {/* Hardware */}
-      <Section title={t("vmForm.hardware")} color="amber" dataTour="vlm-hardware">
-        <div className="sm:col-span-2">
+      <Section title={t("form.section.hardware")} color="purple" dataTour="vlm-hardware">
+        <div className="mb-6">
           <label className="block text-sm font-medium text-fg mb-2">
             {t("vmForm.gpuModel")}
           </label>
@@ -537,43 +503,253 @@ const VLMCalculatorForm = ({
             </div>
           )}
         </div>
-        <NumberInput
+        <SliderInput
           name="gpu_mem_gb"
           label={t("vmForm.gpuMemory")}
           value={formData.gpu_mem_gb}
           onChange={handleFieldChange}
-          min={1}
-          step="1"
-          suffix="GB"
+          min={8}
+          max={192}
+          step={1}
+          unit="GB"
         />
-        <NumberInput
+        <DiscreteSliderInput
+          name="gpus_per_server"
+          label={t("vmForm.gpusPerServer")}
+          value={formData.gpus_per_server}
+          allowed={GPU_PER_SERVER_ALLOWED}
+          onChange={handleFieldChange}
+        />
+      </Section>
+
+      <Section title="Tensor Parallelism" color="orange">
+        <DiscreteSliderInput
+          name="tp_multiplier_Z"
+          label={t("vmForm.tp")}
+          value={formData.tp_multiplier_Z}
+          allowed={TP_ALLOWED}
+          onChange={handleFieldChange}
+          hint={t("vmForm.tpHint")}
+        />
+      </Section>
+
+      <Section title={t("form.section.sla")} color="amber">
+        <SliderInput
+          name="sla_page"
+          label={t("vmForm.slaPerPage")}
+          value={formData.sla_page}
+          onChange={handleFieldChange}
+          min={0}
+          max={60}
+          step={0.5}
+          unit="sec"
+          tooltip={t("vmForm.slaPerPage.tooltip")}
+        />
+      </Section>
+    </div>
+  );
+
+  const advancedInputs = (
+    <div className="space-y-4">
+      <Section title={t("form.section.tokens")} color="emerald">
+        <SliderInput
+          name="w_px"
+          label={t("vlmForm.imageWidth")}
+          value={formData.w_px}
+          onChange={handleFieldChange}
+          min={200}
+          max={4000}
+          step={10}
+          unit="px"
+          tooltip={t("vlmForm.imageWidth.tooltip")}
+        />
+        <SliderInput
+          name="h_px"
+          label={t("vlmForm.imageHeight")}
+          value={formData.h_px}
+          onChange={handleFieldChange}
+          min={200}
+          max={6000}
+          step={10}
+          unit="px"
+          tooltip={t("vlmForm.imageHeight.tooltip")}
+        />
+        <SliderInput
+          name="patch_eff"
+          label={t("vlmForm.patchSize")}
+          value={formData.patch_eff}
+          onChange={handleFieldChange}
+          min={8}
+          max={56}
+          step={1}
+          hint={t("vlmForm.patchHint")}
+          tooltip={t("vlmForm.patchSize.tooltip")}
+        />
+        <SliderInput
+          name="n_prompt_txt"
+          label={t("vlmForm.promptTokens")}
+          value={formData.n_prompt_txt}
+          onChange={handleFieldChange}
+          min={0}
+          max={2000}
+          step={10}
+          unit="tok"
+          tooltip={t("vlmForm.promptTokens.tooltip")}
+        />
+        <SliderInput
+          name="n_fields"
+          label={t("vmForm.jsonFields")}
+          value={formData.n_fields}
+          onChange={handleFieldChange}
+          min={1}
+          max={100}
+          step={1}
+          tooltip={t("vmForm.jsonFields.tooltip")}
+        />
+        <SliderInput
+          name="tok_field"
+          label={t("vmForm.tokensPerField")}
+          value={formData.tok_field}
+          onChange={handleFieldChange}
+          min={1}
+          max={200}
+          step={1}
+          unit="tok"
+          hint={t("vmForm.tokensPerFieldHint")}
+          tooltip={t("vmForm.tokensPerField.tooltip")}
+        />
+      </Section>
+
+      <Section title={t("form.section.modelArch")} color="green">
+        <SliderInput
+          name="layers_L"
+          label={t("vmForm.layers")}
+          value={formData.layers_L}
+          onChange={handleFieldChange}
+          min={1}
+          max={128}
+          step={1}
+        />
+        <SliderInput
+          name="hidden_size_H"
+          label={t("vmForm.hiddenSize")}
+          value={formData.hidden_size_H}
+          onChange={handleFieldChange}
+          min={512}
+          max={16384}
+          step={256}
+        />
+        <SliderInput
+          name="num_attention_heads"
+          label={t("vmForm.attnHeads")}
+          value={formData.num_attention_heads}
+          onChange={handleFieldChange}
+          min={1}
+          max={128}
+          step={1}
+        />
+      </Section>
+
+      <Section title={t("form.section.kvCache")} color="purple">
+        <SliderInput
+          name="num_kv_heads"
+          label={t("vmForm.kvHeads")}
+          value={formData.num_kv_heads}
+          onChange={handleFieldChange}
+          min={1}
+          max={128}
+          step={1}
+        />
+        <SliderInput
+          name="max_context_window_TSmax"
+          label={t("vmForm.maxContext")}
+          value={formData.max_context_window_TSmax}
+          onChange={handleFieldChange}
+          min={1024}
+          max={131072}
+          step={1024}
+          unit="tok"
+        />
+      </Section>
+
+      <Section title={t("form.section.compute")} color="amber">
+        <SliderInput
           name="gpu_flops_Fcount"
           label={t("vmForm.gpuTflops")}
           value={formData.gpu_flops_Fcount}
           onChange={handleFieldChange}
-          min={1}
-          step="1"
-        />
-        <NumberInput
-          name="gpus_per_server"
-          label={t("vmForm.gpusPerServer")}
-          value={formData.gpus_per_server}
-          onChange={handleFieldChange}
-          min={1}
-          max={16}
-          step="1"
-        />
-        <NumberInput
-          name="tp_multiplier_Z"
-          label={t("vmForm.tp")}
-          value={formData.tp_multiplier_Z}
-          onChange={handleFieldChange}
-          min={1}
-          max={8}
-          step="1"
-          hint={t("vmForm.tpHint")}
+          min={0}
+          max={2000}
+          step={10}
+          unit="TFLOPS"
         />
       </Section>
+    </div>
+  );
+
+  return (
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6 flex-1">
+      {/* Presets */}
+      <div className="mb-2" data-tour="vlm-presets">
+        <label className="block text-sm font-medium text-muted mb-2">
+          {t("vmForm.quickPresets")}
+        </label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {VLM_PRESETS.map((preset) => {
+            const isActive = selectedPreset === preset.id;
+            const colors = CARD_COLOR_MAP[preset.color] || CARD_COLOR_MAP.indigo;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => applyPreset(preset)}
+                title={preset.description}
+                className={`p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
+                  isActive
+                    ? `${colors.selected} border-current shadow-card`
+                    : "border-blue-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50"
+                }`}
+              >
+                <p className="text-sm font-semibold leading-tight">{preset.name}</p>
+                <p className="text-xs opacity-60 leading-snug mt-0.5">{preset.subtitle}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+
+      <div className="flex border-b border-border">
+        <button
+          type="button"
+          data-tour="basic-tab"
+          className={`py-2 px-4 font-medium text-sm ${
+            activeTab === "basic"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+          onClick={() => setActiveTab("basic")}
+        >
+          {t("form.tab.basic")}
+        </button>
+        <button
+          type="button"
+          data-tour="advanced-tab"
+          className={`py-2 px-4 font-medium text-sm ${
+            activeTab === "advanced"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+          onClick={() => setActiveTab("advanced")}
+        >
+          {t("form.tab.advanced")}
+        </button>
+      </div>
+
+      <div>
+        {activeTab === "basic" && basicInputs}
+        {activeTab === "advanced" && advancedInputs}
+      </div>
 
       {validationError && (
         <div className="bg-danger-soft border border-danger/30 rounded-md p-3 text-sm text-danger">
