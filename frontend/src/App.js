@@ -10,6 +10,7 @@ import "./App.css";
 
 const APP_VERSION = "1.3.0";
 const SHOW_LANGUAGE_TOGGLE = false;
+const SHOW_THEME_TOGGLE = false;
 // Methodology docx is bundled into the frontend image; served from the SPA
 // root so the app stays usable in air-gapped / offline environments.
 const METHODOLOGY_DOCX_URL = "/llm-methodology.docx";
@@ -551,7 +552,7 @@ function App() {
                   <LanguageToggle />
                 </>
               )}
-              <ThemeToggle />
+              {SHOW_THEME_TOGGLE && <ThemeToggle />}
             </div>
           </div>
         </div>
