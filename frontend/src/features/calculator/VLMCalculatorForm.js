@@ -1,26 +1,60 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Info } from "lucide-react";
 import { useT } from "../../contexts/I18nContext";
 
-// Hover-revealed tooltip styled identically to the LLM ResultsDisplay
-// InfoTooltip — used on form-field labels.
-const FieldTooltip = ({ text, align = "center" }) => (
-  <span className="relative group/tip inline-flex items-center align-middle ml-1">
-    <Info className="h-3 w-3 text-subtle cursor-help" strokeWidth={2.25} />
-    <span
-      className={`invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full ${
-        align === "right" ? "right-0" : align === "left" ? "left-0" : "left-1/2 -translate-x-1/2"
-      } mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-slate-900 dark:bg-slate-800 rounded-md shadow-elevated w-60 text-center leading-relaxed pointer-events-none`}
+// Matches CalculatorForm InfoTooltip styling.
+const InfoTooltip = ({ text }) => (
+  <span className="relative group/tip inline-flex items-center ml-1.5 align-middle">
+    <svg
+      className="w-4 h-4 text-subtle hover:text-accent cursor-help transition-colors"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
     >
-      {text}
-      <span
-        className={`absolute top-full ${
-          align === "right" ? "right-3" : align === "left" ? "left-3" : "left-1/2 -translate-x-1/2"
-        } border-4 border-transparent border-t-slate-900 dark:border-t-slate-800`}
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
       />
+    </svg>
+    <span className="invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-white bg-slate-900 dark:bg-slate-800 rounded-md shadow-elevated w-60 text-center leading-relaxed pointer-events-none">
+      {text}
+      <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900 dark:border-t-slate-800" />
     </span>
   </span>
 );
+
+const CARD_COLOR_MAP = {
+  blue: { selected: "border-blue-500 bg-blue-50 text-blue-700" },
+  emerald: { selected: "border-green-500 bg-green-50 text-green-700" },
+  rose: { selected: "border-rose-500 bg-rose-50 text-rose-700" },
+  violet: { selected: "border-violet-500 bg-violet-50 text-violet-700" },
+  amber: { selected: "border-amber-500 bg-amber-50 text-amber-700" },
+  indigo: { selected: "border-indigo-500 bg-indigo-50 text-indigo-700" },
+};
+
+const SECTION_STYLES = {
+  blue: {
+    section:
+      "bg-blue-50 rounded-lg p-4 border border-blue-200 dark:bg-surface dark:border-border dark:rounded-xl dark:p-5",
+    dot: "bg-blue-500",
+  },
+  emerald: {
+    section:
+      "bg-green-50 rounded-lg p-4 border border-green-200 dark:bg-surface dark:border-border dark:rounded-xl dark:p-5",
+    dot: "bg-green-500",
+  },
+  purple: {
+    section:
+      "bg-purple-50 rounded-lg p-4 border border-purple-200 dark:bg-surface dark:border-border dark:rounded-xl dark:p-5",
+    dot: "bg-purple-500",
+  },
+  amber: {
+    section:
+      "bg-amber-50 rounded-lg p-4 border border-amber-200 dark:bg-surface dark:border-border dark:rounded-xl dark:p-5",
+    dot: "bg-amber-500",
+  },
+};
 
 const QUANTIZATION_OPTIONS = [
   { label: "FP16 / BF16 (2 B/param)", value: 2 },
@@ -140,10 +174,13 @@ export const VLM_PRESETS = [
 
 const NumberInput = ({ name, label, value, onChange, min, max, step, suffix, hint, tooltip }) => (
   <div>
-    <label className="block text-xs font-medium text-muted mb-1" htmlFor={`vlm-${name}`}>
+    <label
+      className="block text-sm font-medium text-fg mb-2 flex items-center flex-wrap gap-x-1"
+      htmlFor={`vlm-${name}`}
+    >
       {label}
-      {hint && <span className="ml-1 text-subtle font-normal">· {hint}</span>}
-      {tooltip && <FieldTooltip text={tooltip} />}
+      {hint && <span className="text-subtle font-normal">· {hint}</span>}
+      {tooltip && <InfoTooltip text={tooltip} />}
     </label>
     <div className="relative">
       <input
@@ -155,7 +192,7 @@ const NumberInput = ({ name, label, value, onChange, min, max, step, suffix, hin
         min={min}
         max={max}
         step={step ?? "any"}
-        className="w-full px-3 py-2 text-sm border border-border rounded-md bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+        className="w-full px-3 py-2 text-sm border border-border rounded-md shadow-sm bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
       />
       {suffix && (
         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-subtle pointer-events-none">
@@ -168,7 +205,7 @@ const NumberInput = ({ name, label, value, onChange, min, max, step, suffix, hin
 
 const SelectInput = ({ name, label, value, options, onChange }) => (
   <div>
-    <label className="block text-xs font-medium text-muted mb-1" htmlFor={`vlm-${name}`}>
+    <label className="block text-sm font-medium text-fg mb-2" htmlFor={`vlm-${name}`}>
       {label}
     </label>
     <select
@@ -176,7 +213,7 @@ const SelectInput = ({ name, label, value, options, onChange }) => (
       name={name}
       value={value}
       onChange={(e) => onChange(name, Number(e.target.value))}
-      className="w-full px-3 py-2 text-sm border border-border rounded-md bg-surface text-fg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+      className="w-full px-3 py-2 text-sm border border-border rounded-md shadow-sm bg-surface text-fg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
     >
       {options.map((o) => (
         <option key={o.value} value={o.value}>
@@ -187,28 +224,18 @@ const SelectInput = ({ name, label, value, options, onChange }) => (
   </div>
 );
 
-// Each section ID picks a coloured dot accent only — the card body stays
-// neutral (bg-surface) so contrast works in both light and dark modes.
-const SECTION_DOTS = {
-  blue: "bg-info",
-  emerald: "bg-success",
-  purple: "bg-accent",
-  amber: "bg-warning",
-};
-
 const Section = ({ title, color = "blue", dataTour, children }) => {
-  const dot = SECTION_DOTS[color] || SECTION_DOTS.blue;
+  const styles = SECTION_STYLES[color] || SECTION_STYLES.blue;
   return (
-    <div
-      className="rounded-xl p-5 border border-border bg-surface shadow-card"
-      data-tour={dataTour}
-    >
-      <h4 className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-3">
-        <span className={`h-2 w-2 rounded-full ${dot}`} aria-hidden />
-        {title}
-      </h4>
+    <section className={styles.section} data-tour={dataTour}>
+      <header className="flex items-center gap-2 mb-4">
+        <span className={`h-2 w-2 rounded-full shrink-0 ${styles.dot}`} aria-hidden />
+        <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted">
+          {title}
+        </h3>
+      </header>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{children}</div>
-    </div>
+    </section>
   );
 };
 
@@ -289,31 +316,30 @@ const VLMCalculatorForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 flex-1">
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6 flex-1">
       {/* Presets */}
-      <div data-tour="vlm-presets">
+      <div className="mb-2" data-tour="vlm-presets">
         <label className="block text-sm font-medium text-muted mb-2">
           {t("vmForm.quickPresets")}
         </label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {VLM_PRESETS.map((preset) => {
             const isActive = selectedPreset === preset.id;
+            const colors = CARD_COLOR_MAP[preset.color] || CARD_COLOR_MAP.indigo;
             return (
               <button
                 key={preset.id}
                 type="button"
                 onClick={() => applyPreset(preset)}
                 title={preset.description}
-                className={`text-left p-3 rounded-lg border-2 transition-all ${
+                className={`p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
                   isActive
-                    ? "bg-accent border-accent text-accent-fg shadow-card"
-                    : "bg-surface border-border text-fg hover:border-accent/40 hover:bg-accent-soft"
+                    ? `${colors.selected} border-current shadow-card`
+                    : "border-blue-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50"
                 }`}
               >
-                <p className="text-sm font-semibold">{preset.name}</p>
-                <p className={`text-xs mt-0.5 ${isActive ? "opacity-80" : "text-muted"}`}>
-                  {preset.subtitle}
-                </p>
+                <p className="text-sm font-semibold leading-tight">{preset.name}</p>
+                <p className="text-xs opacity-60 leading-snug mt-0.5">{preset.subtitle}</p>
               </button>
             );
           })}
@@ -479,23 +505,36 @@ const VLMCalculatorForm = ({
       {/* Hardware */}
       <Section title={t("vmForm.hardware")} color="amber" dataTour="vlm-hardware">
         <div className="sm:col-span-2">
-          <label className="block text-xs font-medium text-muted mb-1">
+          <label className="block text-sm font-medium text-fg mb-2">
             {t("vmForm.gpuModel")}
           </label>
           <button
             type="button"
             onClick={() => onOpenGpuPicker?.(selectedGpu?.id)}
-            className="w-full text-left px-3 py-2 text-sm border border-border rounded-md bg-surface text-fg hover:border-accent/40 hover:bg-elevated transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-400 transition-colors"
           >
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              />
+            </svg>
             {selectedGpu
               ? selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`
               : t("vmForm.gpuPickPrompt")}
           </button>
           {selectedGpu && (
-            <p className="text-xs text-muted mt-1">
-              {selectedGpu.memory_size_formatted || `${selectedGpu.memory_gb} GB`}
-              {selectedGpu.tflops ? ` · ${selectedGpu.tflops} TFLOPS` : ""}
-            </p>
+            <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <div className="text-sm font-semibold text-fg">
+                {selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`}
+                <span className="text-accent font-normal ml-1">
+                  ({selectedGpu.memory_size_formatted || `${selectedGpu.memory_gb} GB`}
+                  {selectedGpu.tflops ? ` · ${selectedGpu.tflops} TFLOPS` : ""})
+                </span>
+              </div>
+            </div>
           )}
         </div>
         <NumberInput
@@ -542,20 +581,23 @@ const VLMCalculatorForm = ({
         </div>
       )}
 
-      {/* Submit */}
-      <div className="mt-2" data-tour="vlm-calculate-btn">
-        <button
-          type="submit"
-          disabled={loading}
-          className={`w-full py-3 px-4 rounded-lg text-sm font-semibold text-accent-fg shadow-card transition-all ${
-            loading
-              ? "bg-accent/60 cursor-not-allowed"
-              : "bg-accent hover:bg-accent/90 hover:shadow-card-hover"
-          }`}
-        >
-          {loading ? t("form.calculating") : t("vlmForm.submit")}
-        </button>
-      </div>
+      <button
+        type="submit"
+        data-tour="vlm-calculate-btn"
+        disabled={loading}
+        className={`mt-auto w-full py-3 px-4 rounded-lg font-semibold text-lg transition-colors text-white ${
+          loading ? "bg-blue-300 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 calc-btn-glow"
+        }`}
+      >
+        {loading ? (
+          <span className="flex items-center justify-center">
+            <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2" />
+            {t("form.calculating")}
+          </span>
+        ) : (
+          t("vlmForm.submit")
+        )}
+      </button>
     </form>
   );
 };

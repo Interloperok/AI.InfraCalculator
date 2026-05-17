@@ -2,6 +2,7 @@ import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import {
   AlertTriangle,
+  BarChart3,
   CheckCircle2,
   Clock,
   Cpu,
@@ -60,11 +61,11 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
   if (!results) {
     return (
       <div className="text-center py-12">
-        <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-elevated text-subtle mb-4">
-          <FileText className="h-6 w-6" strokeWidth={2} />
+        <div className="text-subtle mb-4">
+          <BarChart3 className="mx-auto h-12 w-12" strokeWidth={1.75} />
         </div>
-        <h3 className="text-base font-semibold text-muted">{t("ocr.empty.title")}</h3>
-        <p className="text-sm text-subtle">{t("ocr.empty.subtitle")}</p>
+        <h3 className="text-lg font-semibold text-fg">{t("results.empty.title")}</h3>
+        <p className="text-muted text-sm mt-1">{t("results.empty.subtitle")}</p>
       </div>
     );
   }
