@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useT } from "../../contexts/I18nContext";
-import CalculatorForm from "./CalculatorForm";
+import CalculatorForm, { AutoOptimizeToggle } from "./CalculatorForm";
 import ResultsDisplay from "./ResultsDisplay";
 import ModeSwitcher from "./ModeSwitcher";
 import VLMCalculatorForm from "./VLMCalculatorForm";
@@ -533,8 +533,18 @@ const Calculator = () => {
         className="grid grid-flow-col auto-cols-[100%] overflow-x-auto snap-x snap-mandatory lg:grid-flow-row lg:grid-cols-2 lg:auto-cols-auto lg:overflow-visible lg:gap-8 swipe-panels"
       >
         <div className="snap-start overflow-hidden">
-          <div className="bg-surface border border-border rounded-xl shadow-card p-4 sm:p-6 flex flex-col overflow-hidden">
-            <ModeSwitcher mode={mode} onChange={handleModeChange} />
+          <div className="bg-white dark:bg-surface border border-gray-200 dark:border-border rounded-xl shadow-lg p-4 sm:p-6 flex flex-col overflow-hidden">
+            <ModeSwitcher
+              mode={mode}
+              onChange={handleModeChange}
+              headerEnd={
+                mode === "llm" ? (
+                  <div data-tour="auto-optimize">
+                    <AutoOptimizeToggle autoMode={autoMode} setAutoMode={setAutoMode} />
+                  </div>
+                ) : null
+              }
+            />
             {mode === "llm" && (
               <CalculatorForm
                 onSubmit={handleCalculate}
@@ -589,7 +599,7 @@ const Calculator = () => {
         </div>
 
         <div className="snap-start overflow-hidden">
-          <div className="bg-surface border border-border rounded-xl shadow-card p-4 sm:p-6 flex flex-col overflow-hidden">
+          <div className="bg-white dark:bg-surface border border-gray-200 dark:border-border rounded-xl shadow-lg p-4 sm:p-6 flex flex-col overflow-hidden">
             {mode === "vlm" && (
               <VLMResultsDisplay
                 results={results}

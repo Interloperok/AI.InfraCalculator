@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import Joyride, { STATUS } from "react-joyride";
-import { BookOpen, Compass, Cpu, Github, Star } from "lucide-react";
+import { BookOpen, Compass, Cpu, Github, Heart, Star } from "lucide-react";
 import Calculator from "./features/calculator/Calculator";
 import { GITHUB_URL } from "./config";
 import LanguageToggle from "./components/LanguageToggle";
@@ -9,6 +9,7 @@ import { useT } from "./contexts/I18nContext";
 import "./App.css";
 
 const APP_VERSION = "1.3.0";
+const SHOW_LANGUAGE_TOGGLE = false;
 // Methodology docx is bundled into the frontend image; served from the SPA
 // root so the app stays usable in air-gapped / offline environments.
 const METHODOLOGY_DOCX_URL = "/llm-methodology.docx";
@@ -434,11 +435,6 @@ function App() {
   );
 
   const currentYear = new Date().getFullYear();
-  const buildDate = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 
   const startTour = () => {
     const calcMode = getStoredCalculatorMode();
@@ -461,7 +457,7 @@ function App() {
   }, [tourMode, isMobileTour, t]);
 
   return (
-    <div className="min-h-screen bg-bg text-fg flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-bg dark:to-bg text-fg flex flex-col">
       <Joyride
         steps={tourSteps}
         run={runTour}
@@ -485,12 +481,12 @@ function App() {
       />
 
       {/* Sticky top bar — modern compact layout, brand + mode toggles + theme/lang */}
-      <header className="sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-bg/75 bg-bg border-b border-border">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex h-14 items-center justify-between gap-3">
+      <header className="sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-white/75 dark:supports-[backdrop-filter]:bg-bg/75 bg-white/80 dark:bg-bg border-b border-gray-200 dark:border-border">
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
+          <div className="flex h-14 w-full items-center justify-between gap-3">
             {/* Brand */}
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-accent-fg shadow-sm">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm header-icon">
                 <Cpu className="h-4 w-4" strokeWidth={2.25} />
               </span>
               <div className="min-w-0">
@@ -508,7 +504,7 @@ function App() {
               <button
                 onClick={startTour}
                 title={t("app.tour.start")}
-                className="hidden sm:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full border border-border bg-surface text-muted hover:text-fg hover:border-border-strong text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="tour-btn-pulse hidden sm:inline-flex items-center gap-1.5 h-8 px-3 py-2 rounded-lg border border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 text-xs font-medium shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 <Compass className="h-3.5 w-3.5" strokeWidth={2.25} />
                 <span>{t("app.tour.start")}</span>
@@ -520,7 +516,7 @@ function App() {
                   download="llm-methodology.docx"
                   data-tour="docs-btn"
                   title={t("app.docs")}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-muted hover:text-fg hover:border-border-strong transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-200 bg-white text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                 >
                   <BookOpen className="h-3.5 w-3.5" strokeWidth={2.25} />
                 </a>
@@ -529,7 +525,7 @@ function App() {
                   onClick={() => setDocsOpen(true)}
                   data-tour="docs-btn"
                   title={t("app.docs")}
-                  className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full border border-border bg-surface text-muted hover:text-fg hover:border-border-strong text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  className="inline-flex items-center gap-1.5 h-8 px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 text-xs font-medium shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                 >
                   <BookOpen className="h-3.5 w-3.5" strokeWidth={2.25} />
                   <span>{t("app.docs")}</span>
@@ -542,16 +538,19 @@ function App() {
                 rel="noopener noreferrer"
                 data-tour="github-btn"
                 title={t("app.github")}
-                className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full border border-border bg-surface text-muted hover:text-fg hover:border-border-strong text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent group"
+                className="inline-flex items-center gap-1.5 h-8 px-3 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-xs font-medium shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-700 group"
               >
                 <Github className="h-3.5 w-3.5" strokeWidth={2.25} />
                 <span className="hidden sm:inline">{t("app.github")}</span>
-                <Star className="h-3 w-3 text-warning fill-warning opacity-70 group-hover:opacity-100 transition-opacity hidden sm:inline" />
+                <Star className="h-3 w-3 text-yellow-400 fill-yellow-400 opacity-90 group-hover:opacity-100 transition-opacity hidden sm:inline" />
               </a>
 
-              <span className="hidden sm:block h-6 w-px bg-border" aria-hidden />
-
-              <LanguageToggle />
+              {SHOW_LANGUAGE_TOGGLE && (
+                <>
+                  <span className="hidden sm:block h-6 w-px bg-border" aria-hidden />
+                  <LanguageToggle />
+                </>
+              )}
               <ThemeToggle />
             </div>
           </div>
@@ -659,11 +658,16 @@ function App() {
               <span className="px-1.5 py-0.5 bg-elevated text-muted text-[11px] font-mono rounded">
                 v{APP_VERSION}
               </span>
-              <span className="text-subtle hidden sm:inline">·</span>
-              <span className="hidden sm:inline">{buildDate}</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="hidden sm:inline text-subtle">{t("app.footer.builtWith")}</span>
+              <span className="hidden sm:inline-flex items-center gap-1 text-subtle">
+                <Heart
+                  className="h-3 w-3 text-rose-500 fill-rose-500 shrink-0"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+                {t("app.footer.builtWith")}
+              </span>
               <a
                 href={GITHUB_URL}
                 target="_blank"

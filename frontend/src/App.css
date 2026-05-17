@@ -14,17 +14,17 @@
   --color-subtle: 100 116 139; /* slate-500 — tertiary (was slate-400, too faint) */
   --color-border: 203 213 225; /* slate-300 — hairlines (was slate-200 — invisible) */
   --color-border-strong: 148 163 184; /* slate-400 — emphasised borders (was slate-300 — too faint) */
-  --color-accent: 79 70 229; /* indigo-600 — primary accent */
+  --color-accent: 37 99 235; /* blue-600 — primary accent (legacy palette) */
   --color-accent-fg: 255 255 255; /* text on accent surfaces */
-  --color-accent-soft: 238 242 255; /* indigo-50 */
+  --color-accent-soft: 239 246 255; /* blue-50 */
   --color-success: 5 150 105; /* emerald-600 */
   --color-success-soft: 209 250 229; /* emerald-100 */
   --color-warning: 217 119 6; /* amber-600 */
   --color-warning-soft: 254 243 199; /* amber-100 */
   --color-danger: 220 38 38; /* red-600 */
   --color-danger-soft: 254 226 226; /* red-100 */
-  --color-info: 14 165 233; /* sky-500 */
-  --color-info-soft: 224 242 254; /* sky-100 */
+  --color-info: 59 130 246; /* blue-500 — sliders, info accents */
+  --color-info-soft: 219 234 254; /* blue-100 */
 }
 
 .dark {
@@ -89,7 +89,7 @@ input[type="range"]::-webkit-slider-runnable-track {
   width: 100%;
   height: 8px;
   border-radius: 4px;
-  background: rgb(var(--color-accent) / 0.15);
+  background: rgb(var(--color-info) / 0.2);
   cursor: pointer;
 }
 
@@ -111,7 +111,7 @@ input[type="range"]::-moz-range-track {
   width: 100%;
   height: 8px;
   border-radius: 4px;
-  background: rgb(var(--color-accent) / 0.15);
+  background: rgb(var(--color-info) / 0.2);
   cursor: pointer;
   border: none;
 }

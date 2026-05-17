@@ -10,6 +10,7 @@ describe("ModeSwitcher", () => {
     expect(screen.getByText("LLM")).toBeInTheDocument();
     expect(screen.getByText("OCR (VLM)")).toBeInTheDocument();
     expect(screen.getByText("OCR + LLM")).toBeInTheDocument();
+    expect(screen.getAllByText("beta")).toHaveLength(2);
 
     const llmButton = screen.getByRole("button", { name: /^LLM$/ });
     const vlmButton = screen.getByRole("button", { name: "OCR (VLM)" });
