@@ -7,14 +7,19 @@ describe("OCRCalculatorForm", () => {
     render(<OCRCalculatorForm onSubmit={jest.fn()} loading={false} />);
 
     expect(screen.getByText("Quick Presets")).toBeInTheDocument();
-    expect(screen.getByText("Workload (online)")).toBeInTheDocument();
-    // "OCR pipeline" appears as both a section heading and a field label,
-    // so assert presence via getAllByText.
+    expect(screen.getByText("Users & workload")).toBeInTheDocument();
     expect(screen.getAllByText("OCR pipeline").length).toBeGreaterThan(0);
-    expect(screen.getByText("OCR text profile")).toBeInTheDocument();
-    expect(screen.getByText("LLM model")).toBeInTheDocument();
+    expect(screen.getByText("Model")).toBeInTheDocument();
     expect(screen.getByText("Hardware")).toBeInTheDocument();
+    expect(screen.getByText("Tensor Parallelism")).toBeInTheDocument();
+    expect(screen.getByText("SLA")).toBeInTheDocument();
     expect(screen.getByLabelText(/OCR throughput per GPU/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Advanced" }));
+    expect(screen.getByText("Token profile")).toBeInTheDocument();
+    expect(screen.getByText("Model Architecture")).toBeInTheDocument();
+    expect(screen.getByText("KV-Cache")).toBeInTheDocument();
+    expect(screen.getByText("Compute & Throughput")).toBeInTheDocument();
   });
 
   it("toggles pipeline to ocr_cpu and shows core fields", () => {
@@ -69,9 +74,8 @@ describe("OCRCalculatorForm", () => {
     const onSubmit = jest.fn();
     render(<OCRCalculatorForm onSubmit={onSubmit} loading={false} />);
 
-    // Switch to CPU and clear cores
     fireEvent.click(screen.getByText("OCR on CPU"));
-    fireEvent.change(screen.getByLabelText(/CPU cores for OCR/), { target: { value: "0" } });
+    fireEvent.change(screen.getByLabelText(/CPU cores for OCR/), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: /Calculate OCR \+ LLM Sizing/i }));
 
     expect(onSubmit).not.toHaveBeenCalled();

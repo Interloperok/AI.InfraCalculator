@@ -15,6 +15,7 @@ export const CALCULATOR_MODES = [
     label: "OCR (VLM)",
     subtitle: "Image → structured JSON",
     description: "Single-pass vision-language model. Sizing driven by pages/sec and per-page SLA.",
+    beta: true,
   },
   {
     id: "ocr",
@@ -22,6 +23,7 @@ export const CALCULATOR_MODES = [
     subtitle: "Two-pass extraction",
     description:
       "OCR (GPU or CPU) followed by LLM extraction. Two-pool sizing with SLA budget split.",
+    beta: true,
   },
 ];
 
@@ -37,15 +39,24 @@ const MODE_I18N = {
   ocr: { label: "mode.ocr", subtitle: "mode.ocr.subtitle" },
 };
 
-const ModeSwitcher = ({ mode, onChange }) => {
+const CONFIG_HEADING_ID = "calculator-config-heading";
+
+const ModeSwitcher = ({ mode, onChange, headerEnd = null }) => {
   const t = useT();
   return (
     <div className="mb-4" data-tour="mode-switcher">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted mb-2">
-        {t("mode.label")}
-      </p>
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <h2
+          id={CONFIG_HEADING_ID}
+          className="text-lg sm:text-2xl font-semibold text-fg min-w-0 truncate"
+        >
+          {t("form.title")}
+        </h2>
+        {headerEnd ? <div className="shrink-0">{headerEnd}</div> : null}
+      </div>
       <div
-        aria-label={t("mode.label")}
+        role="group"
+        aria-labelledby={CONFIG_HEADING_ID}
         className="grid grid-cols-3 gap-1.5 rounded-xl border border-border bg-surface p-1 shadow-card"
       >
         {CALCULATOR_MODES.map((m) => {
@@ -78,7 +89,20 @@ const ModeSwitcher = ({ mode, onChange }) => {
                 <Icon className="h-4 w-4" strokeWidth={2.25} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold leading-tight">{label}</span>
+                <span className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-sm font-semibold leading-tight">{label}</span>
+                  {m.beta && (
+                    <span
+                      className={`text-[9px] font-bold uppercase tracking-wider px-1 py-px rounded ${
+                        active
+                          ? "bg-white/20 text-accent-fg"
+                          : "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"
+                      }`}
+                    >
+                      beta
+                    </span>
+                  )}
+                </span>
                 <span
                   className={`block text-[11px] leading-snug ${
                     active ? "opacity-80" : "text-muted"

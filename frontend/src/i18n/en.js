@@ -66,7 +66,7 @@ const en = {
   "results.concurrentSessions": "Concurrent Sessions",
   "results.sessionContext": "Session Context",
   "results.sessionContext.unit": "tokens",
-  "results.infrastructure.title": "Infrastructure Required",
+  "results.infrastructure.title": "Servers",
   "results.infrastructure.servers": "servers",
   "results.infrastructure.gpus": "GPUs",
   "results.infrastructure.maxMemComp": "max(mem: {mem}, comp: {comp})",
@@ -86,7 +86,7 @@ const en = {
     "How many independent model copies fit on one server, considering tensor parallelism.",
 
   // ── Memory / KV cards ────────────────────────────────────────────────
-  "results.memory.title": "GPU Memory per Instance",
+  "results.memory.title": "GPU Memory per Model Instance",
   "results.memory.headerSubtitle": "{n} GPU{plural} × {gib} GiB = {total} GiB total",
   "results.memory.modelWeights": "Model Weights",
   "results.memory.kvAvailable": "Available for KV-cache",
@@ -109,7 +109,7 @@ const en = {
   "results.sla.failed.short": "Failed",
   "results.sla.passed.empty": "SLA passed. No recommendations.",
   "results.sla.empty": "No notifications.",
-  "results.sla.ttft.title": "Time To First Token (TTFT)",
+  "results.sla.ttft.title": "Time To First Token",
   "results.sla.e2e.title": "End-to-End Latency",
   "results.sla.calculated": "Calculated",
   "results.sla.target": "SLA Target",
@@ -442,7 +442,7 @@ const en = {
   "form.section.tokenBudget": "Token Budget",
   "form.section.tokenBudgetTooltip":
     "Token counts that define a typical request and conversation. These determine memory and compute requirements.",
-  "form.section.agentic": "Agentic / RAG / Tool-Use",
+  "form.section.agentic": "App Architecture pattern",
   "form.section.agenticTooltip":
     "Multi-call architectures: ReAct, RAG, function calling, multi-agent. Sets K_calls, tool overhead, and RAG context. Reduces to single-turn at K_calls=1 with all overheads at 0.",
   "form.section.kvCache": "KV-Cache",

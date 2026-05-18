@@ -1,10 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import {
-  Server,
-  Cpu,
   Zap,
-  Layers,
   MessageSquare,
   Users,
   DollarSign,
@@ -22,7 +19,6 @@ import {
   X,
   BarChart3,
   Gauge,
-  Box,
   HardDrive,
 } from "lucide-react";
 import { downloadReport } from "../../services/api";
@@ -60,9 +56,12 @@ const interp = (s, vars) =>
 
 // ── Tiny presentational sub-components ─────────────────────────────────
 
-const InfoTooltip = ({ text, align = "center" }) => (
+const InfoTooltip = ({ text, align = "center", onColor = false }) => (
   <span className="relative group/tip inline-flex items-center">
-    <Info className="h-3.5 w-3.5 text-subtle cursor-help" strokeWidth={2.25} />
+    <Info
+      className={`h-3.5 w-3.5 cursor-help ${onColor ? "text-white/70" : "text-subtle"}`}
+      strokeWidth={2.25}
+    />
     <span
       className={`invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200 absolute z-[9999] bottom-full ${
         align === "right" ? "right-0" : align === "left" ? "left-0" : "left-1/2 -translate-x-1/2"
@@ -78,11 +77,22 @@ const InfoTooltip = ({ text, align = "center" }) => (
   </span>
 );
 
-const MetricLabel = ({ children, icon: Icon, tooltip, tooltipAlign }) => (
-  <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted font-semibold">
-    {Icon && <Icon className="h-3.5 w-3.5 text-subtle" strokeWidth={2.25} />}
-    <span>{children}</span>
-    {tooltip && <InfoTooltip text={tooltip} align={tooltipAlign} />}
+const MetricLabel = ({ children, icon: Icon, tooltip, tooltipAlign, onColor = false }) => (
+  <div
+    className={`flex w-full items-start gap-1 text-xs uppercase tracking-wider font-semibold ${onColor ? "text-white/90" : "text-muted"}`}
+  >
+    {Icon && (
+      <Icon
+        className={`h-3.5 w-3.5 shrink-0 ${onColor ? "text-white/70" : "text-subtle"}`}
+        strokeWidth={2.25}
+      />
+    )}
+    <span className="min-w-0 flex-1 leading-tight break-words">{children}</span>
+    {tooltip && (
+      <span className="inline-flex shrink-0 self-start">
+        <InfoTooltip text={tooltip} align={tooltipAlign} onColor={onColor} />
+      </span>
+    )}
   </div>
 );
 
@@ -92,6 +102,23 @@ const StatRow = ({ label, value, divider = true }) => (
   >
     <span className="text-sm text-muted">{label}</span>
     <span className="text-sm font-semibold tabular-nums text-fg">{value}</span>
+  </div>
+);
+
+const GatewayQuotaTile = ({ label, tooltip, tooltipAlign = "center", value, footer }) => (
+  <div className="bg-elevated border border-border rounded-lg py-2.5 px-3 flex flex-col h-full">
+    <div className="flex w-full items-start gap-1 min-h-[2.5rem] shrink-0 text-[10px] uppercase font-semibold text-muted tracking-wider">
+      <span className="min-w-0 flex-1 leading-tight break-words">{label}</span>
+      {tooltip && (
+        <span className="inline-flex shrink-0 self-start">
+          <InfoTooltip text={tooltip} align={tooltipAlign} />
+        </span>
+      )}
+    </div>
+    <div className="min-h-[1.75rem] mt-1 flex items-center text-lg font-semibold text-fg tabular-nums">
+      {value}
+    </div>
+    <p className="text-[10px] text-muted mt-0.5 min-h-[2rem] leading-snug tabular-nums">{footer}</p>
   </div>
 );
 
@@ -186,11 +213,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
   ];
   // Recharts paints in this order — use semantic CSS variables so the donut
   // re-tints automatically when the user toggles dark mode.
-  const DONUT_COLORS = [
-    "rgb(var(--color-accent))",
-    "rgb(var(--color-info))",
-    "rgb(var(--color-subtle))",
-  ];
+  const DONUT_COLORS = ["#6366f1", "#10b981", "#94a3b8"];
 
   const gpusInst = results.gpus_per_instance_tp || results.gpus_per_instance || 0;
   const showGateway =
@@ -202,14 +225,9 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
   return (
     <div className="gap-5 flex flex-col flex-1">
       {/* ── Header ──────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-accent-soft text-accent shadow-card">
-          <BarChart3 className="h-4 w-4" strokeWidth={2.25} />
-        </span>
-        <h2 className="text-lg sm:text-2xl font-semibold tracking-tight text-fg">
-          {t("results.title")}
-        </h2>
-      </div>
+      <h2 className="text-lg sm:text-2xl font-semibold tracking-tight text-fg">
+        {t("results.title")}
+      </h2>
 
       {/* ── Download error toast ───────────────────────────────────── */}
       {downloadError && (
@@ -232,13 +250,18 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
       {/* ── Cost estimate hero ─────────────────────────────────────── */}
       <div
         data-tour="cost-estimate"
-        className="result-tile bg-surface border border-border rounded-xl p-4 sm:p-5 shadow-card flex items-center justify-between gap-3"
+        className="result-tile bg-gradient-to-br from-purple-600 to-violet-800 rounded-xl p-4 sm:p-5 text-white shadow-lg flex items-center justify-between gap-3"
       >
         <div className="min-w-0">
-          <MetricLabel icon={DollarSign} tooltip={t("results.cost.tooltip")} tooltipAlign="left">
+          <MetricLabel
+            icon={DollarSign}
+            tooltip={t("results.cost.tooltip")}
+            tooltipAlign="left"
+            onColor
+          >
             {t("results.cost.title")}
           </MetricLabel>
-          <p className="text-3xl sm:text-4xl font-semibold tracking-tight text-fg mt-1.5 truncate tabular-nums">
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight mt-1.5 truncate tabular-nums">
             {results.cost_estimate_usd != null && results.cost_estimate_usd > 0
               ? `$${Number(results.cost_estimate_usd).toLocaleString(undefined, {
                   maximumFractionDigits: 0,
@@ -246,52 +269,38 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
               : "—"}
           </p>
           {results.cost_estimate_usd != null && results.cost_estimate_usd > 0 && (
-            <p className="text-xs text-muted mt-0.5">{t("results.cost.subtitle")}</p>
+            <p className="text-sm font-semibold opacity-80 mt-0.5">{t("results.cost.subtitle")}</p>
           )}
         </div>
-        <span className="hidden sm:inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent-soft text-accent shrink-0">
-          <DollarSign className="h-6 w-6" strokeWidth={2.25} />
-        </span>
+        <DollarSign className="hidden sm:block h-10 w-10 opacity-30 shrink-0" strokeWidth={1.5} />
       </div>
 
       {/* ── Concurrent sessions + session context ───────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" data-tour="session-cards">
-        <div className="bg-surface border border-border rounded-xl p-4 sm:p-5 shadow-card flex items-center justify-between gap-3 overflow-hidden">
+        <div className="bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl p-4 sm:p-5 text-white shadow-lg flex items-center justify-between gap-3 overflow-hidden">
           <div className="min-w-0">
-            <MetricLabel
-              icon={Users}
-              tooltip={t("results.concurrentSessions.tooltip")}
-              tooltipAlign="left"
-            >
+            <h3 className="text-xs font-semibold uppercase tracking-wider opacity-60">
               {t("results.concurrentSessions")}
-            </MetricLabel>
-            <p className="text-3xl sm:text-4xl font-semibold tracking-tight text-fg mt-1.5 tabular-nums truncate">
+            </h3>
+            <p className="text-2xl sm:text-3xl font-extrabold mt-1 tabular-nums truncate">
               {fmt(results.Ssim_concurrent_sessions, 0)}
             </p>
           </div>
-          <span className="hidden sm:inline-flex h-11 w-11 items-center justify-center rounded-xl bg-info-soft text-info shrink-0">
-            <Users className="h-5 w-5" strokeWidth={2.25} />
-          </span>
+          <Users className="hidden sm:block h-8 w-8 sm:h-10 sm:w-10 opacity-20 shrink-0" strokeWidth={1.5} />
         </div>
-        <div className="bg-surface border border-border rounded-xl p-4 sm:p-5 shadow-card flex items-center justify-between gap-3 overflow-hidden">
+        <div className="bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl p-4 sm:p-5 text-white shadow-lg flex items-center justify-between gap-3 overflow-hidden">
           <div className="min-w-0">
-            <MetricLabel
-              icon={MessageSquare}
-              tooltip={t("results.sessionContext.tooltip")}
-              tooltipAlign="right"
-            >
+            <h3 className="text-xs font-semibold uppercase tracking-wider opacity-60">
               {t("results.sessionContext")}
-            </MetricLabel>
-            <p className="text-3xl sm:text-4xl font-semibold tracking-tight text-fg mt-1.5 tabular-nums truncate">
+            </h3>
+            <p className="text-2xl sm:text-3xl font-extrabold mt-1 tabular-nums truncate">
               {fmt(results.TS_session_context, 0)}
-              <span className="text-sm font-normal text-muted ml-1.5">
+              <span className="text-sm font-semibold opacity-60 ml-1">
                 {t("results.sessionContext.unit")}
               </span>
             </p>
           </div>
-          <span className="hidden sm:inline-flex h-11 w-11 items-center justify-center rounded-xl bg-info-soft text-info shrink-0">
-            <MessageSquare className="h-5 w-5" strokeWidth={2.25} />
-          </span>
+          <MessageSquare className="hidden sm:block h-8 w-8 sm:h-10 sm:w-10 opacity-20 shrink-0" strokeWidth={1.5} />
         </div>
       </div>
 
@@ -301,44 +310,43 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
              clip the label. max(mem,comp) breakdown moved to hover
              tooltip — too noisy on the front of the card. */}
         <div
-          className="result-tile bg-surface border border-accent/40 rounded-xl p-4 sm:p-5 shadow-card flex flex-col sm:min-h-[170px] overflow-hidden"
+          className="result-tile bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:min-h-[170px] overflow-hidden"
           title={interp(t("results.infrastructure.maxMemComp"), {
             mem: results.servers_by_memory || 0,
             comp: results.servers_by_compute || 0,
           })}
         >
           <MetricLabel
-            icon={Server}
             tooltip={t("results.infrastructure.tooltip")}
             tooltipAlign="left"
+            onColor
           >
             {t("results.infrastructure.title")}
           </MetricLabel>
-          <div className="mt-auto mb-auto pt-2">
+          <div className="flex flex-1 items-center min-h-[4.5rem]">
             <p
-              className="text-4xl sm:text-5xl font-semibold tracking-tight text-fg tabular-nums leading-none"
+              className="text-4xl sm:text-5xl font-extrabold tracking-tight tabular-nums leading-none"
               title={String(results.servers_final || 0)}
             >
               {fmt(results.servers_final, 0)}
             </p>
-            <p className="text-[11px] uppercase tracking-wide text-muted mt-2 font-semibold">
-              {t("results.infrastructure.servers")}
-            </p>
           </div>
-          <p className="text-xs text-muted mt-2 tabular-nums">
+          <p className="text-xs sm:text-sm text-white/80 shrink-0 min-h-[2.5rem] leading-snug tabular-nums">
             {fmt(results.total_gpu_count, 0)} {t("results.infrastructure.gpus")}
           </p>
         </div>
 
         {/* Card 2 — Sessions per Server */}
-        <div className="result-tile bg-surface border border-border rounded-xl p-4 sm:p-6 shadow-card flex flex-col sm:min-h-[170px] overflow-hidden">
-          <MetricLabel icon={Users} tooltip={t("results.sessions.tooltip")}>
+        <div className="result-tile bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:min-h-[170px] overflow-hidden">
+          <MetricLabel tooltip={t("results.sessions.tooltip")} onColor>
             {t("results.sessions.title")}
           </MetricLabel>
-          <p className="text-4xl sm:text-5xl font-semibold tracking-tight text-fg mt-auto mb-auto tabular-nums">
-            {results.sessions_per_server || 0}
-          </p>
-          <p className="text-xs sm:text-sm text-muted mt-2 tabular-nums">
+          <div className="flex flex-1 items-center min-h-[4.5rem]">
+            <p className="text-4xl sm:text-5xl font-extrabold tracking-tight tabular-nums leading-none">
+              {results.sessions_per_server || 0}
+            </p>
+          </div>
+          <p className="text-xs sm:text-sm text-white/80 shrink-0 min-h-[2.5rem] leading-snug tabular-nums">
             {interp(t("results.sessions.subtitle"), {
               instances: results.instances_per_server_tp || 0,
               sessions: results.S_TP_z || 0,
@@ -347,17 +355,19 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
         </div>
 
         {/* Card 3 — Server Throughput */}
-        <div className="result-tile bg-surface border border-border rounded-xl p-4 sm:p-6 shadow-card flex flex-col sm:min-h-[170px]">
-          <MetricLabel icon={Zap} tooltip={t("results.throughput.tooltip")} tooltipAlign="right">
+        <div className="result-tile bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:min-h-[170px] overflow-hidden">
+          <MetricLabel tooltip={t("results.throughput.tooltip")} tooltipAlign="right" onColor>
             {t("results.throughput.title")}
           </MetricLabel>
-          <p className="text-4xl sm:text-5xl font-semibold tracking-tight text-fg mt-auto mb-auto tabular-nums">
-            {fmtThroughput(results.th_server_comp)}
-            <span className="text-sm font-normal text-muted ml-2">
-              {t("results.throughput.unit")}
-            </span>
-          </p>
-          <p className="text-xs sm:text-sm text-muted mt-2 tabular-nums">
+          <div className="flex flex-1 items-center min-h-[4.5rem]">
+            <p className="text-4xl sm:text-5xl font-extrabold tracking-tight tabular-nums leading-none">
+              {fmtThroughput(results.th_server_comp)}
+              <span className="text-sm font-normal text-white/80 ml-2">
+                {t("results.throughput.unit")}
+              </span>
+            </p>
+          </div>
+          <p className="text-xs sm:text-sm text-white/80 shrink-0 min-h-[2.5rem] leading-snug tabular-nums">
             {interp(t("results.throughput.detail"), {
               pf: fmt(results.th_prefill, 0),
               dec: fmt(results.th_decode, 0),
@@ -368,41 +378,38 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
 
       {/* ── Secondary metric tiles (3 small) ──────────────────────────── */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <div className="bg-surface border border-border rounded-lg p-3 sm:p-4 shadow-card">
-          <div className="flex items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-muted font-semibold">
-            <Cpu className="h-3 w-3 text-subtle mt-px shrink-0" strokeWidth={2.25} />
-            <span className="leading-tight break-words">{t("results.gpuPerServer.title")}</span>
-            <span className="ml-auto shrink-0">
-              <InfoTooltip text={t("results.gpuPerServer.tooltip")} align="left" />
+        <div className="bg-gradient-to-br from-blue-400/80 to-indigo-500/80 rounded-lg p-3 sm:p-4 text-white shadow overflow-hidden">
+          <div className="flex w-full items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-white/90 font-semibold">
+            <span className="min-w-0 flex-1 leading-tight break-words">{t("results.gpuPerServer.title")}</span>
+            <span className="inline-flex shrink-0 self-start">
+              <InfoTooltip text={t("results.gpuPerServer.tooltip")} align="left" onColor />
             </span>
           </div>
-          <p className="text-xl sm:text-2xl font-semibold text-fg mt-1.5 tabular-nums">
+          <p className="text-xl sm:text-2xl font-semibold mt-1.5 tabular-nums">
             {results.gpus_per_server || 0}
           </p>
         </div>
-        <div className="bg-surface border border-border rounded-lg p-3 sm:p-4 shadow-card">
-          <div className="flex items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-muted font-semibold">
-            <Box className="h-3 w-3 text-subtle mt-px shrink-0" strokeWidth={2.25} />
-            <span className="leading-tight break-words">{t("results.gpuPerInstance.title")}</span>
-            <span className="ml-auto shrink-0">
-              <InfoTooltip text={t("results.gpuPerInstance.tooltip")} />
+        <div className="bg-gradient-to-br from-emerald-400/80 to-teal-500/80 rounded-lg p-3 sm:p-4 text-white shadow">
+          <div className="flex w-full items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-white/90 font-semibold">
+            <span className="min-w-0 flex-1 leading-tight break-words">{t("results.gpuPerInstance.title")}</span>
+            <span className="inline-flex shrink-0 self-start">
+              <InfoTooltip text={t("results.gpuPerInstance.tooltip")} onColor />
             </span>
           </div>
-          <p className="text-xl sm:text-2xl font-semibold text-fg mt-1.5 tabular-nums">
+          <p className="text-xl sm:text-2xl font-semibold mt-1.5 tabular-nums">
             {gpusInst}
           </p>
         </div>
-        <div className="bg-surface border border-border rounded-lg p-3 sm:p-4 shadow-card">
-          <div className="flex items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-muted font-semibold">
-            <Layers className="h-3 w-3 text-subtle mt-px shrink-0" strokeWidth={2.25} />
-            <span className="leading-tight break-words">
+        <div className="bg-gradient-to-br from-violet-400/80 to-purple-500/80 rounded-lg p-3 sm:p-4 text-white shadow">
+          <div className="flex w-full items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-white/90 font-semibold">
+            <span className="min-w-0 flex-1 leading-tight break-words">
               {t("results.instancesPerServer.title")}
             </span>
-            <span className="ml-auto shrink-0">
-              <InfoTooltip text={t("results.instancesPerServer.tooltip")} align="right" />
+            <span className="inline-flex shrink-0 self-start">
+              <InfoTooltip text={t("results.instancesPerServer.tooltip")} align="right" onColor />
             </span>
           </div>
-          <p className="text-xl sm:text-2xl font-semibold text-fg mt-1.5 tabular-nums">
+          <p className="text-xl sm:text-2xl font-semibold mt-1.5 tabular-nums">
             {results.instances_per_server_tp || 0}
           </p>
         </div>
@@ -411,73 +418,49 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
       {/* ── Gateway Quotas ───────────────────────────────────────────── */}
       {showGateway && (
         <div className="bg-surface border border-border rounded-xl p-4 sm:p-5 shadow-card">
-          <div className="flex items-baseline justify-between mb-3 gap-2">
-            <h3 className="text-sm font-semibold text-fg flex items-center gap-1.5">
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <h3 className="text-lg font-semibold text-fg flex items-center gap-2">
               <Gauge className="h-4 w-4 text-muted" strokeWidth={2.25} />
               {t("results.gateway.title")}
             </h3>
             <span className="text-[11px] text-muted truncate">{t("results.gateway.subtitle")}</span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-            <div className="bg-elevated border border-border rounded-lg py-2.5 px-3">
-              <p className="flex items-center gap-1 text-[10px] uppercase font-semibold text-muted tracking-wider">
-                <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
-                <span>{t("results.gateway.peakRpm")}</span>
-                <span className="ml-auto">
-                  <InfoTooltip text={t("results.gateway.peakRpmTooltip")} align="left" />
-                </span>
-              </p>
-              <p className="text-lg font-semibold text-fg mt-1 tabular-nums">
-                {fmt(results.peak_rpm, 0)}
-              </p>
-              <p className="text-[10px] text-muted mt-0.5 tabular-nums">
-                {t("results.gateway.sustained")} {fmt(results.sustained_rpm, 0)}
-              </p>
-            </div>
-            <div className="bg-elevated border border-border rounded-lg py-2.5 px-3">
-              <p className="flex items-center gap-1 text-[10px] uppercase font-semibold text-muted tracking-wider">
-                <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
-                <span>{t("results.gateway.peakTpm")}</span>
-                <span className="ml-auto">
-                  <InfoTooltip text={t("results.gateway.peakTpmTooltip")} />
-                </span>
-              </p>
-              <p className="text-lg font-semibold text-fg mt-1 tabular-nums">
-                {fmt(results.peak_tpm, 0)}
-              </p>
-              <p className="text-[10px] text-muted mt-0.5 tabular-nums">
-                {t("results.gateway.sustained")} {fmt(results.sustained_tpm, 0)}
-              </p>
-            </div>
-            <div className="bg-elevated border border-border rounded-lg py-2.5 px-3">
-              <p className="flex items-center gap-1 text-[10px] uppercase font-semibold text-muted tracking-wider">
-                <span className="h-1.5 w-1.5 rounded-full bg-info" aria-hidden />
-                <span>{t("results.gateway.tpmSplit")}</span>
-                <span className="ml-auto">
-                  <InfoTooltip text={t("results.gateway.tpmSplitTooltip")} />
-                </span>
-              </p>
-              <p className="text-sm font-semibold text-fg mt-1 tabular-nums">
-                <span className="text-muted">{t("results.gateway.in")}</span>{" "}
-                {fmt(results.peak_tpm_input, 0)}
-              </p>
-              <p className="text-[11px] text-muted tabular-nums">
-                <span>{t("results.gateway.out")}</span> {fmt(results.peak_tpm_output, 0)}
-              </p>
-            </div>
-            <div className="bg-elevated border border-border rounded-lg py-2.5 px-3">
-              <p className="flex items-center gap-1 text-[10px] uppercase font-semibold text-muted tracking-wider">
-                <span className="h-1.5 w-1.5 rounded-full bg-warning" aria-hidden />
-                <span>{t("results.gateway.maxParallel")}</span>
-                <span className="ml-auto">
-                  <InfoTooltip text={t("results.gateway.maxParallelTooltip")} align="right" />
-                </span>
-              </p>
-              <p className="text-lg font-semibold text-fg mt-1 tabular-nums">
-                {fmt(results.max_parallel_requests, 0)}
-              </p>
-              <p className="text-[10px] text-muted mt-0.5">{t("results.gateway.concurrent")}</p>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 items-stretch">
+            <GatewayQuotaTile
+              label={t("results.gateway.peakRpm")}
+              tooltip={t("results.gateway.peakRpmTooltip")}
+              tooltipAlign="left"
+              value={fmt(results.peak_rpm, 0)}
+              footer={`${t("results.gateway.sustained")} ${fmt(results.sustained_rpm, 0)}`}
+            />
+            <GatewayQuotaTile
+              label={t("results.gateway.peakTpm")}
+              tooltip={t("results.gateway.peakTpmTooltip")}
+              value={fmt(results.peak_tpm, 0)}
+              footer={`${t("results.gateway.sustained")} ${fmt(results.sustained_tpm, 0)}`}
+            />
+            <GatewayQuotaTile
+              label={t("results.gateway.tpmSplit")}
+              tooltip={t("results.gateway.tpmSplitTooltip")}
+              value={
+                <>
+                  <span className="text-muted font-semibold">{t("results.gateway.in")}</span>{" "}
+                  {fmt(results.peak_tpm_input, 0)}
+                </>
+              }
+              footer={
+                <>
+                  <span>{t("results.gateway.out")}</span> {fmt(results.peak_tpm_output, 0)}
+                </>
+              }
+            />
+            <GatewayQuotaTile
+              label={t("results.gateway.maxParallel")}
+              tooltip={t("results.gateway.maxParallelTooltip")}
+              tooltipAlign="right"
+              value={fmt(results.max_parallel_requests, 0)}
+              footer={t("results.gateway.concurrent")}
+            />
           </div>
         </div>
       )}
@@ -580,8 +563,8 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                 <span
                   className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${
                     results.sla_passed
-                      ? "bg-success-soft text-success"
-                      : "bg-danger-soft text-danger"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-red-100 text-red-800"
                   }`}
                 >
                   {results.sla_passed ? (
@@ -600,12 +583,12 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* TTFT */}
             <div
-              className={`rounded-xl p-4 border ${
+              className={`rounded-lg p-4 border-l-4 ${
                 results.ttft_sla_pass === true
-                  ? "bg-success-soft border-success/30"
+                  ? "bg-green-50 border-green-500"
                   : results.ttft_sla_pass === false
-                    ? "bg-danger-soft border-danger/30"
-                    : "bg-elevated border-border"
+                    ? "bg-red-50 border-red-500"
+                    : "bg-gray-50 border-gray-300"
               }`}
             >
               <h4 className="text-sm font-semibold text-fg mb-3 flex items-center gap-1.5">
@@ -630,10 +613,10 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                 )}
                 {results.ttft_sla_pass != null && (
                   <div
-                    className={`text-center py-1.5 rounded-md text-xs font-semibold mt-2 inline-flex items-center justify-center gap-1.5 w-full ${
+                    className={`text-center py-1.5 rounded text-xs font-semibold mt-2 inline-flex items-center justify-center gap-1.5 w-full ${
                       results.ttft_sla_pass
-                        ? "bg-success/20 text-success"
-                        : "bg-danger/20 text-danger"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
                     }`}
                   >
                     {results.ttft_sla_pass ? (
@@ -649,12 +632,12 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
 
             {/* e2e Latency */}
             <div
-              className={`rounded-xl p-4 border ${
+              className={`rounded-lg p-4 border-l-4 ${
                 results.e2e_latency_sla_pass === true
-                  ? "bg-success-soft border-success/30"
+                  ? "bg-green-50 border-green-500"
                   : results.e2e_latency_sla_pass === false
-                    ? "bg-danger-soft border-danger/30"
-                    : "bg-elevated border-border"
+                    ? "bg-red-50 border-red-500"
+                    : "bg-gray-50 border-gray-300"
               }`}
             >
               <h4 className="text-sm font-semibold text-fg mb-3 flex items-center gap-1.5">
@@ -679,10 +662,10 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                 )}
                 {results.e2e_latency_sla_pass != null && (
                   <div
-                    className={`text-center py-1.5 rounded-md text-xs font-semibold mt-2 inline-flex items-center justify-center gap-1.5 w-full ${
+                    className={`text-center py-1.5 rounded text-xs font-semibold mt-2 inline-flex items-center justify-center gap-1.5 w-full ${
                       results.e2e_latency_sla_pass
-                        ? "bg-success/20 text-success"
-                        : "bg-danger/20 text-danger"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
                     }`}
                   >
                     {results.e2e_latency_sla_pass ? (
@@ -704,18 +687,10 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
         className="bg-surface border border-border rounded-xl p-4 sm:p-6 shadow-card"
         data-tour="donut-chart"
       >
-        <h3 className="text-lg font-semibold text-fg mb-1 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-fg mb-2 flex items-center gap-2">
           <HardDrive className="h-4 w-4 text-muted" strokeWidth={2.25} />
           {t("results.memory.title")}
         </h3>
-        <p className="text-sm text-muted mb-4 tabular-nums">
-          {interp(t("results.memory.headerSubtitle"), {
-            n: gpusInst,
-            plural: gpusInst !== 1 ? "s" : "",
-            gib: results.gpu_mem_gb || 0,
-            total: fmt(totalMem, 1),
-          })}
-        </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-6">
           {/* Donut */}
@@ -783,6 +758,14 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                 </div>
               </div>
             ))}
+            <p className="text-sm text-muted tabular-nums pt-1 text-left">
+              {interp(t("results.memory.headerSubtitle"), {
+                n: gpusInst,
+                plural: gpusInst !== 1 ? "s" : "",
+                gib: results.gpu_mem_gb || 0,
+                total: fmt(totalMem, 1),
+              })}
+            </p>
           </div>
         </div>
       </div>

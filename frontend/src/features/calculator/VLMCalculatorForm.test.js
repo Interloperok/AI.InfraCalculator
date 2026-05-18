@@ -7,10 +7,17 @@ describe("VLMCalculatorForm", () => {
     render(<VLMCalculatorForm onSubmit={jest.fn()} loading={false} />);
 
     expect(screen.getByText("Quick Presets")).toBeInTheDocument();
-    expect(screen.getByText("Workload (online)")).toBeInTheDocument();
-    expect(screen.getByText("Image & token profile")).toBeInTheDocument();
-    expect(screen.getByText("VLM model")).toBeInTheDocument();
+    expect(screen.getByText("Users & workload")).toBeInTheDocument();
+    expect(screen.getByText("Model")).toBeInTheDocument();
     expect(screen.getByText("Hardware")).toBeInTheDocument();
+    expect(screen.getByText("Tensor Parallelism")).toBeInTheDocument();
+    expect(screen.getByText("SLA")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Advanced" }));
+    expect(screen.getByText("Token profile")).toBeInTheDocument();
+    expect(screen.getByText("Model Architecture")).toBeInTheDocument();
+    expect(screen.getByText("KV-Cache")).toBeInTheDocument();
+    expect(screen.getByText("Compute & Throughput")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Calculate VLM Sizing/i })).toBeInTheDocument();
   });
 
@@ -32,9 +39,9 @@ describe("VLMCalculatorForm", () => {
     const onSubmit = jest.fn();
     render(<VLMCalculatorForm onSubmit={onSubmit} loading={false} />);
 
-    // params_billions defaults to 7; clear it to trigger validation
-    const paramsInput = screen.getByLabelText(/Parameters/);
-    fireEvent.change(paramsInput, { target: { value: "0" } });
+    // sla_page min is 0 on the slider; set to 0 to trigger validation (must be > 0)
+    const slaInput = screen.getByLabelText(/SLA per page/i);
+    fireEvent.change(slaInput, { target: { value: "0" } });
 
     fireEvent.click(screen.getByRole("button", { name: /Calculate VLM Sizing/i }));
     expect(onSubmit).not.toHaveBeenCalled();

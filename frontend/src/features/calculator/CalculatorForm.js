@@ -46,7 +46,7 @@ const useSparkBurst = () => {
 };
 
 // ── Auto-Optimize Toggle Switch with animations ──
-const ToggleSwitch = ({ autoMode, setAutoMode }) => {
+export const AutoOptimizeToggle = ({ autoMode, setAutoMode }) => {
   const t = useT();
   const { containerRef, fire } = useSparkBurst();
   const [justActivated, setJustActivated] = useState(false);
@@ -567,12 +567,12 @@ const OPTIMIZATION_MODE_BALANCED = {
 };
 
 const CARD_COLOR_MAP = {
-  blue: { selected: "border-info bg-info-soft text-info" },
-  emerald: { selected: "border-success bg-success-soft text-success" },
-  rose: { selected: "border-danger bg-danger-soft text-danger" },
-  violet: { selected: "border-accent bg-accent-soft text-accent" },
-  amber: { selected: "border-warning bg-warning-soft text-warning" },
-  indigo: { selected: "border-accent bg-accent-soft text-accent" },
+  blue: { selected: "border-blue-500 bg-blue-50 text-blue-700" },
+  emerald: { selected: "border-green-500 bg-green-50 text-green-700" },
+  rose: { selected: "border-rose-500 bg-rose-50 text-rose-700" },
+  violet: { selected: "border-violet-500 bg-violet-50 text-violet-700" },
+  amber: { selected: "border-amber-500 bg-amber-50 text-amber-700" },
+  indigo: { selected: "border-indigo-500 bg-indigo-50 text-indigo-700" },
 };
 
 const ALLOWED_DISCRETE = [1, 2, 4, 6, 8];
@@ -1409,7 +1409,7 @@ const CalculatorForm = ({
               value={value}
               onChange={handleInputChange}
               disabled={disabled}
-              className={`px-2 py-1 text-sm border border-border-strong rounded-md text-right bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent w-full ${disabled ? "bg-elevated text-subtle" : ""}`}
+              className={`px-2 py-1 text-sm border border-border-strong rounded-md text-right bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full ${disabled ? "bg-elevated text-subtle" : ""}`}
               inputMode={isInteger ? "numeric" : "decimal"}
               placeholder="0"
             />
@@ -1426,7 +1426,7 @@ const CalculatorForm = ({
           value={value}
           onChange={handleSliderChange}
           disabled={disabled}
-          className="w-full rounded-lg appearance-none cursor-pointer accent-accent"
+          className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
         />
         <div className="flex justify-between text-xs text-muted mt-1">
           <span>
@@ -1446,9 +1446,9 @@ const CalculatorForm = ({
   const basicInputs = (
     <div className="space-y-4">
       {/* Section: Users & workload — neutral card, accent dot for identity */}
-      <section className="bg-surface rounded-xl p-5 border border-border shadow-card">
+      <section className="bg-blue-50 rounded-lg p-4 border border-blue-200 dark:bg-surface dark:border-border dark:rounded-xl dark:p-5">
         <header className="flex items-center gap-2 mb-4">
-          <span className="h-2 w-2 rounded-full bg-info" aria-hidden />
+          <span className="h-2 w-2 rounded-full bg-blue-500" aria-hidden />
           <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted">
             {t("form.section.users")}
           </h3>
@@ -1458,7 +1458,7 @@ const CalculatorForm = ({
           "internal_users",
           t("form.input.totalUsers"),
           0,
-          100000,
+          1000000,
           100,
           formData.internal_users,
           "",
@@ -1468,20 +1468,19 @@ const CalculatorForm = ({
 
       {/* Section: Model — same clean pattern, success-toned accent */}
       <section
-        className="bg-surface rounded-xl p-5 border border-border shadow-card"
+        className="bg-green-50 rounded-lg p-4 border border-green-200 dark:bg-surface dark:border-border dark:rounded-xl dark:p-5"
         data-tour="model-search"
       >
-        <header className="flex items-center gap-2 mb-4">
-          <span className="h-2 w-2 rounded-full bg-success" aria-hidden />
-          <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted">
-            {t("form.section.model")}
-          </h3>
-          <SectionTooltip text={t("form.section.modelTooltip")} />
-        </header>
-
-        {/* Source toggle: Auto / HF live / Curated only */}
-        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-muted font-medium">{t("form.dataSource")}:</span>
+        <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-4">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" aria-hidden />
+            <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted">
+              {t("form.section.model")}
+            </h3>
+            <SectionTooltip text={t("form.section.modelTooltip")} />
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2 text-xs shrink-0 ml-auto">
+            <span className="text-muted font-medium whitespace-nowrap">{t("form.dataSource")}:</span>
           <div className="inline-flex rounded-lg border border-border bg-elevated p-0.5">
             {[
               { id: "auto", label: t("form.source.auto") },
@@ -1525,7 +1524,8 @@ const CalculatorForm = ({
               )}
             </span>
           )}
-        </div>
+          </div>
+        </header>
 
         {/* Model search */}
         <div className="mb-4 relative">
@@ -1538,7 +1538,7 @@ const CalculatorForm = ({
             value={modelSearch}
             onChange={handleSearchChange}
             placeholder={t("form.search.placeholder")}
-            className="w-full px-3 py-2 border border-border rounded-md shadow-sm bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+            className="w-full px-3 py-2 border border-border rounded-md shadow-sm bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
 
           {isSearching && (
@@ -1553,7 +1553,7 @@ const CalculatorForm = ({
                 <div
                   key={index}
                   onClick={() => handleModelSelect(model)}
-                  className="px-4 py-2 text-sm text-fg hover:bg-accent-soft cursor-pointer border-b border-border last:border-b-0"
+                  className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                 >
                   <div className="font-medium">{model.modelId || model.id}</div>
                   <div className="text-xs text-muted truncate">
@@ -1567,7 +1567,7 @@ const CalculatorForm = ({
 
         {selectedModel && (
           <div className="mt-4 mb-4">
-            <div className="p-3 bg-success-soft border-2 border-success/50 rounded-md shadow-sm">
+            <div className="p-3 bg-green-50 border-2 border-green-400 rounded-md shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0">
                   <svg
@@ -1628,10 +1628,10 @@ const CalculatorForm = ({
       </section>
 
       <div
-        className="bg-surface rounded-xl p-5 border border-border shadow-card"
+        className="bg-purple-50 rounded-lg p-4 border border-purple-200 dark:bg-surface dark:border-border dark:rounded-xl dark:p-5"
         data-tour="gpu-search"
       >
-        <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-accent before:content-['']">
+        <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-purple-500 before:content-['']">
           {t("form.section.hardware")}
           <SectionTooltip text={t("form.section.hardwareTooltip")} />
         </h3>
@@ -1649,7 +1649,7 @@ const CalculatorForm = ({
             <button
               type="button"
               onClick={onOpenGpuFilter}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-accent/40 rounded-lg text-sm font-medium text-accent hover:bg-accent-soft/80 hover:border-accent/60 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-100 hover:border-purple-400 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -1674,7 +1674,7 @@ const CalculatorForm = ({
             <button
               type="button"
               onClick={() => onOpenGpuPicker(selectedGpu?.id)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-accent/40 rounded-lg text-sm font-medium text-accent hover:bg-accent-soft/60 hover:border-accent/60 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-400 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -1689,7 +1689,7 @@ const CalculatorForm = ({
                 : "Select GPU"}
             </button>
             {selectedGpu && (
-              <div className="mt-3 p-3 bg-accent-soft border border-accent/30 rounded-lg">
+              <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
                 <div className="flex items-center">
                   <svg
                     className="w-5 h-5 text-accent mr-2 flex-shrink-0"
@@ -1773,7 +1773,7 @@ const CalculatorForm = ({
                   handleChange("gpus_per_server", gpuPerServerAllowed[parseInt(e.target.value)])
                 }
                 disabled={gpuLocked}
-                className="w-full rounded-lg appearance-none cursor-pointer accent-accent"
+                className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
               />
               <div className="flex justify-between text-xs text-muted mt-1">
                 <span>{gpuPerServerAllowed[0]}</span>
@@ -1794,8 +1794,8 @@ const CalculatorForm = ({
         )}
       </div>
 
-      <div className="bg-surface rounded-xl p-5 border border-border shadow-card">
-        <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-warning before:content-['']">
+      <div className="bg-orange-50 rounded-lg p-4 border border-orange-200 dark:bg-surface dark:border-border dark:rounded-xl dark:p-5">
+        <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-orange-500 before:content-['']">
           Tensor Parallelism
           <SectionTooltip text="Tensor parallelism splits one model across multiple GPUs, increasing available memory per instance." />
         </h3>
@@ -1845,7 +1845,7 @@ const CalculatorForm = ({
                   !tpLocked && handleChange("tp_multiplier_Z", tpAllowed[parseInt(e.target.value)])
                 }
                 disabled={tpLocked}
-                className="w-full rounded-lg appearance-none cursor-pointer accent-accent"
+                className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
               />
               <div className="flex justify-between text-xs text-muted mt-1">
                 <span>{tpAllowed[0]}</span>
@@ -1867,10 +1867,10 @@ const CalculatorForm = ({
       </div>
 
       <div
-        className="bg-surface rounded-xl p-5 border border-border shadow-card"
+        className="bg-amber-50 rounded-lg p-4 border border-amber-200 dark:bg-surface dark:border-border dark:rounded-xl dark:p-5"
         data-tour="sla-targets"
       >
-        <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-warning before:content-['']">
+        <h3 className="text-[11px] font-semibold tracking-[0.08em] uppercase text-muted mb-4 flex items-center gap-2 before:h-2 before:w-2 before:rounded-full before:bg-amber-500 before:content-['']">
           {t("form.section.sla")}
           <SectionTooltip text="Time To First Token (TTFT) and end-to-end latency limits used to validate the configuration against your service-level requirements." />
         </h3>
@@ -1901,6 +1901,176 @@ const CalculatorForm = ({
   // Advanced configuration inputs
   const advancedInputs = (
     <div className="space-y-6">
+      {/* Agentic / RAG / Tool-Use Section */}
+      {renderCollapsibleSection(
+        "agentic",
+        t("form.section.agentic"),
+        <>
+          {/* Architecture pattern presets — Appendix В Table В.1 */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {AGENTIC_PRESETS.map((preset) => {
+              const isActive = selectedAgenticPreset === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => {
+                    setFormData((prev) => ({ ...prev, ...preset.data }));
+                    setSelectedAgenticPreset(preset.id);
+                  }}
+                  title={preset.description}
+                  className={`text-left px-2.5 py-1.5 rounded-md border text-xs transition-all ${
+                    isActive
+                      ? "bg-accent border-accent text-accent-fg shadow-card"
+                      : "bg-surface border-border text-fg hover:border-accent/40 hover:bg-accent-soft"
+                  }`}
+                >
+                  <span className="font-semibold leading-tight">{preset.name}</span>
+                  <span
+                    className={`block text-[10px] mt-0.5 ${
+                      isActive ? "opacity-80" : "text-muted"
+                    }`}
+                  >
+                    k={preset.data.k_calls}
+                    {preset.data.sp_tools ? `, tools=${preset.data.sp_tools}` : ""}
+                    {preset.data.c_rag_dynamic ? `, rag=${preset.data.c_rag_dynamic}` : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-4">
+            {renderSliderInput(
+              "k_calls",
+              "K_calls (LLM calls per request)",
+              1,
+              20,
+              1,
+              formData.k_calls,
+              "",
+              "Number of LLM calls per user request. 1=single-turn / RAG. 3-10=ReAct, Self-Refine. 6-20=multi-agent. Multiplies request rate (R_eff = R × K_calls).",
+            )}
+          </div>
+          {renderSliderInput(
+            "sp_tools",
+            "Tool definitions",
+            0,
+            5000,
+            50,
+            formData.sp_tools,
+            "tok",
+            "Tokens for tool definitions added to system prompt (Appendix В.1). 0=no tools. ReAct typically 500-2000. Coding agent 1000-3000.",
+          )}
+          {renderSliderInput(
+            "c_rag_static",
+            "RAG context (static)",
+            0,
+            10000,
+            100,
+            formData.c_rag_static,
+            "tok",
+            "Static RAG context loaded once per session (Appendix В.1). E.g., a long document the agent reasons over.",
+          )}
+          {renderSliderInput(
+            "c_rag_dynamic",
+            "RAG context (dynamic)",
+            0,
+            10000,
+            100,
+            formData.c_rag_dynamic,
+            "tok",
+            "Dynamic RAG context fetched per call (Appendix В.2). Typical 500-5000 per retrieval.",
+          )}
+          {renderSliderInput(
+            "a_tool",
+            "Tool-call response tokens",
+            0,
+            1000,
+            10,
+            formData.a_tool,
+            "tok",
+            "Extra response tokens for tool_call JSON (Appendix В.3). Typical 50-200 for function-calling, 200-500 for coding agents.",
+          )}
+          {renderSliderInput(
+            "eta_cache",
+            "Prefix cache hit (η_cache)",
+            0,
+            1,
+            0.05,
+            formData.eta_cache,
+            "",
+            "Fraction of prefill served from prefix-cache (§3.1 H-5). 0 = no caching. 0.3 = vLLM/SGLang auto prefix-cache default. 0.5–0.8 for stable agent prompts. 0.1–0.3 for RAG with variable context.",
+          )}
+
+          {/* Effective values preview */}
+          <div className="mt-3 p-3 rounded-lg bg-accent-soft border border-accent/30">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">
+              Effective values applied to sizing
+            </p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono text-fg">
+              <div>
+                SP_eff ={" "}
+                <span className="text-accent font-semibold">
+                  {(formData.system_prompt_tokens_SP || 0) +
+                    (formData.sp_tools || 0) +
+                    (formData.c_rag_static || 0)}
+                </span>{" "}
+                tok
+              </div>
+              <div>
+                Prp_eff ={" "}
+                <span className="text-accent font-semibold">
+                  {(formData.user_prompt_tokens_Prp || 0) + (formData.c_rag_dynamic || 0)}
+                </span>{" "}
+                tok
+              </div>
+              <div>
+                A_eff ={" "}
+                <span className="text-accent font-semibold">
+                  {(formData.answer_tokens_A || 0) + (formData.a_tool || 0)}
+                </span>{" "}
+                tok
+              </div>
+              <div>
+                R_eff ={" "}
+                <span className="text-accent font-semibold">
+                  {((formData.rps_per_session_R || 0) * (formData.k_calls || 1)).toFixed(4)}
+                </span>{" "}
+                req/s
+              </div>
+              <div className="col-span-2">
+                TS_agent ={" "}
+                <span className="text-accent font-semibold">
+                  {(
+                    (formData.system_prompt_tokens_SP || 0) +
+                    (formData.sp_tools || 0) +
+                    (formData.c_rag_static || 0) +
+                    (formData.dialog_turns || 0) *
+                      (formData.k_calls || 1) *
+                      ((formData.user_prompt_tokens_Prp || 0) +
+                        (formData.c_rag_dynamic || 0) +
+                        (formData.reasoning_tokens_MRT || 0) +
+                        (formData.answer_tokens_A || 0) +
+                        (formData.a_tool || 0))
+                  ).toLocaleString()}
+                </span>{" "}
+                tok &nbsp;
+                <span className="text-muted">
+                  (full session, drives KV-cache via SL = min(TS, max_context))
+                </span>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted mt-2 leading-snug">
+              These derive from your token + agentic inputs. Backend recomputes them per §2.2 /
+              Appendix В when you Calculate — no need to re-enter values manually.
+            </p>
+          </div>
+        </>,
+        expandedSections.agentic,
+        t("form.section.agenticTooltip"),
+      )}
+
       {/* Model Section */}
       {renderCollapsibleSection(
         "model",
@@ -2079,179 +2249,6 @@ const CalculatorForm = ({
         </>,
         expandedSections.tokens,
         t("form.section.tokenBudgetTooltip"),
-      )}
-
-      {/* Agentic / RAG / Tool-Use Section */}
-      {renderCollapsibleSection(
-        "agentic",
-        t("form.section.agentic"),
-        <>
-          {/* Architecture pattern presets — Appendix В Table В.1 */}
-          <div>
-            <label className="block text-xs font-medium text-muted mb-2">
-              Architecture pattern
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {AGENTIC_PRESETS.map((preset) => {
-                const isActive = selectedAgenticPreset === preset.id;
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => {
-                      setFormData((prev) => ({ ...prev, ...preset.data }));
-                      setSelectedAgenticPreset(preset.id);
-                    }}
-                    title={preset.description}
-                    className={`text-left px-2.5 py-1.5 rounded-md border text-xs transition-all ${
-                      isActive
-                        ? "bg-accent border-accent text-accent-fg shadow-card"
-                        : "bg-surface border-border text-fg hover:border-accent/40 hover:bg-accent-soft"
-                    }`}
-                  >
-                    <span className="font-semibold leading-tight">{preset.name}</span>
-                    <span
-                      className={`block text-[10px] mt-0.5 ${
-                        isActive ? "opacity-80" : "text-muted"
-                      }`}
-                    >
-                      k={preset.data.k_calls}
-                      {preset.data.sp_tools ? `, tools=${preset.data.sp_tools}` : ""}
-                      {preset.data.c_rag_dynamic ? `, rag=${preset.data.c_rag_dynamic}` : ""}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {renderSliderInput(
-            "k_calls",
-            "K_calls (LLM calls per request)",
-            1,
-            20,
-            1,
-            formData.k_calls,
-            "",
-            "Number of LLM calls per user request. 1=single-turn / RAG. 3-10=ReAct, Self-Refine. 6-20=multi-agent. Multiplies request rate (R_eff = R × K_calls).",
-          )}
-          {renderSliderInput(
-            "sp_tools",
-            "Tool definitions",
-            0,
-            5000,
-            50,
-            formData.sp_tools,
-            "tok",
-            "Tokens for tool definitions added to system prompt (Appendix В.1). 0=no tools. ReAct typically 500-2000. Coding agent 1000-3000.",
-          )}
-          {renderSliderInput(
-            "c_rag_static",
-            "RAG context (static)",
-            0,
-            10000,
-            100,
-            formData.c_rag_static,
-            "tok",
-            "Static RAG context loaded once per session (Appendix В.1). E.g., a long document the agent reasons over.",
-          )}
-          {renderSliderInput(
-            "c_rag_dynamic",
-            "RAG context (dynamic)",
-            0,
-            10000,
-            100,
-            formData.c_rag_dynamic,
-            "tok",
-            "Dynamic RAG context fetched per call (Appendix В.2). Typical 500-5000 per retrieval.",
-          )}
-          {renderSliderInput(
-            "a_tool",
-            "Tool-call response tokens",
-            0,
-            1000,
-            10,
-            formData.a_tool,
-            "tok",
-            "Extra response tokens for tool_call JSON (Appendix В.3). Typical 50-200 for function-calling, 200-500 for coding agents.",
-          )}
-          {renderSliderInput(
-            "eta_cache",
-            "Prefix cache hit (η_cache)",
-            0,
-            1,
-            0.05,
-            formData.eta_cache,
-            "",
-            "Fraction of prefill served from prefix-cache (§3.1 H-5). 0 = no caching. 0.3 = vLLM/SGLang auto prefix-cache default. 0.5–0.8 for stable agent prompts. 0.1–0.3 for RAG with variable context.",
-          )}
-
-          {/* Effective values preview */}
-          <div className="mt-3 p-3 rounded-lg bg-accent-soft border border-accent/30">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">
-              Effective values applied to sizing
-            </p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono text-fg">
-              <div>
-                SP_eff ={" "}
-                <span className="text-accent font-semibold">
-                  {(formData.system_prompt_tokens_SP || 0) +
-                    (formData.sp_tools || 0) +
-                    (formData.c_rag_static || 0)}
-                </span>{" "}
-                tok
-              </div>
-              <div>
-                Prp_eff ={" "}
-                <span className="text-accent font-semibold">
-                  {(formData.user_prompt_tokens_Prp || 0) + (formData.c_rag_dynamic || 0)}
-                </span>{" "}
-                tok
-              </div>
-              <div>
-                A_eff ={" "}
-                <span className="text-accent font-semibold">
-                  {(formData.answer_tokens_A || 0) + (formData.a_tool || 0)}
-                </span>{" "}
-                tok
-              </div>
-              <div>
-                R_eff ={" "}
-                <span className="text-accent font-semibold">
-                  {((formData.rps_per_session_R || 0) * (formData.k_calls || 1)).toFixed(4)}
-                </span>{" "}
-                req/s
-              </div>
-              <div className="col-span-2">
-                TS_agent ={" "}
-                <span className="text-accent font-semibold">
-                  {(
-                    (formData.system_prompt_tokens_SP || 0) +
-                    (formData.sp_tools || 0) +
-                    (formData.c_rag_static || 0) +
-                    (formData.dialog_turns || 0) *
-                      (formData.k_calls || 1) *
-                      ((formData.user_prompt_tokens_Prp || 0) +
-                        (formData.c_rag_dynamic || 0) +
-                        (formData.reasoning_tokens_MRT || 0) +
-                        (formData.answer_tokens_A || 0) +
-                        (formData.a_tool || 0))
-                  ).toLocaleString()}
-                </span>{" "}
-                tok &nbsp;
-                <span className="text-muted">
-                  (full session, drives KV-cache via SL = min(TS, max_context))
-                </span>
-              </div>
-            </div>
-            <p className="text-[10px] text-muted mt-2 leading-snug">
-              These derive from your token + agentic inputs. Backend recomputes them per §2.2 /
-              Appendix В when you Calculate — no need to re-enter values manually.
-            </p>
-          </div>
-        </>,
-        expandedSections.agentic,
-        t("form.section.agenticTooltip"),
       )}
 
       {/* KV-Cache Section */}
@@ -2435,16 +2432,6 @@ const CalculatorForm = ({
 
   return (
     <form onSubmit={handleSubmit} noValidate className="gap-6 flex flex-col flex-1">
-      {/* Header with toggle switch */}
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <h2 className="text-lg sm:text-2xl font-semibold text-fg min-w-0 truncate">
-          {t("form.title")}
-        </h2>
-        <div data-tour="auto-optimize" className="shrink-0">
-          <ToggleSwitch autoMode={autoMode} setAutoMode={setAutoMode} />
-        </div>
-      </div>
-
       {/* Presets (normal mode) or Optimization Mode cards (auto mode) */}
       {autoMode ? (
         <div className="mb-2" data-tour="optimize-mode">
@@ -2461,7 +2448,7 @@ const CalculatorForm = ({
                   className={`p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
                     isSelected
                       ? `${colors.selected} border-current shadow-card`
-                      : "border-border text-muted hover:border-border-strong hover:bg-elevated"
+                      : "border-blue-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50"
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-0.5">
@@ -2484,7 +2471,7 @@ const CalculatorForm = ({
                 className={`mt-2 w-full p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
                   isSelected
                     ? `${colors.selected} border-current shadow-card`
-                    : "border-border text-muted hover:border-border-strong hover:bg-elevated"
+                    : "border-blue-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-0.5">
@@ -2515,7 +2502,7 @@ const CalculatorForm = ({
                   className={`p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
                     isActive
                       ? `${colors.selected} border-current shadow-card`
-                      : "border-border text-muted hover:border-border-strong hover:bg-elevated"
+                      : "border-blue-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50"
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-0.5">
@@ -2537,8 +2524,8 @@ const CalculatorForm = ({
           data-tour="basic-tab"
           className={`py-2 px-4 font-medium text-sm ${
             activeTab === "basic"
-              ? "text-accent border-b-2 border-accent"
-              : "text-muted hover:text-fg"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-500 hover:text-gray-700"
           }`}
           onClick={() => setActiveTab("basic")}
         >
@@ -2549,8 +2536,8 @@ const CalculatorForm = ({
           data-tour="advanced-tab"
           className={`py-2 px-4 font-medium text-sm ${
             activeTab === "advanced"
-              ? "text-accent border-b-2 border-accent"
-              : "text-muted hover:text-fg"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-500 hover:text-gray-700"
           }`}
           onClick={() => setActiveTab("advanced")}
         >
@@ -2588,8 +2575,8 @@ const CalculatorForm = ({
         type="submit"
         data-tour="calculate-btn"
         disabled={loading}
-        className={`mt-auto w-full py-3 px-4 rounded-lg font-semibold text-lg transition-colors text-accent-fg ${
-          loading ? "bg-accent/60 cursor-not-allowed" : "bg-accent hover:bg-accent/90 calc-btn-glow"
+        className={`mt-auto w-full py-3 px-4 rounded-lg font-semibold text-lg transition-colors text-white ${
+          loading ? "bg-blue-300 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 calc-btn-glow"
         }`}
       >
         {loading ? (

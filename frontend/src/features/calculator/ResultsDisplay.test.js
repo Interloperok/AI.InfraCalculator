@@ -89,7 +89,7 @@ describe("ResultsDisplay", () => {
     );
 
     expect(screen.getByText("Calculation Results")).toBeInTheDocument();
-    expect(screen.getByText("Infrastructure Required")).toBeInTheDocument();
+    expect(screen.getByText("Servers")).toBeInTheDocument();
     expect(screen.getByText(/96 GPUs/i)).toBeInTheDocument(); // total_gpu_count
     expect(screen.getByText("SLA Validation")).toBeInTheDocument();
     expect(screen.getByTestId("pie-chart")).toBeInTheDocument();

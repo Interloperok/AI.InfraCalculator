@@ -62,7 +62,7 @@ const ru = {
   "results.concurrentSessions": "Одновременные сессии",
   "results.sessionContext": "Контекст сессии",
   "results.sessionContext.unit": "токенов",
-  "results.infrastructure.title": "Требуемая инфраструктура",
+  "results.infrastructure.title": "Серверы",
   "results.infrastructure.servers": "серверов",
   "results.infrastructure.gpus": "GPU",
   "results.infrastructure.maxMemComp": "max(память: {mem}, комп.: {comp})",
@@ -82,7 +82,7 @@ const ru = {
     "Сколько независимых копий модели помещается на одном сервере с учётом тензорного параллелизма.",
 
   // ── Memory / KV cards ────────────────────────────────────────────────
-  "results.memory.title": "Память GPU на экземпляр",
+  "results.memory.title": "Память GPU на экземпляр модели",
   "results.memory.headerSubtitle": "{n} GPU × {gib} GiB = {total} GiB всего",
   "results.memory.modelWeights": "Веса модели",
   "results.memory.kvAvailable": "Доступно под KV-кэш",
@@ -105,7 +105,7 @@ const ru = {
   "results.sla.failed.short": "Не пройдено",
   "results.sla.passed.empty": "SLA выполнен. Рекомендаций нет.",
   "results.sla.empty": "Нет уведомлений.",
-  "results.sla.ttft.title": "Время до первого токена (TTFT)",
+  "results.sla.ttft.title": "Время до первого токена",
   "results.sla.e2e.title": "Сквозная задержка",
   "results.sla.calculated": "Рассчитано",
   "results.sla.target": "Цель SLA",
@@ -440,7 +440,7 @@ const ru = {
   "form.section.tokenBudget": "Бюджет токенов",
   "form.section.tokenBudgetTooltip":
     "Размеры токенов, описывающие типичный запрос и диалог. Определяют требования к памяти и вычислениям.",
-  "form.section.agentic": "Agentic / RAG / Tool-Use",
+  "form.section.agentic": "App Architecture pattern",
   "form.section.agenticTooltip":
     "Многовызовные архитектуры: ReAct, RAG, function calling, мульти-агент. Задаёт K_calls, оверхед инструментов и RAG-контекст. При K_calls=1 и нулевых оверхедах сводится к одношаговому диалогу.",
   "form.section.kvCache": "KV-кеш",
