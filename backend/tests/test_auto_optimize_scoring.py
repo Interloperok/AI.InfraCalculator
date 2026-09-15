@@ -125,3 +125,37 @@ def test_display_score_returns_first_tuple_element() -> None:
     assert display_score((-3.5, 7.0)) == -3.5
     assert display_score((float("inf"),)) == float("inf")
     assert display_score(()) == float("inf")
+
+
+def test_auto_optimize_configs_carry_report_labels() -> None:
+    """The Excel report labels the GPU/LLM dropdowns from these two fields,
+    so a config picked from the optimizer must keep them."""
+    from models import AutoOptimizeInput
+    from services.auto_optimize_service import auto_optimize
+
+    inp = AutoOptimizeInput(
+        model_name="Qwen/Qwen3-8B",
+        params_billions=8,
+        layers_L=36,
+        hidden_size_H=4096,
+        internal_users=100,
+        penetration_internal=0.5,
+        concurrency_internal=0.1,
+        custom_gpu_catalog=[
+            {
+                "id": "test-h100",
+                "vendor": "NVIDIA",
+                "model_name": "H100 80GB",
+                "memory_gb": 80,
+                "tflops_fp16": 989,
+                "launch_date": "2022-03-22",
+            }
+        ],
+        top_n=1,
+    )
+
+    sizing_input = auto_optimize(inp).results[0].sizing_input
+
+    assert sizing_input is not None
+    assert sizing_input["model_name"] == "Qwen/Qwen3-8B"
+    assert sizing_input["gpu_name"] == "NVIDIA H100 80GB"

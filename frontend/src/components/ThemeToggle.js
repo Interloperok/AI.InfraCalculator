@@ -9,7 +9,7 @@ import { useT } from "../contexts/I18nContext";
  *
  * Uses a segmented-pill UI rather than a dropdown so the active state is
  * always visible at a glance. Each segment is a real button with
- * `aria-pressed` for assistive tech.
+ * `aria-checked` for assistive tech.
  */
 const ThemeToggle = ({ className = "" }) => {
   const { theme, setTheme } = useTheme();

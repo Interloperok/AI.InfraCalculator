@@ -25,12 +25,30 @@ const InfoTooltip = ({ text }) => (
 );
 
 const CARD_COLOR_MAP = {
-  blue: { selected: "border-blue-500 bg-blue-50 text-blue-700" },
-  emerald: { selected: "border-green-500 bg-green-50 text-green-700" },
-  rose: { selected: "border-rose-500 bg-rose-50 text-rose-700" },
-  violet: { selected: "border-violet-500 bg-violet-50 text-violet-700" },
-  amber: { selected: "border-amber-500 bg-amber-50 text-amber-700" },
-  indigo: { selected: "border-indigo-500 bg-indigo-50 text-indigo-700" },
+  blue: {
+    selected:
+      "border-blue-500 bg-blue-50 text-blue-700 dark:border-info dark:bg-info-soft dark:text-info",
+  },
+  emerald: {
+    selected:
+      "border-green-500 bg-green-50 text-green-700 dark:border-success dark:bg-success-soft dark:text-success",
+  },
+  rose: {
+    selected:
+      "border-rose-500 bg-rose-50 text-rose-700 dark:border-danger dark:bg-danger-soft dark:text-danger",
+  },
+  violet: {
+    selected:
+      "border-violet-500 bg-violet-50 text-violet-700 dark:border-accent dark:bg-accent-soft dark:text-accent",
+  },
+  amber: {
+    selected:
+      "border-amber-500 bg-amber-50 text-amber-700 dark:border-warning dark:bg-warning-soft dark:text-warning",
+  },
+  indigo: {
+    selected:
+      "border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-accent dark:bg-accent-soft dark:text-accent",
+  },
 };
 
 const SECTION_STYLES = {
@@ -168,15 +186,23 @@ export const OCR_PRESETS = [
   },
 ];
 
-
-
 const INTEGER_FIELDS = new Set([
-  "c_peak", "n_ocr_cores", "n_fields", "tok_field", "n_prompt_sys", "chars_page",
-  "layers_L", "hidden_size_H", "num_kv_heads", "num_attention_heads",
-  "max_context_window_TSmax", "gpu_mem_gb", "gpu_flops_Fcount",
+  "c_peak",
+  "n_ocr_cores",
+  "n_fields",
+  "tok_field",
+  "n_prompt_sys",
+  "chars_page",
+  "layers_L",
+  "hidden_size_H",
+  "num_kv_heads",
+  "num_attention_heads",
+  "max_context_window_TSmax",
+  "gpu_mem_gb",
+  "gpu_flops_Fcount",
+  "gpus_per_server",
 ]);
 
-const GPU_PER_SERVER_ALLOWED = [1, 2, 4, 6, 8];
 const TP_ALLOWED = [1, 2, 4, 6, 8];
 
 const nearestAllowedIndex = (allowed, value) =>
@@ -185,8 +211,7 @@ const nearestAllowedIndex = (allowed, value) =>
     allowed.indexOf(value) !== -1
       ? allowed.indexOf(value)
       : allowed.reduce(
-          (best, v, i) =>
-            Math.abs(v - value) < Math.abs(allowed[best] - value) ? i : best,
+          (best, v, i) => (Math.abs(v - value) < Math.abs(allowed[best] - value) ? i : best),
           0,
         ),
   );
@@ -224,10 +249,10 @@ const SliderInput = ({ name, label, value, onChange, min, max, step, unit, hint,
             type="number"
             min={min}
             max={max}
-            step={isInteger ? 1 : step ?? "any"}
+            step={isInteger ? 1 : (step ?? "any")}
             value={numericValue}
             onChange={(e) => commit(e.target.value)}
-            className="px-2 py-1 text-sm border border-border-strong rounded-md text-right bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+            className="px-2 py-1 text-sm border border-border-strong rounded-md text-right bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent w-full"
             inputMode={isInteger ? "numeric" : "decimal"}
           />
           {unit && (
@@ -244,7 +269,7 @@ const SliderInput = ({ name, label, value, onChange, min, max, step, unit, hint,
         onChange={(e) =>
           onChange(name, isInteger ? Math.round(Number(e.target.value)) : Number(e.target.value))
         }
-        className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
+        className="w-full rounded-lg appearance-none cursor-pointer accent-accent"
       />
       <div className="flex justify-between text-xs text-muted mt-1">
         <span>
@@ -285,7 +310,7 @@ const DiscreteSliderInput = ({ name, label, value, allowed, onChange, hint, tool
         step={1}
         value={currentIdx}
         onChange={(e) => onChange(name, allowed[parseInt(e.target.value, 10)])}
-        className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
+        className="w-full rounded-lg appearance-none cursor-pointer accent-accent"
       />
       <div className="flex justify-between text-xs text-muted mt-1">
         <span>{allowed[0]}</span>
@@ -305,7 +330,7 @@ const SelectInput = ({ name, label, value, options, onChange }) => (
       name={name}
       value={value}
       onChange={(e) => onChange(name, Number(e.target.value))}
-      className="w-full px-3 py-2 text-sm border border-border rounded-md shadow-sm bg-surface text-fg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      className="w-full px-3 py-2 text-sm border border-border rounded-md shadow-sm bg-surface text-fg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
     >
       {options.map((o) => (
         <option key={o.value} value={o.value}>
@@ -331,7 +356,6 @@ const Section = ({ title, color = "blue", dataTour, children }) => {
   );
 };
 
-
 const PipelineToggle = ({ value, onChange }) => {
   const t = useT();
   const options = [
@@ -348,9 +372,7 @@ const PipelineToggle = ({ value, onChange }) => {
   ];
   return (
     <div className="mb-6">
-      <label className="block text-sm font-medium text-fg mb-2">
-        {t("ocrForm.pipelineLabel")}
-      </label>
+      <label className="block text-sm font-medium text-fg mb-2">{t("ocrForm.pipelineLabel")}</label>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {options.map((o) => {
           const active = value === o.id;
@@ -366,7 +388,9 @@ const PipelineToggle = ({ value, onChange }) => {
               }`}
             >
               <p className="text-sm font-semibold">{o.label}</p>
-              <p className={`text-[11px] mt-0.5 ${active ? "text-rose-700/80" : "text-muted"}`}>
+              <p
+                className={`text-[11px] mt-0.5 ${active ? "text-rose-700/80 dark:text-muted" : "text-muted"}`}
+              >
                 {o.hint}
               </p>
             </button>
@@ -573,13 +597,11 @@ const OCRCalculatorForm = ({
 
       <Section title={t("form.section.hardware")} color="purple" dataTour="ocr-hardware">
         <div className="mb-6">
-          <label className="block text-sm font-medium text-fg mb-2">
-            {t("vmForm.gpuModel")}
-          </label>
+          <label className="block text-sm font-medium text-fg mb-2">{t("vmForm.gpuModel")}</label>
           <button
             type="button"
             onClick={() => onOpenGpuPicker?.(selectedGpu?.id)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-400 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-400 transition-colors dark:border-accent/40 dark:text-accent dark:hover:bg-accent-soft dark:hover:border-accent/60"
           >
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -594,7 +616,7 @@ const OCRCalculatorForm = ({
               : t("vmForm.gpuPickPrompt")}
           </button>
           {selectedGpu && (
-            <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+            <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg dark:bg-accent-soft dark:border-accent/30">
               <div className="text-sm font-semibold text-fg">
                 {selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`}
                 <span className="text-accent font-normal ml-1">
@@ -615,12 +637,14 @@ const OCRCalculatorForm = ({
           step={1}
           unit="GB"
         />
-        <DiscreteSliderInput
+        <SliderInput
           name="gpus_per_server"
           label={t("vmForm.gpusPerServer")}
           value={formData.gpus_per_server}
-          allowed={GPU_PER_SERVER_ALLOWED}
           onChange={handleFieldChange}
+          min={1}
+          max={8}
+          step={1}
         />
       </Section>
 
@@ -804,7 +828,6 @@ const OCRCalculatorForm = ({
     </div>
   );
 
-
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6 flex-1">
       <div className="mb-2" data-tour="ocr-presets">
@@ -824,7 +847,7 @@ const OCRCalculatorForm = ({
                 className={`p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
                   isActive
                     ? `${colors.selected} border-current shadow-card`
-                    : "border-blue-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50"
+                    : "border-blue-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50 dark:border-border-strong dark:text-fg dark:hover:border-accent/60 dark:hover:bg-accent-soft"
                 }`}
               >
                 <p className="text-sm font-semibold leading-tight">{preset.name}</p>
@@ -841,8 +864,8 @@ const OCRCalculatorForm = ({
           data-tour="basic-tab"
           className={`py-2 px-4 font-medium text-sm ${
             activeTab === "basic"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500 hover:text-gray-700"
+              ? "text-accent border-b-2 border-accent"
+              : "text-gray-500 hover:text-gray-700 dark:text-muted dark:hover:text-fg"
           }`}
           onClick={() => setActiveTab("basic")}
         >
@@ -853,8 +876,8 @@ const OCRCalculatorForm = ({
           data-tour="advanced-tab"
           className={`py-2 px-4 font-medium text-sm ${
             activeTab === "advanced"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500 hover:text-gray-700"
+              ? "text-accent border-b-2 border-accent"
+              : "text-gray-500 hover:text-gray-700 dark:text-muted dark:hover:text-fg"
           }`}
           onClick={() => setActiveTab("advanced")}
         >

@@ -12,6 +12,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
  *   - "dark"   — force dark
  *   - "system" — follow `prefers-color-scheme` (default for first-time users)
  */
+// Mirrored by the pre-paint script in public/index.html; keep the two in sync.
 const THEME_STORAGE_KEY = "ai-calc:theme";
 const VALID_THEMES = ["light", "dark", "system"];
 

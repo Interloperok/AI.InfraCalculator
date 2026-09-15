@@ -1,14 +1,6 @@
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
-import {
-  AlertTriangle,
-  BarChart3,
-  Database,
-  Gauge,
-  HardDrive,
-  Info,
-  Loader2,
-} from "lucide-react";
+import { AlertTriangle, BarChart3, Database, Gauge, HardDrive, Info, Loader2 } from "lucide-react";
 import MigHintBadge from "./MigHintBadge";
 import { useT } from "../../contexts/I18nContext";
 
@@ -77,7 +69,9 @@ const GatewayQuotaTile = ({ label, tooltip, tooltipAlign = "center", value, foot
 );
 
 const SecondaryTile = ({ label, value, sub, tooltip, tooltipAlign, gradient }) => (
-  <div className={`bg-gradient-to-br ${gradient} rounded-lg p-3 sm:p-4 text-white shadow overflow-hidden`}>
+  <div
+    className={`bg-gradient-to-br ${gradient} rounded-lg p-3 sm:p-4 text-white shadow overflow-hidden`}
+  >
     <div className="flex w-full items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-white/90 font-semibold">
       <span className="min-w-0 flex-1 leading-tight break-words">{label}</span>
       {tooltip && (
@@ -240,7 +234,9 @@ const OCRResultsDisplay = ({ results, loading, error, inputData }) => {
           <div className="flex flex-1 items-center min-h-[4.5rem]">
             <p className="text-4xl sm:text-5xl font-extrabold tracking-tight tabular-nums leading-none">
               {fmt(results.th_pf_llm, 0)}
-              <span className="text-sm font-normal text-white/80 ml-2">{t("ocr.throughputUnit")}</span>
+              <span className="text-sm font-normal text-white/80 ml-2">
+                {t("ocr.throughputUnit")}
+              </span>
             </p>
           </div>
           <p className="text-xs sm:text-sm text-white/80 shrink-0 min-h-[2.5rem] leading-snug tabular-nums">

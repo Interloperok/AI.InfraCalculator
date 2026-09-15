@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Bug fixes
+
+- Excel report: the GPU, LLM and quantization dropdowns on the Inputs
+  sheet now show the web selection instead of the template defaults.
+  The web values are written into the Reference sheet as their own rows
+  (with the exact memory, TFLOPS, bandwidth and architecture numbers the
+  web used), so the workbook recalculates to the same results and the
+  dropdowns keep working. Engine mode, chunked-prefill budget, memory
+  efficiency, speculative-decoding, TTFT overhead, per-forward overhead
+  and the Agentic sheet inputs are filled too. The form sends
+  `gpu_name` / `model_name` labels for this; both are optional and
+  ignored by the sizing math.
+- GPUs per Server accepts any count from 1 to 8 (3, 5 and 7 were
+  unreachable: the control was a five-stop slider and a normalising
+  effect snapped the value back). The TP degree keeps its 1/2/4/6/8
+  list. Applies to the LLM, VLM and OCR forms.
+- Advanced sections no longer clip their content: the expand/collapse
+  wrapper used `max-h-screen`, so anything below one viewport height
+  (the "Prefix cache hit" row and the effective-values box of the
+  agentic section) was cut off.
+- "params_active cannot exceed params_billions" after picking an FP8
+  Hugging Face checkpoint: the total parameter count was read from the
+  first safetensors dtype bucket (the small BF16/F32 slice) instead of
+  the total. A pre-submit check now also explains the invalid pair, and
+  a slower fetch for an earlier model pick can no longer overwrite a
+  later one.
+- Theme toggle (light / dark / system) and the EN / RU language toggle
+  are visible again in the header,
+  the chosen theme is applied before first paint, and dark mode is
+  readable: preset cards, tabs, inputs, dropdowns, SLA cards, header
+  buttons and the four low-contrast dark tokens (`subtle`,
+  `border-strong`, `danger-soft`, `info-soft`) were fixed.
+
 ### Tooling, offline mode, and i18n polish
 
 UI/UX, offline-readiness, and Helm-chart improvements on top of the
