@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-15
+
 ### Bug fixes
 
 - Excel report: the GPU, LLM and quantization dropdowns on the Inputs
@@ -39,6 +41,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   readable: preset cards, tabs, inputs, dropdowns, SLA cards, header
   buttons and the four low-contrast dark tokens (`subtle`,
   `border-strong`, `danger-soft`, `info-soft`) were fixed.
+
+### Other changes since 1.3.0
+
+- UI polish and layout fixes (#96, #99).
+- Dependency updates via Dependabot, plus lockfile-only bumps that clear
+  the pip-audit and npm-audit findings (starlette 1.6.0, click 8.5.0,
+  idna 3.19; axios 1.20.0, form-data 4.0.6, @xmldom/xmldom 0.8.15).
+
+## [1.3.0] - 2026-05-08
 
 ### Tooling, offline mode, and i18n polish
 

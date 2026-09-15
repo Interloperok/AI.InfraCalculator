@@ -8,7 +8,7 @@ import ThemeToggle from "./components/ThemeToggle";
 import { useT } from "./contexts/I18nContext";
 import "./App.css";
 
-const APP_VERSION = "1.3.0";
+const APP_VERSION = "1.4.0";
 const DOCS_URL = "https://test-1-10.gitbook.io/test-1-docs";
 // Legacy in-app docx drawer (mammoth). Hidden while GitBook docs are primary.
 const SHOW_LEGACY_DOCS_DRAWER = false;
