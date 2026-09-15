@@ -9,8 +9,6 @@ import { useT } from "./contexts/I18nContext";
 import "./App.css";
 
 const APP_VERSION = "1.3.0";
-const SHOW_LANGUAGE_TOGGLE = false;
-const SHOW_THEME_TOGGLE = false;
 const DOCS_URL = "https://test-1-10.gitbook.io/test-1-docs";
 // Legacy in-app docx drawer (mammoth). Hidden while GitBook docs are primary.
 const SHOW_LEGACY_DOCS_DRAWER = false;
@@ -506,7 +504,7 @@ function App() {
               <button
                 onClick={startTour}
                 title={t("app.tour.start")}
-                className="tour-btn-pulse hidden sm:inline-flex items-center gap-1.5 h-8 px-3 py-2 rounded-lg border border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 text-xs font-medium shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                className="tour-btn-pulse hidden sm:inline-flex items-center gap-1.5 h-8 px-3 py-2 rounded-lg border border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 text-xs font-medium shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:bg-surface dark:border-border-strong dark:text-accent dark:hover:bg-accent-soft dark:hover:border-accent/60"
               >
                 <Compass className="h-3.5 w-3.5" strokeWidth={2.25} />
                 <span>{t("app.tour.start")}</span>
@@ -518,7 +516,7 @@ function App() {
                 rel="noopener noreferrer"
                 data-tour="docs-btn"
                 title={t("app.docs")}
-                className="inline-flex items-center gap-1.5 h-8 px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 text-xs font-medium shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                className="inline-flex items-center gap-1.5 h-8 px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 text-xs font-medium shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:bg-surface dark:border-border-strong dark:text-success dark:hover:bg-success-soft dark:hover:border-success/60"
               >
                 <BookOpen className="h-3.5 w-3.5" strokeWidth={2.25} />
                 <span className="hidden sm:inline">{t("app.docs")}</span>
@@ -530,20 +528,16 @@ function App() {
                 rel="noopener noreferrer"
                 data-tour="github-btn"
                 title={t("app.github")}
-                className="inline-flex items-center gap-1.5 h-8 px-3 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-xs font-medium shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-700 group"
+                className="inline-flex items-center gap-1.5 h-8 px-3 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-xs font-medium shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-700 group dark:bg-surface dark:hover:bg-elevated dark:text-fg dark:ring-1 dark:ring-border-strong"
               >
                 <Github className="h-3.5 w-3.5" strokeWidth={2.25} />
                 <span className="hidden sm:inline">{t("app.github")}</span>
                 <Star className="h-3 w-3 text-yellow-400 fill-yellow-400 opacity-90 group-hover:opacity-100 transition-opacity hidden sm:inline" />
               </a>
 
-              {SHOW_LANGUAGE_TOGGLE && (
-                <>
-                  <span className="hidden sm:block h-6 w-px bg-border" aria-hidden />
-                  <LanguageToggle />
-                </>
-              )}
-              {SHOW_THEME_TOGGLE && <ThemeToggle />}
+              <span className="hidden sm:block h-6 w-px bg-border" aria-hidden />
+              <LanguageToggle />
+              <ThemeToggle />
             </div>
           </div>
         </div>

@@ -153,6 +153,7 @@ def auto_optimize(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
                     try:
                         sizing_inp = SizingInput(
                             # Model
+                            model_name=inp.model_name,
                             params_billions=inp.params_billions,
                             bytes_per_param=bpp,
                             safe_margin=inp.safe_margin,
@@ -182,6 +183,7 @@ def auto_optimize(inp: AutoOptimizeInput) -> AutoOptimizeResponse:
                             # Hardware
                             gpu_mem_gb=gpu["memory_gb"],
                             gpu_id=gpu["id"],
+                            gpu_name=gpu.get("name"),
                             gpus_per_server=gps,
                             kavail=inp.kavail,
                             tp_multiplier_Z=Z,

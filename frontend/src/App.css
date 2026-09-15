@@ -33,9 +33,9 @@
   --color-elevated: 24 30 44; /* one level above surface */
   --color-fg: 241 245 249; /* slate-100 — primary text */
   --color-muted: 148 163 184; /* slate-400 — secondary text */
-  --color-subtle: 100 116 139; /* slate-500 — tertiary */
+  --color-subtle: 126 140 162; /* between slate-500 and slate-400 — 5.3:1 on surface */
   --color-border: 30 41 59; /* slate-800 — hairlines */
-  --color-border-strong: 51 65 85; /* slate-700 */
+  --color-border-strong: 100 116 139; /* slate-500 — input outlines reach 3:1 */
   --color-accent: 129 140 248; /* indigo-400 — primary accent */
   --color-accent-fg: 15 23 42; /* dark text on accent for legibility */
   --color-accent-soft: 30 27 75; /* indigo-950 */
@@ -44,9 +44,9 @@
   --color-warning: 251 191 36; /* amber-400 */
   --color-warning-soft: 120 53 15; /* amber-900 */
   --color-danger: 248 113 113; /* red-400 */
-  --color-danger-soft: 127 29 29; /* red-900 */
+  --color-danger-soft: 69 10 10; /* red-950 — danger text stays readable on it */
   --color-info: 56 189 248; /* sky-400 */
-  --color-info-soft: 12 74 110; /* sky-900 */
+  --color-info-soft: 8 47 73; /* sky-950 — info text stays readable on it */
 }
 
 html {

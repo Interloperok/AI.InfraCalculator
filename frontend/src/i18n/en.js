@@ -467,7 +467,7 @@ const en = {
   "results.sessions.tooltip":
     "How many concurrent user sessions one server can hold before either KV-cache memory or compute throughput is exhausted.",
   "results.gpuPerServer.tooltip":
-    "Number of GPU accelerators in each physical server (1 / 2 / 4 / 6 / 8). Driven by the chassis you're targeting.",
+    "Number of GPU accelerators in each physical server (1-8). Driven by the chassis you're targeting.",
   "results.sla.ttft.tooltip":
     "Time To First Token — how long the user waits between hitting Send and seeing the first character of the reply. Lower is better; methodology default target is 1 second.",
   "results.sla.e2e.tooltip":
@@ -616,6 +616,9 @@ const en = {
     "Pick a model before running auto-optimize. Use the model search above (Hugging Face or curated catalog) so the optimizer knows the architecture to size against.",
   "form.validate.selectGpuAuto":
     "Pick a GPU (or open the GPU filter and choose at least one) before running auto-optimize. The optimizer needs at least one GPU to evaluate configurations.",
+  "form.validate.gpusPerServer": "GPUs per Server must be at least 1.",
+  "form.validate.activeExceedsTotal":
+    "Active parameters (MoE) cannot exceed total parameters. Check the values in the Model Architecture section.",
 
   // ── Errors / loading ─────────────────────────────────────────────────
   "error.title": "Error",

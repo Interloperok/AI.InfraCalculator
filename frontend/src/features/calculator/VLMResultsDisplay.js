@@ -1,14 +1,6 @@
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
-import {
-  AlertTriangle,
-  BarChart3,
-  Database,
-  Gauge,
-  HardDrive,
-  Info,
-  Loader2,
-} from "lucide-react";
+import { AlertTriangle, BarChart3, Database, Gauge, HardDrive, Info, Loader2 } from "lucide-react";
 import MigHintBadge from "./MigHintBadge";
 import { useT } from "../../contexts/I18nContext";
 
@@ -153,9 +145,7 @@ const VLMResultsDisplay = ({ results, loading, error, inputData }) => {
 
       {/* ── Primary metric tiles (3) ─────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-tour="vlm-result-cards">
-        <div
-          className="result-tile bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:min-h-[170px] overflow-hidden"
-        >
+        <div className="result-tile bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 sm:p-6 text-white shadow-lg flex flex-col sm:min-h-[170px] overflow-hidden">
           <MetricLabel tooltip={t("vlm.infraRequired.tooltip")} tooltipAlign="left" onColor>
             {t("vlm.infraRequired")}
           </MetricLabel>
@@ -206,7 +196,9 @@ const VLMResultsDisplay = ({ results, loading, error, inputData }) => {
           <div className="flex flex-1 items-center min-h-[4.5rem]">
             <p className="text-4xl sm:text-5xl font-extrabold tracking-tight tabular-nums leading-none">
               {fmt(results.th_pf_vlm, 0)}
-              <span className="text-sm font-normal text-white/80 ml-2">{t("vlm.throughputUnit")}</span>
+              <span className="text-sm font-normal text-white/80 ml-2">
+                {t("vlm.throughputUnit")}
+              </span>
             </p>
           </div>
           <p className="text-xs sm:text-sm text-white/80 shrink-0 min-h-[2.5rem] leading-snug tabular-nums">
@@ -241,16 +233,22 @@ const VLMResultsDisplay = ({ results, loading, error, inputData }) => {
         </div>
         <div className="bg-gradient-to-br from-violet-400/80 to-purple-500/80 rounded-lg p-3 sm:p-4 text-white shadow">
           <div className="flex w-full items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-white/90 font-semibold">
-            <span className="min-w-0 flex-1 leading-tight break-words">{t("vlm.visualTokens")}</span>
+            <span className="min-w-0 flex-1 leading-tight break-words">
+              {t("vlm.visualTokens")}
+            </span>
             <span className="inline-flex shrink-0 self-start">
               <InfoTooltip text={t("vlm.visualTokens.tooltip")} onColor />
             </span>
           </div>
-          <p className="text-xl sm:text-2xl font-semibold mt-1.5 tabular-nums">{fmt(results.v_tok, 0)}</p>
+          <p className="text-xl sm:text-2xl font-semibold mt-1.5 tabular-nums">
+            {fmt(results.v_tok, 0)}
+          </p>
         </div>
         <div className="bg-gradient-to-br from-amber-400/80 to-orange-500/80 rounded-lg p-3 sm:p-4 text-white shadow">
           <div className="flex w-full items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-white/90 font-semibold">
-            <span className="min-w-0 flex-1 leading-tight break-words">{t("vlm.prefillLength")}</span>
+            <span className="min-w-0 flex-1 leading-tight break-words">
+              {t("vlm.prefillLength")}
+            </span>
             <span className="inline-flex shrink-0 self-start">
               <InfoTooltip text={t("vlm.prefillLength.tooltip")} align="right" onColor />
             </span>
@@ -415,7 +413,11 @@ const VLMResultsDisplay = ({ results, loading, error, inputData }) => {
             tooltip={t("vlm.diag.gpusPerInstance.tooltip")}
             tooltipAlign="left"
           />
-          <Stat label={t("vlm.diag.sTpZ")} value={results.s_tp_z} tooltip={t("vlm.diag.sTpZ.tooltip")} />
+          <Stat
+            label={t("vlm.diag.sTpZ")}
+            value={results.s_tp_z}
+            tooltip={t("vlm.diag.sTpZ.tooltip")}
+          />
           <Stat
             label={t("vlm.diag.instanceMem")}
             value={`${fmt(results.instance_total_mem_gb, 1)} GB`}

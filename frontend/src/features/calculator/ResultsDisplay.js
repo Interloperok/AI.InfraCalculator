@@ -286,7 +286,10 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
               {fmt(results.Ssim_concurrent_sessions, 0)}
             </p>
           </div>
-          <Users className="hidden sm:block h-8 w-8 sm:h-10 sm:w-10 opacity-20 shrink-0" strokeWidth={1.5} />
+          <Users
+            className="hidden sm:block h-8 w-8 sm:h-10 sm:w-10 opacity-20 shrink-0"
+            strokeWidth={1.5}
+          />
         </div>
         <div className="bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl p-4 sm:p-5 text-white shadow-lg flex items-center justify-between gap-3 overflow-hidden">
           <div className="min-w-0">
@@ -300,7 +303,10 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
               </span>
             </p>
           </div>
-          <MessageSquare className="hidden sm:block h-8 w-8 sm:h-10 sm:w-10 opacity-20 shrink-0" strokeWidth={1.5} />
+          <MessageSquare
+            className="hidden sm:block h-8 w-8 sm:h-10 sm:w-10 opacity-20 shrink-0"
+            strokeWidth={1.5}
+          />
         </div>
       </div>
 
@@ -316,11 +322,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
             comp: results.servers_by_compute || 0,
           })}
         >
-          <MetricLabel
-            tooltip={t("results.infrastructure.tooltip")}
-            tooltipAlign="left"
-            onColor
-          >
+          <MetricLabel tooltip={t("results.infrastructure.tooltip")} tooltipAlign="left" onColor>
             {t("results.infrastructure.title")}
           </MetricLabel>
           <div className="flex flex-1 items-center min-h-[4.5rem]">
@@ -380,7 +382,9 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <div className="bg-gradient-to-br from-blue-400/80 to-indigo-500/80 rounded-lg p-3 sm:p-4 text-white shadow overflow-hidden">
           <div className="flex w-full items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-white/90 font-semibold">
-            <span className="min-w-0 flex-1 leading-tight break-words">{t("results.gpuPerServer.title")}</span>
+            <span className="min-w-0 flex-1 leading-tight break-words">
+              {t("results.gpuPerServer.title")}
+            </span>
             <span className="inline-flex shrink-0 self-start">
               <InfoTooltip text={t("results.gpuPerServer.tooltip")} align="left" onColor />
             </span>
@@ -391,14 +395,14 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
         </div>
         <div className="bg-gradient-to-br from-emerald-400/80 to-teal-500/80 rounded-lg p-3 sm:p-4 text-white shadow">
           <div className="flex w-full items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-white/90 font-semibold">
-            <span className="min-w-0 flex-1 leading-tight break-words">{t("results.gpuPerInstance.title")}</span>
+            <span className="min-w-0 flex-1 leading-tight break-words">
+              {t("results.gpuPerInstance.title")}
+            </span>
             <span className="inline-flex shrink-0 self-start">
               <InfoTooltip text={t("results.gpuPerInstance.tooltip")} onColor />
             </span>
           </div>
-          <p className="text-xl sm:text-2xl font-semibold mt-1.5 tabular-nums">
-            {gpusInst}
-          </p>
+          <p className="text-xl sm:text-2xl font-semibold mt-1.5 tabular-nums">{gpusInst}</p>
         </div>
         <div className="bg-gradient-to-br from-violet-400/80 to-purple-500/80 rounded-lg p-3 sm:p-4 text-white shadow">
           <div className="flex w-full items-start gap-1 text-[10px] sm:text-xs uppercase tracking-wider text-white/90 font-semibold">
@@ -510,7 +514,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                   >
                     <Bell className="h-5 w-5 text-muted bell-shake" strokeWidth={2.25} />
                     {results.sla_passed === false && results.sla_recommendations?.length > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white">
+                      <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-accent-fg">
                         {results.sla_recommendations.length}
                       </span>
                     )}
@@ -563,8 +567,8 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                 <span
                   className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${
                     results.sla_passed
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
+                      ? "bg-green-100 text-green-800 dark:bg-success-soft dark:text-success"
+                      : "bg-red-100 text-red-800 dark:bg-danger-soft dark:text-danger"
                   }`}
                 >
                   {results.sla_passed ? (
@@ -585,10 +589,10 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
             <div
               className={`rounded-lg p-4 border-l-4 ${
                 results.ttft_sla_pass === true
-                  ? "bg-green-50 border-green-500"
+                  ? "bg-green-50 border-green-500 dark:bg-success/10 dark:border-success"
                   : results.ttft_sla_pass === false
-                    ? "bg-red-50 border-red-500"
-                    : "bg-gray-50 border-gray-300"
+                    ? "bg-red-50 border-red-500 dark:bg-danger/10 dark:border-danger"
+                    : "bg-gray-50 border-gray-300 dark:bg-elevated dark:border-border-strong"
               }`}
             >
               <h4 className="text-sm font-semibold text-fg mb-3 flex items-center gap-1.5">
@@ -615,8 +619,8 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                   <div
                     className={`text-center py-1.5 rounded text-xs font-semibold mt-2 inline-flex items-center justify-center gap-1.5 w-full ${
                       results.ttft_sla_pass
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
+                        ? "bg-green-100 text-green-700 dark:bg-success-soft dark:text-success"
+                        : "bg-red-100 text-red-700 dark:bg-danger-soft dark:text-danger"
                     }`}
                   >
                     {results.ttft_sla_pass ? (
@@ -634,10 +638,10 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
             <div
               className={`rounded-lg p-4 border-l-4 ${
                 results.e2e_latency_sla_pass === true
-                  ? "bg-green-50 border-green-500"
+                  ? "bg-green-50 border-green-500 dark:bg-success/10 dark:border-success"
                   : results.e2e_latency_sla_pass === false
-                    ? "bg-red-50 border-red-500"
-                    : "bg-gray-50 border-gray-300"
+                    ? "bg-red-50 border-red-500 dark:bg-danger/10 dark:border-danger"
+                    : "bg-gray-50 border-gray-300 dark:bg-elevated dark:border-border-strong"
               }`}
             >
               <h4 className="text-sm font-semibold text-fg mb-3 flex items-center gap-1.5">
@@ -664,8 +668,8 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                   <div
                     className={`text-center py-1.5 rounded text-xs font-semibold mt-2 inline-flex items-center justify-center gap-1.5 w-full ${
                       results.e2e_latency_sla_pass
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
+                        ? "bg-green-100 text-green-700 dark:bg-success-soft dark:text-success"
+                        : "bg-red-100 text-red-700 dark:bg-danger-soft dark:text-danger"
                     }`}
                   >
                     {results.e2e_latency_sla_pass ? (
@@ -908,8 +912,8 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
           disabled={downloading}
           className={`mt-auto w-full py-3 px-4 rounded-xl font-semibold text-base transition-colors inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 focus-visible:ring-offset-bg ${
             downloading
-              ? "bg-success/60 text-white cursor-not-allowed"
-              : "bg-success text-white hover:brightness-110 download-btn-glow"
+              ? "bg-success/60 text-accent-fg cursor-not-allowed"
+              : "bg-success text-accent-fg hover:brightness-110 download-btn-glow"
           }`}
         >
           {downloading ? (

@@ -81,6 +81,22 @@ def lookup_gpu_bandwidth_gbs(gpu_id: Optional[str]) -> float:
     return 0.0
 
 
+def lookup_gpu_name(gpu_id: Optional[str]) -> Optional[str]:
+    """Display name ("<vendor> <model_name>") of a catalog GPU, by exact id."""
+    if not gpu_id:
+        return None
+    try:
+        gpu_data = load_gpu_catalog()
+    except FileNotFoundError, json.JSONDecodeError:
+        return None
+
+    for gpu in gpu_data:
+        if gpu.get("id") == gpu_id:
+            name = f"{gpu.get('vendor') or ''} {gpu.get('model_name') or ''}".strip()
+            return name or None
+    return None
+
+
 def lookup_gpu_tflops(gpu_id: Optional[str], gpu_mem_gb: float) -> float:
     """Look up GPU TFLOPS in the catalog: first by id, then by memory size.
 

@@ -1,7 +1,9 @@
 import React from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { STATUS } from "react-joyride";
 import App from "./App";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { I18nProvider } from "./contexts/I18nContext";
 
 let joyrideProps = null;
 
@@ -52,6 +54,47 @@ describe("App shell", () => {
     expect(screen.getByText("AI Infrastructure Calculator")).toBeInTheDocument();
     expect(screen.getByTestId("calculator-mock")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /github/i }).length).toBeGreaterThan(0);
+  });
+
+  it("lets the user pick the theme explicitly", () => {
+    window.localStorage.removeItem("ai-calc:theme");
+    document.documentElement.classList.remove("dark");
+    render(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    const group = screen.getByRole("radiogroup", { name: "Theme" });
+    expect(within(group).getAllByRole("radio")).toHaveLength(3);
+
+    fireEvent.click(within(group).getByRole("radio", { name: "Dark" }));
+    expect(document.documentElement).toHaveClass("dark");
+    expect(window.localStorage.getItem("ai-calc:theme")).toBe("dark");
+
+    fireEvent.click(within(group).getByRole("radio", { name: "Light" }));
+    expect(document.documentElement).not.toHaveClass("dark");
+    expect(window.localStorage.getItem("ai-calc:theme")).toBe("light");
+  });
+
+  it("lets the user switch the UI language", () => {
+    window.localStorage.removeItem("ai-calc:locale");
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>,
+    );
+
+    const group = screen.getByRole("radiogroup", { name: "Language" });
+    expect(within(group).getAllByRole("radio")).toHaveLength(2);
+    expect(screen.getByText("AI Infrastructure Calculator")).toBeInTheDocument();
+
+    fireEvent.click(within(group).getByRole("radio", { name: "ru" }));
+    expect(screen.getByText("AI Калькулятор инфраструктуры")).toBeInTheDocument();
+    expect(window.localStorage.getItem("ai-calc:locale")).toBe("ru");
+
+    fireEvent.click(within(group).getByRole("radio", { name: "en" }));
+    expect(screen.getByText("AI Infrastructure Calculator")).toBeInTheDocument();
   });
 
   it("renders documentation link to GitBook", () => {

@@ -69,10 +69,10 @@ export const AutoOptimizeToggle = ({ autoMode, setAutoMode }) => {
         <button
           type="button"
           onClick={() => setAutoMode(!autoMode)}
-          className={`relative inline-flex h-8 w-[56px] shrink-0 cursor-pointer rounded-full border-2 transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+          className={`relative inline-flex h-8 w-[56px] shrink-0 cursor-pointer rounded-full border-2 transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
             autoMode
               ? "bg-accent border-accent toggle-electric"
-              : "bg-elevated border-border toggle-shimmer"
+              : "bg-elevated border-border toggle-shimmer dark:bg-border-strong dark:border-border-strong"
           }`}
           title={t("form.autoTooltip")}
         >
@@ -197,7 +197,7 @@ const SectionTooltip = ({ text }) => {
       onClick={(e) => e.stopPropagation()}
     >
       <svg
-        className="w-4 h-4 text-current opacity-50 hover:opacity-100 cursor-help transition-opacity"
+        className="w-4 h-4 text-subtle hover:text-accent cursor-help transition-colors"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -567,15 +567,52 @@ const OPTIMIZATION_MODE_BALANCED = {
 };
 
 const CARD_COLOR_MAP = {
-  blue: { selected: "border-blue-500 bg-blue-50 text-blue-700" },
-  emerald: { selected: "border-green-500 bg-green-50 text-green-700" },
-  rose: { selected: "border-rose-500 bg-rose-50 text-rose-700" },
-  violet: { selected: "border-violet-500 bg-violet-50 text-violet-700" },
-  amber: { selected: "border-amber-500 bg-amber-50 text-amber-700" },
-  indigo: { selected: "border-indigo-500 bg-indigo-50 text-indigo-700" },
+  blue: {
+    selected:
+      "border-blue-500 bg-blue-50 text-blue-700 dark:border-info dark:bg-info-soft dark:text-info",
+  },
+  emerald: {
+    selected:
+      "border-green-500 bg-green-50 text-green-700 dark:border-success dark:bg-success-soft dark:text-success",
+  },
+  rose: {
+    selected:
+      "border-rose-500 bg-rose-50 text-rose-700 dark:border-danger dark:bg-danger-soft dark:text-danger",
+  },
+  violet: {
+    selected:
+      "border-violet-500 bg-violet-50 text-violet-700 dark:border-accent dark:bg-accent-soft dark:text-accent",
+  },
+  amber: {
+    selected:
+      "border-amber-500 bg-amber-50 text-amber-700 dark:border-warning dark:bg-warning-soft dark:text-warning",
+  },
+  indigo: {
+    selected:
+      "border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-accent dark:bg-accent-soft dark:text-accent",
+  },
 };
 
-const ALLOWED_DISCRETE = [1, 2, 4, 6, 8];
+const TP_ALLOWED = [1, 2, 4, 6, 8];
+
+// Total parameter count (billions) from the HF API's `safetensors` block.
+// FP8 checkpoints report per-dtype buckets (a small BF16/F32 slice plus the
+// F8 bulk), so the first bucket is not the model size: use `total`, else the
+// sum of every bucket. Returns null when the block carries no usable count.
+export const parseSafetensorsParamsBillions = (safetensors) => {
+  if (!safetensors || typeof safetensors !== "object") return null;
+  const isCount = (v) => typeof v === "number" && Number.isFinite(v) && v > 0;
+  let count = isCount(safetensors.total) ? safetensors.total : null;
+  if (count === null && safetensors.parameters && typeof safetensors.parameters === "object") {
+    const sum = Object.values(safetensors.parameters)
+      .filter(isCount)
+      .reduce((acc, v) => acc + v, 0);
+    count = sum > 0 ? sum : null;
+  }
+  if (count === null) return null;
+  const billions = Math.round((count / 1e9) * 10) / 10;
+  return billions > 0 ? billions : null;
+};
 
 const INITIAL_FORM_DATA = {
   // Users & behavior (Section 2.1)
@@ -822,23 +859,20 @@ const CalculatorForm = ({
     }
   }, [appliedConfig]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Normalize GPUs per Server and TP (Z) to allowed values: 1, 2, 4, 6, 8
+  // Normalize TP (Z) to allowed degrees: 1, 2, 4, 6, 8
   useEffect(() => {
     setFormData((prev) => {
-      const clampToAllowed = (v) => {
-        if (ALLOWED_DISCRETE.includes(v)) return v;
-        return ALLOWED_DISCRETE.reduce((best, x) =>
-          Math.abs(x - v) < Math.abs(best - v) ? x : best,
-        );
-      };
-      const gpu = clampToAllowed(prev.gpus_per_server);
-      const tp = clampToAllowed(prev.tp_multiplier_Z);
-      if (gpu !== prev.gpus_per_server || tp !== prev.tp_multiplier_Z) {
-        return { ...prev, gpus_per_server: gpu, tp_multiplier_Z: tp };
+      const tp = TP_ALLOWED.includes(prev.tp_multiplier_Z)
+        ? prev.tp_multiplier_Z
+        : TP_ALLOWED.reduce((best, x) =>
+            Math.abs(x - prev.tp_multiplier_Z) < Math.abs(best - prev.tp_multiplier_Z) ? x : best,
+          );
+      if (tp !== prev.tp_multiplier_Z) {
+        return { ...prev, tp_multiplier_Z: tp };
       }
       return prev;
     });
-  }, [formData.gpus_per_server, formData.tp_multiplier_Z]);
+  }, [formData.tp_multiplier_Z]);
 
   const handleChange = (name, value) => {
     const integerFields = [
@@ -873,6 +907,14 @@ const CalculatorForm = ({
 
   const buildPayload = () => {
     const payload = { ...formData };
+    // Display labels for the Excel report: the backend writes them into the
+    // GPU / LLM dropdowns so the download shows what was chosen here.
+    if (selectedGpu) {
+      payload.gpu_name = selectedGpu.full_name || `${selectedGpu.vendor} ${selectedGpu.model}`;
+    }
+    if (selectedModel) {
+      payload.model_name = selectedModel.modelId || selectedModel.id;
+    }
     if (
       payload.gpu_flops_Fcount === null ||
       payload.gpu_flops_Fcount === "" ||
@@ -949,7 +991,16 @@ const CalculatorForm = ({
         return;
       }
     }
-    onSubmit(buildPayload());
+    const payload = buildPayload();
+    if (!(payload.gpus_per_server >= 1)) {
+      setValidationError(t("form.validate.gpusPerServer"));
+      return;
+    }
+    if (payload.params_active !== undefined && payload.params_active > payload.params_billions) {
+      setValidationError(t("form.validate.activeExceedsTotal"));
+      return;
+    }
+    onSubmit(payload);
   };
 
   const applyPreset = (preset) => {
@@ -1071,7 +1122,12 @@ const CalculatorForm = ({
   };
 
   // Handle model selection
+  // Sequence counter so a slow fetch for an earlier pick cannot overwrite a
+  // later one (the user clicks two models in a row).
+  const modelSelectSeq = useRef(0);
+
   const handleModelSelect = async (model) => {
+    const selection = ++modelSelectSeq.current;
     setSelectedModel(model);
     setModelSearch("");
     setModelWarning(null);
@@ -1103,28 +1159,21 @@ const CalculatorForm = ({
           /* ignore — config.json may be missing or non-standard */
         }
       }
+      if (selection !== modelSelectSeq.current) return;
 
-      const updatedData = { ...formData };
+      // Only the fields derived from this model are collected here and merged
+      // into the latest form state below, so edits made while the fetch was
+      // in flight are kept.
+      const updatedData = {};
 
       // ── params_billions: prefer safetensors → cardData tags → name match ──
-      if (modelDetails.safetensors && modelDetails.safetensors.parameters) {
-        const paramsObj = modelDetails.safetensors.parameters;
-        if (paramsObj && typeof paramsObj === "object") {
-          const paramCounts = Object.values(paramsObj);
-          if (paramCounts.length > 0) {
-            const paramCount = paramCounts[0];
-            if (typeof paramCount === "number") {
-              const paramsInBillions = Math.round((paramCount / 1e9) * 10) / 10;
-              if (!isNaN(paramsInBillions) && paramsInBillions > 0) {
-                updatedData.params_billions = paramsInBillions;
-              }
-            }
-          }
-        }
+      const safetensorsParams = parseSafetensorsParamsBillions(modelDetails.safetensors);
+      if (safetensorsParams !== null) {
+        updatedData.params_billions = safetensorsParams;
       }
 
       if (
-        updatedData.params_billions === formData.params_billions &&
+        updatedData.params_billions === undefined &&
         modelDetails.cardData &&
         modelDetails.cardData.tags
       ) {
@@ -1140,7 +1189,7 @@ const CalculatorForm = ({
         }
       }
 
-      if (updatedData.params_billions === formData.params_billions) {
+      if (updatedData.params_billions === undefined) {
         const modelName = modelId.toLowerCase();
         const paramMatch = modelName.match(/(\d+\.?\d*)([b|m])/i);
         if (paramMatch) {
@@ -1220,14 +1269,15 @@ const CalculatorForm = ({
           const moeInter =
             num(modelConfig.moe_intermediate_size) ?? num(modelConfig.intermediate_size);
           if (moeInter && moeInter > 0) {
+            const totalParams = updatedData.params_billions ?? formData.params_billions;
             const pMoeB = (nExperts * layers * 3 * hidden * moeInter) / 1e9;
-            const pDenseB = updatedData.params_billions - pMoeB;
+            const pDenseB = totalParams - pMoeB;
             // Sanity guard: only auto-fill when the arithmetic produces
             // sensible positive values for both. Partial-MoE configs
             // (e.g., DeepSeek V3 keeps the first few layers dense) make
             // the all-layers formula over-estimate P_moe; skip those and
             // let the warning fire instead so the user sets values manually.
-            if (pMoeB > 0.5 && pDenseB > 0.5 && pMoeB < updatedData.params_billions) {
+            if (pMoeB > 0.5 && pDenseB > 0.5 && pMoeB < totalParams) {
               updatedData.params_moe = Math.round(pMoeB * 100) / 100;
               updatedData.params_dense = Math.round(pDenseB * 100) / 100;
             }
@@ -1258,9 +1308,10 @@ const CalculatorForm = ({
         }
       }
 
-      setFormData(updatedData);
+      setFormData((prev) => ({ ...prev, ...updatedData }));
       setSearchResults([]);
     } catch (error) {
+      if (selection !== modelSelectSeq.current) return;
       console.error("Error fetching model details:", error);
       setSelectedModel(model);
       setSearchResults([]);
@@ -1320,11 +1371,13 @@ const CalculatorForm = ({
       </button>
 
       <div
-        className={`transition-all duration-300 ease-in-out overflow-hidden ${
-          isExpanded ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
+        className={`grid transition-[grid-template-rows,opacity,visibility] duration-300 ease-in-out ${
+          isExpanded ? "grid-rows-[1fr] opacity-100 visible" : "grid-rows-[0fr] opacity-0 invisible"
         }`}
       >
-        <div className="p-4 pt-2 border-t border-border">{inputs}</div>
+        <div className="min-h-0 overflow-hidden">
+          <div className="p-4 pt-2 border-t border-border">{inputs}</div>
+        </div>
       </div>
     </div>
   );
@@ -1389,7 +1442,10 @@ const CalculatorForm = ({
     return (
       <div className={`mb-6 ${disabled ? "opacity-50 pointer-events-none" : ""}`} key={name}>
         <div className="flex justify-between items-center gap-3 mb-2">
-          <label className="text-sm font-medium text-fg flex items-center min-w-0">
+          <label
+            className="text-sm font-medium text-fg flex items-center min-w-0"
+            htmlFor={`llm-${name}`}
+          >
             <span className="truncate">{label}</span>
             {disabled && (
               <span className="ml-1.5 text-xs text-warning bg-warning-soft px-1.5 py-0.5 rounded font-normal shrink-0">
@@ -1402,6 +1458,7 @@ const CalculatorForm = ({
               same x-axis position regardless of label length or unit suffix. */}
           <div className="flex items-center gap-1.5 shrink-0 w-[120px] justify-end">
             <input
+              id={`llm-${name}`}
               type="number"
               min={min}
               max={max}
@@ -1409,7 +1466,7 @@ const CalculatorForm = ({
               value={value}
               onChange={handleInputChange}
               disabled={disabled}
-              className={`px-2 py-1 text-sm border border-border-strong rounded-md text-right bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full ${disabled ? "bg-elevated text-subtle" : ""}`}
+              className={`px-2 py-1 text-sm border border-border-strong rounded-md text-right bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent w-full ${disabled ? "bg-elevated text-subtle" : ""}`}
               inputMode={isInteger ? "numeric" : "decimal"}
               placeholder="0"
             />
@@ -1426,7 +1483,7 @@ const CalculatorForm = ({
           value={value}
           onChange={handleSliderChange}
           disabled={disabled}
-          className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
+          className="w-full rounded-lg appearance-none cursor-pointer accent-accent"
         />
         <div className="flex justify-between text-xs text-muted mt-1">
           <span>
@@ -1480,50 +1537,52 @@ const CalculatorForm = ({
             <SectionTooltip text={t("form.section.modelTooltip")} />
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2 text-xs shrink-0 ml-auto">
-            <span className="text-muted font-medium whitespace-nowrap">{t("form.dataSource")}:</span>
-          <div className="inline-flex rounded-lg border border-border bg-elevated p-0.5">
-            {[
-              { id: "auto", label: t("form.source.auto") },
-              { id: "hf", label: t("form.source.hf") },
-              { id: "curated", label: t("form.source.curated") },
-            ].map((opt) => {
-              const active = llmSourceMode === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setLlmSourceMode(opt.id)}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                    active ? "bg-surface text-fg shadow-sm" : "text-muted hover:text-fg"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-          {/* Effective-source badge — only shown when the *effective* source
+            <span className="text-muted font-medium whitespace-nowrap">
+              {t("form.dataSource")}:
+            </span>
+            <div className="inline-flex rounded-lg border border-border bg-elevated p-0.5">
+              {[
+                { id: "auto", label: t("form.source.auto") },
+                { id: "hf", label: t("form.source.hf") },
+                { id: "curated", label: t("form.source.curated") },
+              ].map((opt) => {
+                const active = llmSourceMode === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setLlmSourceMode(opt.id)}
+                    className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                      active ? "bg-surface text-fg shadow-sm" : "text-muted hover:text-fg"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Effective-source badge — only shown when the *effective* source
               differs from what the user picked (e.g. Auto + HF unreachable
               ⇒ silently fell back to curated). Otherwise the active button
               already conveys the state and the badge wraps to a new line in
               languages with longer source labels. */}
-          {((llmSourceMode === "auto" && effectiveLlmSource !== "hf") ||
-            (hfReachable === false && llmSourceMode !== "curated")) && (
-            <span
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-warning-soft text-warning"
-              title={
-                effectiveLlmSource === "hf"
-                  ? "Currently reading from HuggingFace API"
-                  : "Currently reading from bundled curated catalog"
-              }
-            >
-              <span aria-hidden>📁</span>
-              {t("form.badge.curated")}
-              {hfReachable === false && llmSourceMode !== "curated" && (
-                <span className="ml-1 normal-case opacity-80">{t("form.badge.unreachable")}</span>
-              )}
-            </span>
-          )}
+            {((llmSourceMode === "auto" && effectiveLlmSource !== "hf") ||
+              (hfReachable === false && llmSourceMode !== "curated")) && (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-warning-soft text-warning"
+                title={
+                  effectiveLlmSource === "hf"
+                    ? "Currently reading from HuggingFace API"
+                    : "Currently reading from bundled curated catalog"
+                }
+              >
+                <span aria-hidden>📁</span>
+                {t("form.badge.curated")}
+                {hfReachable === false && llmSourceMode !== "curated" && (
+                  <span className="ml-1 normal-case opacity-80">{t("form.badge.unreachable")}</span>
+                )}
+              </span>
+            )}
           </div>
         </header>
 
@@ -1538,7 +1597,7 @@ const CalculatorForm = ({
             value={modelSearch}
             onChange={handleSearchChange}
             placeholder={t("form.search.placeholder")}
-            className="w-full px-3 py-2 border border-border rounded-md shadow-sm bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-border rounded-md shadow-sm bg-surface text-fg placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent dark:border-border-strong"
           />
 
           {isSearching && (
@@ -1548,12 +1607,12 @@ const CalculatorForm = ({
           )}
 
           {searchResults.length > 0 && (
-            <div className="absolute z-10 mt-1 w-full bg-surface border border-border shadow-elevated rounded-md max-h-60 overflow-auto">
+            <div className="absolute z-10 mt-1 w-full bg-surface border border-border shadow-elevated rounded-md max-h-60 overflow-auto dark:border-border-strong">
               {searchResults.map((model, index) => (
                 <div
                   key={index}
                   onClick={() => handleModelSelect(model)}
-                  className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 cursor-pointer border-b border-gray-100 last:border-b-0 dark:text-fg dark:hover:bg-accent-soft dark:border-border"
                 >
                   <div className="font-medium">{model.modelId || model.id}</div>
                   <div className="text-xs text-muted truncate">
@@ -1567,7 +1626,7 @@ const CalculatorForm = ({
 
         {selectedModel && (
           <div className="mt-4 mb-4">
-            <div className="p-3 bg-green-50 border-2 border-green-400 rounded-md shadow-sm">
+            <div className="p-3 bg-green-50 border-2 border-green-400 rounded-md shadow-sm dark:bg-success-soft dark:border-success/50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0">
                   <svg
@@ -1649,7 +1708,7 @@ const CalculatorForm = ({
             <button
               type="button"
               onClick={onOpenGpuFilter}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-100 hover:border-purple-400 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-100 hover:border-purple-400 transition-colors dark:border-accent/40 dark:text-accent dark:hover:bg-accent-soft dark:hover:border-accent/60"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -1674,7 +1733,7 @@ const CalculatorForm = ({
             <button
               type="button"
               onClick={() => onOpenGpuPicker(selectedGpu?.id)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-400 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-400 transition-colors dark:border-accent/40 dark:text-accent dark:hover:bg-accent-soft dark:hover:border-accent/60"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -1689,7 +1748,7 @@ const CalculatorForm = ({
                 : "Select GPU"}
             </button>
             {selectedGpu && (
-              <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg dark:bg-accent-soft dark:border-accent/30">
                 <div className="flex items-center">
                   <svg
                     className="w-5 h-5 text-accent mr-2 flex-shrink-0"
@@ -1722,66 +1781,16 @@ const CalculatorForm = ({
           </div>
         )}
 
-        {(() => {
-          const gpuPerServerAllowed = [1, 2, 4, 6, 8];
-          const gpuLocked = isFieldLocked("gpus_per_server");
-          const currentVal = formData.gpus_per_server;
-          const currentIdx = Math.max(
-            0,
-            gpuPerServerAllowed.indexOf(currentVal) !== -1
-              ? gpuPerServerAllowed.indexOf(currentVal)
-              : gpuPerServerAllowed.reduce(
-                  (best, v, i) =>
-                    Math.abs(v - currentVal) < Math.abs(gpuPerServerAllowed[best] - currentVal)
-                      ? i
-                      : best,
-                  0,
-                ),
-          );
-          const displayVal = gpuPerServerAllowed[currentIdx];
-          return (
-            <div
-              className={`mb-6 ${gpuLocked ? "opacity-50 pointer-events-none" : ""}`}
-              key="gpus_per_server"
-            >
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-fg flex items-center">
-                  GPUs per Server
-                  {gpuLocked && (
-                    <span className="ml-1.5 text-xs text-warning bg-warning-soft px-1.5 py-0.5 rounded font-normal">
-                      auto
-                    </span>
-                  )}
-                  <InfoTooltip text="Number of GPU accelerators installed in each physical server. Allowed: 1, 2, 4, 6, 8." />
-                </label>
-                <div className="flex items-center w-[120px] justify-end">
-                  <span
-                    className={`px-2 py-1 text-sm border border-border-strong rounded-md text-center font-medium w-full ${gpuLocked ? "bg-elevated text-subtle" : "bg-surface text-fg"}`}
-                  >
-                    {displayVal}
-                  </span>
-                </div>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={gpuPerServerAllowed.length - 1}
-                step={1}
-                value={currentIdx}
-                onChange={(e) =>
-                  !gpuLocked &&
-                  handleChange("gpus_per_server", gpuPerServerAllowed[parseInt(e.target.value)])
-                }
-                disabled={gpuLocked}
-                className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <div className="flex justify-between text-xs text-muted mt-1">
-                <span>{gpuPerServerAllowed[0]}</span>
-                <span>{gpuPerServerAllowed[gpuPerServerAllowed.length - 1]}</span>
-              </div>
-            </div>
-          );
-        })()}
+        {renderSliderInput(
+          "gpus_per_server",
+          "GPUs per Server",
+          1,
+          8,
+          1,
+          formData.gpus_per_server,
+          "",
+          "Number of GPU accelerators installed in each physical server (1-8).",
+        )}
         {renderSliderInput(
           "kavail",
           "Usable Memory Fraction",
@@ -1800,7 +1809,7 @@ const CalculatorForm = ({
           <SectionTooltip text="Tensor parallelism splits one model across multiple GPUs, increasing available memory per instance." />
         </h3>
         {(() => {
-          const tpAllowed = [1, 2, 4, 6, 8];
+          const tpAllowed = TP_ALLOWED;
           const tpLocked = isFieldLocked("tp_multiplier_Z");
           const currentIdx = Math.max(
             0,
@@ -1845,7 +1854,7 @@ const CalculatorForm = ({
                   !tpLocked && handleChange("tp_multiplier_Z", tpAllowed[parseInt(e.target.value)])
                 }
                 disabled={tpLocked}
-                className="w-full rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className="w-full rounded-lg appearance-none cursor-pointer accent-accent"
               />
               <div className="flex justify-between text-xs text-muted mt-1">
                 <span>{tpAllowed[0]}</span>
@@ -1927,9 +1936,7 @@ const CalculatorForm = ({
                 >
                   <span className="font-semibold leading-tight">{preset.name}</span>
                   <span
-                    className={`block text-[10px] mt-0.5 ${
-                      isActive ? "opacity-80" : "text-muted"
-                    }`}
+                    className={`block text-[10px] mt-0.5 ${isActive ? "opacity-80" : "text-muted"}`}
                   >
                     k={preset.data.k_calls}
                     {preset.data.sp_tools ? `, tools=${preset.data.sp_tools}` : ""}
@@ -2448,7 +2455,7 @@ const CalculatorForm = ({
                   className={`p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
                     isSelected
                       ? `${colors.selected} border-current shadow-card`
-                      : "border-blue-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50"
+                      : "border-blue-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50 dark:border-border-strong dark:text-fg dark:hover:border-accent/60 dark:hover:bg-accent-soft"
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-0.5">
@@ -2471,7 +2478,7 @@ const CalculatorForm = ({
                 className={`mt-2 w-full p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
                   isSelected
                     ? `${colors.selected} border-current shadow-card`
-                    : "border-blue-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50"
+                    : "border-blue-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50 dark:border-border-strong dark:text-fg dark:hover:border-accent/60 dark:hover:bg-accent-soft"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-0.5">
@@ -2502,7 +2509,7 @@ const CalculatorForm = ({
                   className={`p-2.5 rounded-lg border-2 text-left transition-all duration-200 ${
                     isActive
                       ? `${colors.selected} border-current shadow-card`
-                      : "border-blue-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50"
+                      : "border-blue-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50 dark:border-border-strong dark:text-fg dark:hover:border-accent/60 dark:hover:bg-accent-soft"
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-0.5">
@@ -2524,8 +2531,8 @@ const CalculatorForm = ({
           data-tour="basic-tab"
           className={`py-2 px-4 font-medium text-sm ${
             activeTab === "basic"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500 hover:text-gray-700"
+              ? "text-accent border-b-2 border-accent"
+              : "text-gray-500 hover:text-gray-700 dark:text-muted dark:hover:text-fg"
           }`}
           onClick={() => setActiveTab("basic")}
         >
@@ -2536,8 +2543,8 @@ const CalculatorForm = ({
           data-tour="advanced-tab"
           className={`py-2 px-4 font-medium text-sm ${
             activeTab === "advanced"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500 hover:text-gray-700"
+              ? "text-accent border-b-2 border-accent"
+              : "text-gray-500 hover:text-gray-700 dark:text-muted dark:hover:text-fg"
           }`}
           onClick={() => setActiveTab("advanced")}
         >

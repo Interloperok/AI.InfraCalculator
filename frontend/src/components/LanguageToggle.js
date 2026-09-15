@@ -1,6 +1,6 @@
 import React from "react";
 
-import { useI18n } from "../contexts/I18nContext";
+import { useI18n, useT } from "../contexts/I18nContext";
 
 /**
  * Two-position language toggle (en / ru). Mirrors the visual language of
@@ -8,11 +8,12 @@ import { useI18n } from "../contexts/I18nContext";
  */
 const LanguageToggle = ({ className = "" }) => {
   const { locale, setLocale, available } = useI18n();
+  const t = useT();
 
   return (
     <div
       role="radiogroup"
-      aria-label="Language"
+      aria-label={t("app.lang.label")}
       className={`inline-flex items-center rounded-full border border-border bg-surface p-0.5 shadow-sm ${className}`}
     >
       {available.map((value) => {

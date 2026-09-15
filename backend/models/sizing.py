@@ -107,6 +107,10 @@ class SizingInput(BaseModel):
     )
 
     # ── Section 3.1: Model ──
+    model_name: Optional[str] = Field(
+        default=None,
+        description="Название модели (напр. HF id) — подпись в Excel-отчёте, в расчёте не используется.",
+    )
     params_billions: confloat(gt=0) = Field(
         ..., description="Параметры модели в миллиардах (P_total)"
     )
@@ -191,6 +195,10 @@ class SizingInput(BaseModel):
     # ── Section 4: Hardware & TP ──
     gpu_mem_gb: confloat(gt=0) = Field(..., description="Память GPU в GiB (GPUmemory)")
     gpu_id: Optional[str] = Field(None, description="ID выбранной GPU из каталога")
+    gpu_name: Optional[str] = Field(
+        default=None,
+        description="Название GPU — подпись в Excel-отчёте, в расчёте не используется.",
+    )
     bw_gpu_gbs: Optional[confloat(gt=0)] = Field(
         default=None,
         description="Пропускная способность памяти GPU (BW_GPU, GB/s). "
@@ -872,6 +880,10 @@ class AutoOptimizeInput(BaseModel):
     """
 
     # ── Model ──
+    model_name: Optional[str] = Field(
+        default=None,
+        description="Название модели — подпись в Excel-отчёте, в расчёте не используется.",
+    )
     params_billions: confloat(gt=0) = Field(..., description="Параметры модели в миллиардах (P)")
     layers_L: conint(gt=0) = Field(..., description="Число слоёв модели (L)")
     hidden_size_H: conint(gt=0) = Field(..., description="Размер скрытого состояния (H)")
