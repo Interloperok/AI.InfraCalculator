@@ -35,7 +35,7 @@ dev = [
   "pytest-cov==7.1.0",
   "ruff==0.16.0",
   "ty==0.0.63",
-  "types-requests==2.33.0.20260513",
+  "types-requests==2.33.0.20260906",
 ]
 
 [tool.uv]
