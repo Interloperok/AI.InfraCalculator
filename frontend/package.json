@@ -64,5 +64,8 @@
         "lines": 75
       }
     }
+  },
+  "overrides": {
+    "underscore": "1.13.8"
   }
 }
