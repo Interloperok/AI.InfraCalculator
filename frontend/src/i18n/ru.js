@@ -6,6 +6,8 @@ const ru = {
   "app.title": "AI Калькулятор инфраструктуры",
   "app.subtitle": "Сайзинг GPU для LLM, VLM и OCR",
   "app.docs": "Методология",
+  "app.api": "API",
+  "app.api.open": "OpenAPI / Swagger",
   "app.github": "GitHub",
   "app.theme.light": "Светлая",
   "app.theme.dark": "Тёмная",
@@ -21,6 +23,34 @@ const ru = {
   "app.docs.close": "Закрыть (Esc)",
   "app.docs.loading": "Загрузка методологии…",
   "app.docs.error": "Не удалось загрузить методологию",
+  "app.mcp": "MCP",
+  "app.mcp.open": "Подключить MCP",
+  "app.mcp.title": "Подключение по MCP",
+  "app.mcp.subtitle":
+    "Один конфиг подключает калькулятор и методологию. Агент сможет и посчитать кластер, и прочитать методику.",
+  "app.mcp.endpoint": "Калькулятор",
+  "app.mcp.docs": "Методология",
+  "app.mcp.docsHint": "GitBook MCP для методики сайзинга.",
+  "app.mcp.swagger": "Открыть Swagger",
+  "app.mcp.copy": "Копировать",
+  "app.mcp.copied": "Скопировано",
+  "app.mcp.close": "Закрыть",
+  "app.mcp.cursor": "Cursor",
+  "app.mcp.claude": "Claude",
+  "app.mcp.local": "Локально",
+  "app.mcp.tools": "Инструменты",
+  "app.mcp.hint.cursor":
+    "Cursor → Settings → MCP, или вставьте это в .cursor/mcp.json. В конфиге оба сервера.",
+  "app.mcp.hint.claude":
+    "Claude Desktop → Settings → Developer → Edit Config. Вставьте оба сервера в mcpServers.",
+  "app.mcp.hint.local":
+    "Инструменты калькулятора идут из копии репозитория по stdio. Методология остаётся на адресе GitBook.",
+  "app.mcp.tool.sizeLlm": "Сайзинг LLM",
+  "app.mcp.tool.sizeVlm": "Сайзинг VLM",
+  "app.mcp.tool.sizeOcr": "Сайзинг OCR + LLM",
+  "app.mcp.tool.compare": "Сценарии «что если»",
+  "app.mcp.tool.optimize": "Автоподбор",
+  "app.mcp.tool.catalogs": "Каталоги GPU и LLM",
 
   // ── Calculator modes ─────────────────────────────────────────────────
   "mode.label": "Режим калькулятора",

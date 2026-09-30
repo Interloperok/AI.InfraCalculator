@@ -106,6 +106,15 @@ describe("App shell", () => {
     expect(docsLink).toHaveAttribute("rel", "noopener noreferrer");
   });
 
+  it("links the API button to Swagger", () => {
+    render(<App />);
+
+    const apiLink = screen.getByRole("link", { name: "API" });
+    expect(apiLink).toHaveAttribute("href", "http://localhost:8000/docs");
+    expect(apiLink).toHaveAttribute("target", "_blank");
+    expect(apiLink).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
   it("handles guided tour callback transitions and finish", () => {
     jest.useFakeTimers();
     render(<App />);

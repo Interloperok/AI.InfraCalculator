@@ -103,7 +103,7 @@ ingress:
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
   host: calc.localhost
-  # Path-based routing: /v1/*, /healthz, /openapi.json, /docs → backend; / → frontend
+  # Path-based routing: frontend nginx proxies /v1/*, /mcp, /healthz, /docs → backend; / → SPA
   tls: []
   # tls:
   #   - secretName: calc-tls

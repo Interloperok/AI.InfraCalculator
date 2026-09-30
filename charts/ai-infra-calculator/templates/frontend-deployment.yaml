@@ -41,7 +41,7 @@ spec:
               protocol: TCP
           env:
             # Tells the bundled nginx (see frontend/nginx.conf.template) where
-            # to reverse-proxy /v1/* requests. Pointing at the in-cluster
+            # to reverse-proxy /v1/* and /mcp. Pointing at the in-cluster
             # backend Service means a single port-forward against the frontend
             # Service is enough to use the calculator end-to-end.
             - name: BACKEND_URL

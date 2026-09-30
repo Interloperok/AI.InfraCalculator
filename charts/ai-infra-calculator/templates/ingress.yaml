@@ -20,7 +20,7 @@ spec:
       http:
         paths:
           # Single backend: the frontend container's nginx already reverse-
-          # proxies /v1/*, /healthz, /docs, /redoc, /openapi.json to the
+          # proxies /v1/*, /mcp, /healthz, /docs, /redoc, /openapi.json to the
           # backend Service. One ingress rule keeps everything behind the
           # same host and avoids path-collision footguns at the ingress
           # controller level.

@@ -10,6 +10,8 @@ const en = {
   "app.title": "AI Infrastructure Calculator",
   "app.subtitle": "GPU sizing for LLM, VLM and OCR workloads",
   "app.docs": "Documentation",
+  "app.api": "API",
+  "app.api.open": "OpenAPI / Swagger",
   "app.github": "GitHub",
   "app.theme.light": "Light",
   "app.theme.dark": "Dark",
@@ -25,6 +27,34 @@ const en = {
   "app.docs.close": "Close (Esc)",
   "app.docs.loading": "Loading methodology…",
   "app.docs.error": "Failed to load methodology",
+  "app.mcp": "MCP",
+  "app.mcp.open": "Connect MCP",
+  "app.mcp.title": "Connect via MCP",
+  "app.mcp.subtitle":
+    "One config connects the calculator and the methodology. The agent can size a cluster and read the paper.",
+  "app.mcp.endpoint": "Calculator",
+  "app.mcp.docs": "Methodology",
+  "app.mcp.docsHint": "GitBook MCP for the sizing methodology.",
+  "app.mcp.swagger": "Open Swagger",
+  "app.mcp.copy": "Copy",
+  "app.mcp.copied": "Copied",
+  "app.mcp.close": "Close",
+  "app.mcp.cursor": "Cursor",
+  "app.mcp.claude": "Claude",
+  "app.mcp.local": "Local",
+  "app.mcp.tools": "Tools",
+  "app.mcp.hint.cursor":
+    "Cursor → Settings → MCP, or paste this into .cursor/mcp.json. Both servers are included.",
+  "app.mcp.hint.claude":
+    "Claude Desktop → Settings → Developer → Edit Config. Paste both servers under mcpServers.",
+  "app.mcp.hint.local":
+    "Calculator tools run from a checkout over stdio. The methodology stays on the GitBook URL.",
+  "app.mcp.tool.sizeLlm": "LLM sizing",
+  "app.mcp.tool.sizeVlm": "VLM sizing",
+  "app.mcp.tool.sizeOcr": "OCR + LLM sizing",
+  "app.mcp.tool.compare": "What-if scenarios",
+  "app.mcp.tool.optimize": "Auto-optimize",
+  "app.mcp.tool.catalogs": "GPU and LLM catalogs",
 
   // ── Calculator modes ─────────────────────────────────────────────────
   "mode.label": "Calculator mode",

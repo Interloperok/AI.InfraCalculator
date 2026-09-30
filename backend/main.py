@@ -42,6 +42,7 @@ from models import (
     WhatIfResponseItem,
 )
 from settings import get_settings
+from mcp_server import mcp_asgi, mcp_http_lifespan
 from services.gpu_refresh_service import refresh_gpu_data_internal, start_scheduler
 from services.ocr_sizing_service import run_ocr_sizing
 from services.sizing_service import run_sizing
@@ -71,38 +72,39 @@ scheduler: Optional[BackgroundScheduler] = None
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     """Application lifespan hook (replaces deprecated startup/shutdown events)."""
-    global scheduler
-    settings = get_settings()
+    async with mcp_http_lifespan():
+        global scheduler
+        settings = get_settings()
 
-    logger.info("🚀 Запуск AI Server Calculator API...")
+        logger.info("🚀 Запуск AI Server Calculator API...")
 
-    # On startup: scrape only if gpu_data.json does not exist.
-    # If the file already exists — use it as-is.
-    # Refresh runs on schedule or manually via /v1/gpus/refresh.
-    if not settings.gpu_data_path.exists():
-        logger.info("🔄 Файл gpu_data.json не найден, запускаем первичный скрапинг...")
-        refresh_gpu_data_internal()
-    else:
-        logger.info("📂 Используем существующий gpu_data.json")
+        # On startup: scrape only if gpu_data.json does not exist.
+        # If the file already exists — use it as-is.
+        # Refresh runs on schedule or manually via /v1/gpus/refresh.
+        if not settings.gpu_data_path.exists():
+            logger.info("🔄 Файл gpu_data.json не найден, запускаем первичный скрапинг...")
+            refresh_gpu_data_internal()
+        else:
+            logger.info("📂 Используем существующий gpu_data.json")
 
-    if settings.disable_scheduler:
-        logger.info("⏸️ Планировщик отключен через AI_SC_DISABLE_SCHEDULER=1")
-        scheduler = None
-    else:
-        scheduler = start_scheduler()
+        if settings.disable_scheduler:
+            logger.info("⏸️ Планировщик отключен через AI_SC_DISABLE_SCHEDULER=1")
+            scheduler = None
+        else:
+            scheduler = start_scheduler()
 
-    logger.info("✅ Приложение успешно запущено с автоматическим обновлением GPU данных")
+        logger.info("✅ Приложение успешно запущено с автоматическим обновлением GPU данных")
 
-    try:
-        yield
-    finally:
-        logger.info("🛑 Остановка приложения...")
+        try:
+            yield
+        finally:
+            logger.info("🛑 Остановка приложения...")
 
-        if scheduler:
-            scheduler.shutdown()
-            logger.info("📅 Планировщик остановлен")
+            if scheduler:
+                scheduler.shutdown()
+                logger.info("📅 Планировщик остановлен")
 
-        logger.info("✅ Приложение остановлено")
+            logger.info("✅ Приложение остановлено")
 
 
 app = FastAPI(
@@ -120,7 +122,11 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Mcp-Session-Id"],
 )
+
+# Streamable HTTP MCP. The sub-app route is "/" so clients connect to /mcp.
+app.mount("/mcp", mcp_asgi)
 
 
 @app.get("/healthz", tags=["Health"])
