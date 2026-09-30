@@ -20,6 +20,8 @@ dependencies = [
   "pandas>=3.0.5",
   "pydantic>=2.13.4,<3",
   "requests==2.34.2",
+  # Floor past CVE-2026-97687, CVE-2026-97688, and CVE-2026-97689 (urllib3 2.7.0).
+  "urllib3>=2.8.0",
   "uvicorn==0.51.0",
 ]
 
