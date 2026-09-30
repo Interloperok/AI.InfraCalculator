@@ -1,15 +1,15 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import Joyride, { STATUS } from "react-joyride";
-import { BookOpen, Compass, Cpu, Github, Heart, Star } from "lucide-react";
+import { BookOpen, Code, Compass, Cpu, Github, Heart, Star } from "lucide-react";
 import Calculator from "./features/calculator/Calculator";
-import { GITHUB_URL } from "./config";
+import { DOCS_URL, GITHUB_URL, resolveSwaggerUrl } from "./config";
 import LanguageToggle from "./components/LanguageToggle";
+import McpConnectButton from "./components/McpConnect";
 import ThemeToggle from "./components/ThemeToggle";
 import { useT } from "./contexts/I18nContext";
 import "./App.css";
 
-const APP_VERSION = "1.4.0";
-const DOCS_URL = "https://test-1-10.gitbook.io/test-1-docs";
+const APP_VERSION = "1.5.0";
 // Legacy in-app docx drawer (mammoth). Hidden while GitBook docs are primary.
 const SHOW_LEGACY_DOCS_DRAWER = false;
 // Methodology docx is bundled into the frontend image; served from the SPA
@@ -435,6 +435,7 @@ function App() {
   );
 
   const currentYear = new Date().getFullYear();
+  const swaggerUrl = resolveSwaggerUrl();
 
   const startTour = () => {
     const calcMode = getStoredCalculatorMode();
@@ -510,6 +511,8 @@ function App() {
                 <span>{t("app.tour.start")}</span>
               </button>
 
+              <McpConnectButton />
+
               <a
                 href={DOCS_URL}
                 target="_blank"
@@ -520,6 +523,18 @@ function App() {
               >
                 <BookOpen className="h-3.5 w-3.5" strokeWidth={2.25} />
                 <span className="hidden sm:inline">{t("app.docs")}</span>
+              </a>
+
+              <a
+                href={swaggerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={t("app.api.open")}
+                aria-label={t("app.api")}
+                className="inline-flex items-center gap-1.5 h-8 px-3 py-2 rounded-lg border border-sky-200 bg-white text-sky-700 hover:bg-sky-50 hover:border-sky-300 text-xs font-medium shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 dark:bg-surface dark:border-border-strong dark:text-sky-300 dark:hover:bg-sky-500/10 dark:hover:border-sky-400/60"
+              >
+                <Code className="h-3.5 w-3.5" strokeWidth={2.25} />
+                <span className="hidden sm:inline">{t("app.api")}</span>
               </a>
 
               <a

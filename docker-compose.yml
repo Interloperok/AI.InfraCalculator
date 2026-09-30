@@ -28,7 +28,7 @@ services:
     ports:
       - "3000:80"
     environment:
-      # nginx inside the container reverse-proxies /v1/*, /healthz, /docs,
+      # nginx inside the container reverse-proxies /v1/*, /mcp, /healthz, /docs,
       # /redoc, and /openapi.json to this URL. Point at the backend service
       # by its compose-network hostname so the browser only ever hits
       # http://localhost:3000 (UI + REST + Swagger on one port).

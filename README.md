@@ -108,14 +108,43 @@ Notes:
 - `POST /v1/auto-optimize` – hardware auto‑optimization
 - `GET /v1/gpus` – GPU catalog
 - `GET /v1/gpus/{gpu_id}` – GPU details
+- `POST /mcp` – Model Context Protocol (Streamable HTTP)
 
 Full API schema: http://localhost:8000/docs
+
+## MCP
+
+The header button **MCP** copies a client config aimed at the deployment you have open. Agents can look up the GPU and LLM catalogs and run the same sizing, what-if, and auto-optimize calculations as the UI.
+
+Remote (Cursor, Claude Desktop, any Streamable HTTP client):
+
+```json
+{
+  "mcpServers": {
+    "ai-infra-calculator": {
+      "url": "http://localhost:8000/mcp"
+    },
+    "ai-infra-docs": {
+      "url": "https://test-1-10.gitbook.io/test-1-docs/~gitbook/mcp"
+    }
+  }
+}
+```
+
+The same dialog links to Swagger (`/docs` on this deployment). The header **API** button opens it directly.
+
+On the public site the URL is `https://<host>/mcp` (the frontend proxies it to the backend). From a local checkout, stdio does not need the web server:
+
+```bash
+cd backend
+uv run python -m mcp_server
+```
 
 ***
 
 ## Stack
 
-**Backend**: FastAPI, Pydantic, Uvicorn, Pandas, `uv`
+**Backend**: FastAPI, Pydantic, Uvicorn, Pandas, MCP, `uv`
 **Frontend**: React, Tailwind CSS, Recharts, Axios
 
 ***

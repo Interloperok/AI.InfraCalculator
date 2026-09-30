@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-09-30
+
+### Added
+
+- MCP server on `/mcp` (Streamable HTTP) and `python -m mcp_server` (stdio).
+  Tools cover LLM, VLM, and OCR sizing, what-if, auto-optimize, and the
+  GPU and LLM catalogs. The header **MCP** button copies a client config
+  for the deployment you are viewing, including the methodology GitBook
+  MCP server. The header **API** button opens Swagger.
+
 ## [1.4.0] - 2026-09-15
 
 ### Bug fixes
