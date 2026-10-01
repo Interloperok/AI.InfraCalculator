@@ -140,7 +140,7 @@ calculator_mcp = MCPServer(
     description="Size GPU clusters for LLM, VLM, and OCR inference.",
     instructions=_INSTRUCTIONS,
     website_url="https://calc.aicolab.space/",
-    version="1.5.0",
+    version="1.6.0",
 )
 
 

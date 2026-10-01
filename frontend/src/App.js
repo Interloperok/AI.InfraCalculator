@@ -9,7 +9,7 @@ import ThemeToggle from "./components/ThemeToggle";
 import { useT } from "./contexts/I18nContext";
 import "./App.css";
 
-const APP_VERSION = "1.5.0";
+const APP_VERSION = "1.6.0";
 // Legacy in-app docx drawer (mammoth). Hidden while GitBook docs are primary.
 const SHOW_LEGACY_DOCS_DRAWER = false;
 // Methodology docx is bundled into the frontend image; served from the SPA

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-01
+
 ### Added
 
 - MCP tool `build_report` fills the Excel template from the same LLM workload

@@ -4,8 +4,8 @@ message: "If you use this software, please cite it using the metadata below."
 type: software
 authors:
   - name: AI Server Calculator Maintainers
-version: 1.5.0
-date-released: 2026-09-30
+version: 1.6.0
+date-released: 2026-10-01
 license: MIT
 repository-code: https://github.com/your-org/ai-server-calculator
 keywords:
