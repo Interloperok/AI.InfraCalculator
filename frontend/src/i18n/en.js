@@ -50,6 +50,7 @@ const en = {
   "app.mcp.hint.local":
     "Calculator tools run from a checkout over stdio. The methodology stays on the GitBook URL.",
   "app.mcp.tool.sizeLlm": "LLM sizing",
+  "app.mcp.tool.report": "Excel report link",
   "app.mcp.tool.sizeVlm": "VLM sizing",
   "app.mcp.tool.sizeOcr": "OCR + LLM sizing",
   "app.mcp.tool.compare": "What-if scenarios",

@@ -11,6 +11,7 @@ const SERVER_NAME = "ai-infra-calculator";
 
 const TOOLS = [
   ["size_llm", "app.mcp.tool.sizeLlm"],
+  ["build_report", "app.mcp.tool.report"],
   ["size_vlm", "app.mcp.tool.sizeVlm"],
   ["size_ocr", "app.mcp.tool.sizeOcr"],
   ["compare_scenarios", "app.mcp.tool.compare"],

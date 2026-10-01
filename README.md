@@ -104,6 +104,7 @@ Notes:
 - `GET /healthz` – health check
 - `POST /v1/size` – infrastructure sizing
 - `POST /v1/report` – Excel report generation
+- `GET /v1/reports/{id}` – download an Excel report link from the MCP `build_report` tool (30 minutes)
 - `POST /v1/whatif` – scenario comparison
 - `POST /v1/auto-optimize` – hardware auto‑optimization
 - `GET /v1/gpus` – GPU catalog
@@ -114,7 +115,7 @@ Full API schema: http://localhost:8000/docs
 
 ## MCP
 
-The header button **MCP** copies a client config aimed at the deployment you have open. Agents can look up the GPU and LLM catalogs and run the same sizing, what-if, and auto-optimize calculations as the UI.
+The header button **MCP** copies a client config aimed at the deployment you have open. Agents can look up the GPU and LLM catalogs and run the same sizing, what-if, and auto-optimize calculations as the UI. `build_report` takes that same LLM workload and returns a link the user can open to download the Excel file.
 
 Remote (Cursor, Claude Desktop, any Streamable HTTP client):
 

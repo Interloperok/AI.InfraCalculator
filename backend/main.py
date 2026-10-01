@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import io
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, Query
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from logging_config import configure_logger
 
@@ -23,6 +25,8 @@ from api.sizing_handlers import (
     vlm_size_endpoint_handler,
     whatif_endpoint_handler,
 )
+from errors import NotFoundAppError, to_http_exception
+from services.report_downloads import report_downloads
 from models import (
     AutoOptimizeInput,
     AutoOptimizeResponse,
@@ -216,6 +220,26 @@ def report_endpoint(inp: SizingInput):
     Формулы пересчитываются при открытии файла в Excel.
     """
     return report_endpoint_handler(inp)
+
+
+@app.get("/v1/reports/{report_id}", tags=["Sizing"])
+def stored_report_endpoint(report_id: str):
+    """
+    Скачать Excel-отчёт по ссылке из MCP-тула build_report.
+
+    Ссылка живёт 30 минут. Просроченный или неизвестный идентификатор
+    отвечает 404.
+    """
+    stored = report_downloads.get(report_id)
+    if stored is None:
+        raise to_http_exception(NotFoundAppError("Отчёт не найден или срок ссылки истёк"))
+
+    content, filename = stored
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.post("/v1/whatif", response_model=list[WhatIfResponseItem], tags=["Sizing"])

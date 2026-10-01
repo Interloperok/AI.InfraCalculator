@@ -46,6 +46,7 @@ const ru = {
   "app.mcp.hint.local":
     "Инструменты калькулятора идут из копии репозитория по stdio. Методология остаётся на адресе GitBook.",
   "app.mcp.tool.sizeLlm": "Сайзинг LLM",
+  "app.mcp.tool.report": "Ссылка на Excel-отчёт",
   "app.mcp.tool.sizeVlm": "Сайзинг VLM",
   "app.mcp.tool.sizeOcr": "Сайзинг OCR + LLM",
   "app.mcp.tool.compare": "Сценарии «что если»",

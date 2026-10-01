@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- MCP tool `build_report` fills the Excel template from the same LLM workload
+  as `size_llm` and returns a download link. `GET /v1/reports/{id}` serves
+  the file for 30 minutes.
+
 ### Fixed
 
 - The MCP client URL includes the trailing slash (`/mcp/`). Without it the

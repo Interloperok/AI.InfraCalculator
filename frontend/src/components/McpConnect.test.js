@@ -38,6 +38,7 @@ describe("McpConnectButton", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByTestId("mcp-endpoint")).toHaveTextContent("http://localhost:8000/mcp/");
     expect(screen.getByText("size_llm")).toBeInTheDocument();
+    expect(screen.getByText("build_report")).toBeInTheDocument();
 
     const copyButtons = screen.getAllByRole("button", { name: "Copy" });
     fireEvent.click(copyButtons[0]);
