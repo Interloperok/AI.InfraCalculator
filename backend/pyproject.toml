@@ -12,7 +12,7 @@ license = { text = "MIT" }
 authors = [{ name = "AI Server Calculator Maintainers" }]
 dependencies = [
   "apscheduler==3.11.3",
-  "fastapi==0.140.0",
+  "fastapi==0.141.1",
   # Pinned >=6.1.0 to avoid CVE-2026-41066 (lxml 6.0.x XML external entity).
   "lxml>=6.1.1",
   "mcp>=2,<3",
@@ -22,22 +22,22 @@ dependencies = [
   "requests==2.34.2",
   # Floor past CVE-2026-97687, CVE-2026-97688, and CVE-2026-97689 (urllib3 2.7.0).
   "urllib3>=2.8.0",
-  "uvicorn==0.51.0",
+  "uvicorn==0.54.0",
 ]
 
 [dependency-groups]
 dev = [
-  "coverage==7.15.2",
+  "coverage==7.16.2",
   "httpx==0.28.1",
-  "hypothesis==6.161.5",
-  "mypy==2.3.0",
+  "hypothesis==6.168.2",
+  "mypy==2.3.1",
   # Transitive via pytest; pinned >=2.20.0 to avoid CVE-2026-4539.
   "pygments>=2.20.0",
   # 9.0.3 fixes CVE-2025-71176.
   "pytest==9.1.1",
   "pytest-cov==7.1.0",
-  "ruff==0.16.0",
-  "ty==0.0.63",
+  "ruff==0.16.9",
+  "ty==0.0.84",
   "types-requests==2.33.0.20260513",
 ]
 
