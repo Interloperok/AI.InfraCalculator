@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The MCP client URL includes the trailing slash (`/mcp/`). Without it the
+  mounted endpoint redirects, and Streamable HTTP clients do not follow
+  the redirect.
+
 ## [1.5.0] - 2026-09-30
 
 ### Added

@@ -1,6 +1,6 @@
 """MCP server for the AI Infrastructure Calculator.
 
-The same process that serves ``/v1/*`` also serves Streamable HTTP at ``/mcp``.
+The same process that serves ``/v1/*`` also serves Streamable HTTP at ``/mcp/``.
 ``python -m mcp_server`` speaks stdio for a local checkout.
 """
 

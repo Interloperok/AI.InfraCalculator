@@ -137,7 +137,7 @@ def test_list_gpus_and_unknown_gpu(client) -> None:
     _run(_check())
     # Touch the HTTP mount while the FastAPI lifespan (and session manager) is up.
     response = client.post(
-        "/mcp",
+        "/mcp/",
         json={
             "jsonrpc": "2.0",
             "id": 1,

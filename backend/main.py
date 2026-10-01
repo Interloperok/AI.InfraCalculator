@@ -125,7 +125,8 @@ app.add_middleware(
     expose_headers=["Mcp-Session-Id"],
 )
 
-# Streamable HTTP MCP. The sub-app route is "/" so clients connect to /mcp.
+# Streamable HTTP MCP. The sub-app route is "/" so clients connect to /mcp/.
+# /mcp without the slash is a redirect; Streamable HTTP clients do not follow it.
 app.mount("/mcp", mcp_asgi)
 
 
