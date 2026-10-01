@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "ai-infra-calculator": {
+      "url": "https://calc.aicolab.space/mcp/"
+    },
+    "ai-infra-docs": {
+      "url": "https://test-1-10.gitbook.io/test-1-docs/~gitbook/mcp"
+    }
+  }
+}

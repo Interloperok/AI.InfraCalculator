@@ -10,6 +10,7 @@ from mcp import Client
 
 from mcp_server import calculator_mcp
 from models import SizingInput
+from services.report_downloads import report_downloads
 from services.sizing_service import run_sizing
 
 
@@ -28,6 +29,7 @@ def test_tools_resources_and_prompt_are_registered() -> None:
                 "list_gpus",
                 "get_gpu",
                 "size_llm",
+                "build_report",
                 "size_vlm",
                 "size_ocr",
                 "compare_scenarios",
@@ -38,6 +40,7 @@ def test_tools_resources_and_prompt_are_registered() -> None:
             assert any(str(item.uri) == "calculator://playbook" for item in resources.resources)
             playbook = await client.read_resource("calculator://playbook")
             assert "size_llm" in playbook.contents[0].text
+            assert "build_report" in playbook.contents[0].text
 
             prompts = await client.list_prompts()
             assert any(item.name == "size_llm_workload" for item in prompts.prompts)
@@ -116,6 +119,37 @@ def test_size_llm_matches_the_sizing_service() -> None:
     _run(_check())
 
 
+def test_build_report_link_downloads_the_workbook(client, test_data_dir) -> None:
+    report_downloads.clear()
+    payload = json.loads((test_data_dir / "payload.json").read_text(encoding="utf-8"))
+    saved: dict[str, str] = {}
+
+    async def _check() -> None:
+        async with Client(calculator_mcp) as mcp_client:
+            result = await mcp_client.call_tool("build_report", {"workload": payload})
+            assert result.is_error is False
+            body = result.structured_content
+            assert body is not None
+            assert body["filename"].endswith(".xlsx")
+            assert "/v1/reports/" in body["download_url"]
+            saved["id"] = body["download_url"].rsplit("/", 1)[-1]
+            saved["filename"] = body["filename"]
+
+    _run(_check())
+
+    response = client.get(f"/v1/reports/{saved['id']}")
+    assert response.status_code == 200
+    assert (
+        response.headers["content-type"]
+        == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    assert saved["filename"] in response.headers["content-disposition"]
+    assert response.content.startswith(b"PK")
+
+    missing = client.get("/v1/reports/does-not-exist")
+    assert missing.status_code == 404
+
+
 def test_list_gpus_and_unknown_gpu(client) -> None:
     async def _check() -> None:
         async with Client(calculator_mcp) as mcp_client:
@@ -137,7 +171,7 @@ def test_list_gpus_and_unknown_gpu(client) -> None:
     _run(_check())
     # Touch the HTTP mount while the FastAPI lifespan (and session manager) is up.
     response = client.post(
-        "/mcp",
+        "/mcp/",
         json={
             "jsonrpc": "2.0",
             "id": 1,

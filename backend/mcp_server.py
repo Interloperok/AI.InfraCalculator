@@ -1,6 +1,6 @@
 """MCP server for the AI Infrastructure Calculator.
 
-The same process that serves ``/v1/*`` also serves Streamable HTTP at ``/mcp``.
+The same process that serves ``/v1/*`` also serves Streamable HTTP at ``/mcp/``.
 ``python -m mcp_server`` speaks stdio for a local checkout.
 """
 
@@ -20,6 +20,7 @@ from api.gpu_handlers import get_gpu_details_handler, get_gpus_handler
 from api.sizing_handlers import (
     auto_optimize_endpoint_handler,
     ocr_size_endpoint_handler,
+    publish_report_download,
     size_endpoint_handler,
     vlm_size_endpoint_handler,
     whatif_endpoint_handler,
@@ -41,6 +42,7 @@ from models import (
     WhatIfResponseItem,
 )
 from services.llm_catalog_service import build_list_response, get_model_by_name
+from services.report_downloads import ReportDownload
 
 _T = TypeVar("_T")
 
@@ -48,6 +50,13 @@ _READ_ONLY = ToolAnnotations(
     read_only_hint=True,
     destructive_hint=False,
     idempotent_hint=True,
+    open_world_hint=False,
+)
+
+_REPORT = ToolAnnotations(
+    read_only_hint=True,
+    destructive_hint=False,
+    idempotent_hint=False,
     open_world_hint=False,
 )
 
@@ -64,6 +73,9 @@ Tensor-parallel degree (tp_multiplier_Z) is 1, 2, 4, 6, or 8.
 servers_final is max(servers_by_memory, servers_by_compute).
 
 Read the calculator://playbook resource for the field mapping.
+
+When the user asks for an Excel report, call build_report with the same
+workload you passed to size_llm and give them download_url.
 """.strip()
 
 _PLAYBOOK = """
@@ -104,7 +116,12 @@ Both take their own input objects; do not reuse an LLM payload.
 `auto_optimize` searches GPU, tensor parallel, GPUs per server, and quantization.
 It is slower than a single size call.
 
-Excel export stays in the web UI. This server does not scrape or refresh catalogs.
+## Excel report
+
+`build_report` takes the same workload as `size_llm`. Give the user `download_url`.
+The link lasts 30 minutes. The file is an .xlsx; Excel recalculates formulas on open.
+
+This server does not scrape or refresh catalogs.
 """.strip()
 
 
@@ -203,6 +220,17 @@ def size_llm(workload: SizingInput) -> SizingOutput:
     1, 2, 4, 6, or 8. servers_final is max(servers_by_memory, servers_by_compute).
     """
     return _call(lambda: size_endpoint_handler(workload))
+
+
+@calculator_mcp.tool(annotations=_REPORT)
+def build_report(workload: SizingInput) -> ReportDownload:
+    """Build an Excel workbook for the same LLM workload passed to size_llm.
+
+    Pass that workload unchanged. Do not invent fields and do not reuse a VLM
+    or OCR payload. Show the user download_url so they can save the .xlsx.
+    The link expires after 30 minutes. Excel recalculates formulas on open.
+    """
+    return _call(lambda: publish_report_download(workload))
 
 
 @calculator_mcp.tool(annotations=_READ_ONLY)

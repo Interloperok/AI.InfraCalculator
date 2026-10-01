@@ -20,7 +20,9 @@ from models import (
 from services.auto_optimize_service import auto_optimize
 from services.gpu_catalog_service import lookup_gpu_tflops
 from services.ocr_sizing_service import run_ocr_sizing
+from services.report_downloads import ReportDownload, report_downloads
 from services.report_service import ReportGenerator
+from settings import get_settings
 from services.sizing_service import run_sizing
 from services.vlm_sizing_service import run_vlm_sizing
 
@@ -54,6 +56,25 @@ def report_endpoint_handler(inp: SizingInput) -> StreamingResponse:
         headers={
             "Content-Disposition": f'attachment; filename="{report_builder.make_filename()}"',
         },
+    )
+
+
+def publish_report_download(inp: SizingInput) -> ReportDownload:
+    """Fill the Excel template and publish a short-lived download link."""
+    try:
+        buf = report_builder.generate(inp)
+    except FileNotFoundError as exc:
+        raise to_http_exception(ServiceAppError(str(exc))) from exc
+    except RuntimeError as exc:
+        raise to_http_exception(ServiceAppError(str(exc))) from exc
+
+    filename = report_builder.make_filename()
+    report_id, expires_at = report_downloads.put(buf.getvalue(), filename)
+    base = get_settings().public_base_url
+    return ReportDownload(
+        filename=filename,
+        download_url=f"{base}/v1/reports/{report_id}",
+        expires_at=expires_at,
     )
 
 

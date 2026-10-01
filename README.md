@@ -104,17 +104,18 @@ Notes:
 - `GET /healthz` – health check
 - `POST /v1/size` – infrastructure sizing
 - `POST /v1/report` – Excel report generation
+- `GET /v1/reports/{id}` – download an Excel report link from the MCP `build_report` tool (30 minutes)
 - `POST /v1/whatif` – scenario comparison
 - `POST /v1/auto-optimize` – hardware auto‑optimization
 - `GET /v1/gpus` – GPU catalog
 - `GET /v1/gpus/{gpu_id}` – GPU details
-- `POST /mcp` – Model Context Protocol (Streamable HTTP)
+- `POST /mcp/` – Model Context Protocol (Streamable HTTP)
 
 Full API schema: http://localhost:8000/docs
 
 ## MCP
 
-The header button **MCP** copies a client config aimed at the deployment you have open. Agents can look up the GPU and LLM catalogs and run the same sizing, what-if, and auto-optimize calculations as the UI.
+The header button **MCP** copies a client config aimed at the deployment you have open. Agents can look up the GPU and LLM catalogs and run the same sizing, what-if, and auto-optimize calculations as the UI. `build_report` takes that same LLM workload and returns a link the user can open to download the Excel file.
 
 Remote (Cursor, Claude Desktop, any Streamable HTTP client):
 
@@ -122,7 +123,7 @@ Remote (Cursor, Claude Desktop, any Streamable HTTP client):
 {
   "mcpServers": {
     "ai-infra-calculator": {
-      "url": "http://localhost:8000/mcp"
+      "url": "http://localhost:8000/mcp/"
     },
     "ai-infra-docs": {
       "url": "https://test-1-10.gitbook.io/test-1-docs/~gitbook/mcp"
@@ -133,7 +134,7 @@ Remote (Cursor, Claude Desktop, any Streamable HTTP client):
 
 The same dialog links to Swagger (`/docs` on this deployment). The header **API** button opens it directly.
 
-On the public site the URL is `https://<host>/mcp` (the frontend proxies it to the backend). From a local checkout, stdio does not need the web server:
+On the public site the URL is `https://<host>/mcp/` (the frontend proxies it to the backend). The trailing slash is required: `/mcp` without it is a redirect, and MCP clients do not follow it. From a local checkout, stdio does not need the web server:
 
 ```bash
 cd backend

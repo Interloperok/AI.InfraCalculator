@@ -30,6 +30,7 @@ class AppSettings:
     gpu_refresh_interval_hours: int
     backend_dir: Path
     gpu_data_path: Path
+    public_base_url: str
 
     # Methodology v3 calibration overrides — declared for operator override at
     # deploy time; not yet consumed by sizing_service (will be wired in
@@ -74,6 +75,13 @@ def _parse_positive_int_env(name: str, default: int) -> int:
     return parsed
 
 
+def _public_base_url() -> str:
+    value = os.getenv("AI_SC_PUBLIC_BASE_URL", "https://calc.aicolab.space").strip().rstrip("/")
+    if not value:
+        return "https://calc.aicolab.space"
+    return value
+
+
 def _parse_float_env(name: str, default: float) -> float:
     value = os.getenv(name)
     if value is None:
@@ -100,6 +108,7 @@ def get_settings() -> AppSettings:
         ),
         backend_dir=backend_dir,
         gpu_data_path=backend_dir / "gpu_data.json",
+        public_base_url=_public_base_url(),
         eta_pf=_parse_float_env("AI_SC_ETA_PF", ETA_PF_DEFAULT),
         eta_dec=_parse_float_env("AI_SC_ETA_DEC", ETA_DEC_DEFAULT),
         eta_mem=_parse_float_env("AI_SC_ETA_MEM", ETA_MEM_DEFAULT),

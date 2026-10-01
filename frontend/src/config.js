@@ -18,7 +18,9 @@ export function resolveApiOrigin(env = process.env, origin = window.location.ori
 }
 
 export function resolveMcpUrl(env, origin) {
-  return `${resolveApiOrigin(env, origin)}/mcp`;
+  // Mounted ASGI app: Starlette only serves the endpoint at /mcp/.
+  // A request to /mcp is a redirect, which Streamable HTTP clients drop.
+  return `${resolveApiOrigin(env, origin)}/mcp/`;
 }
 
 export function resolveSwaggerUrl(env, origin) {

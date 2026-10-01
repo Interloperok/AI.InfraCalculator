@@ -6,19 +6,19 @@ import McpConnectButton, { resolveMcpUrl } from "./McpConnect";
 describe("resolveMcpUrl", () => {
   it("uses the configured API origin", () => {
     expect(resolveMcpUrl({ REACT_APP_API_URL: "http://backend:8000/" }, "http://ui")).toBe(
-      "http://backend:8000/mcp",
+      "http://backend:8000/mcp/",
     );
   });
 
   it("uses the page origin in production", () => {
     expect(resolveMcpUrl({ NODE_ENV: "production" }, "https://calc.example")).toBe(
-      "https://calc.example/mcp",
+      "https://calc.example/mcp/",
     );
   });
 
   it("points at the local backend during development", () => {
     expect(resolveMcpUrl({ NODE_ENV: "development" }, "http://localhost:3000")).toBe(
-      "http://localhost:8000/mcp",
+      "http://localhost:8000/mcp/",
     );
   });
 });
@@ -36,12 +36,13 @@ describe("McpConnectButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "MCP" }));
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByTestId("mcp-endpoint")).toHaveTextContent("http://localhost:8000/mcp");
+    expect(screen.getByTestId("mcp-endpoint")).toHaveTextContent("http://localhost:8000/mcp/");
     expect(screen.getByText("size_llm")).toBeInTheDocument();
+    expect(screen.getByText("build_report")).toBeInTheDocument();
 
     const copyButtons = screen.getAllByRole("button", { name: "Copy" });
     fireEvent.click(copyButtons[0]);
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith("http://localhost:8000/mcp");
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith("http://localhost:8000/mcp/");
 
     expect(screen.getByTestId("docs-mcp-endpoint")).toHaveTextContent(
       "https://test-1-10.gitbook.io/test-1-docs/~gitbook/mcp",
