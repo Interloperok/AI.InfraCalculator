@@ -446,10 +446,13 @@ def patch_sizing(wb) -> None:
         "decode-dominated режиме (§6.4)"
     )
 
-    ws["A57"] = "ρ_pf (доля времени prefill, диагностика §6.2)"
-    ws["B57"] = "(SL_pf^eff/Th_pf) / (SL_pf^eff/Th_pf + T_dec/Th_dec) при BS итоговом"
+    ws["A57"] = "ρ_pf (загрузка prefill, диагностика §6.2)"
+    ws["B57"] = (
+        "C^model · SL_pf^eff / Th_pf — среднее число запросов в prefill; > 1 → prefill в "
+        "очереди, C^model завышен (проверить нагрузочным тестом / PD)"
+    )
     ws["C57"] = "calc"
-    ws["D57"] = f"=IF(AND(D33>0,D38>0),(D27/D33)/(D27/D33+{i}D22/D38),0)"
+    ws["D57"] = "=IF(D33>0,D39*D27/D33,0)"
     ws["E57"] = "-"
     for col in "ABCDE":
         ws[f"{col}57"]._style = copy(ws[f"{col}56"]._style)
