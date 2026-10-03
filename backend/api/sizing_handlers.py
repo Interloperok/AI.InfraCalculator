@@ -41,8 +41,39 @@ def size_endpoint_handler(
         raise to_http_exception(error) from exc
 
 
+def _report_precheck(inp: SizingInput) -> None:
+    """Reject report requests the workbook cannot reproduce.
+
+    The Excel template models co-located TP deployments only. Pipeline /
+    expert parallelism, a TP communication factor and PD-disaggregation are
+    API-only features; a report for them would silently show different
+    numbers. The workload is also run through ``run_sizing`` first so that an
+    infeasible configuration fails with the same error as ``size_llm``
+    instead of producing a workbook full of #DIV/0!.
+    """
+    unsupported = []
+    if (inp.pp_degree or 1) > 1:
+        unsupported.append("pp_degree > 1")
+    if (inp.ep_degree or 1) > 1:
+        unsupported.append("ep_degree > 1")
+    if inp.eta_tp is not None and inp.eta_tp < 1.0:
+        unsupported.append("eta_tp < 1")
+    if inp.use_pd_disagg:
+        unsupported.append("use_pd_disagg")
+    if unsupported:
+        raise to_http_exception(
+            ValidationAppError(
+                "Excel-отчёт не поддерживает: "
+                + ", ".join(unsupported)
+                + ". Используйте результат size_llm или уберите эти параметры."
+            )
+        )
+    size_endpoint_handler(inp)
+
+
 def report_endpoint_handler(inp: SizingInput) -> StreamingResponse:
     """Generate an Excel report from a sizing input."""
+    _report_precheck(inp)
     try:
         buf = report_builder.generate(inp)
     except FileNotFoundError as exc:
@@ -61,6 +92,7 @@ def report_endpoint_handler(inp: SizingInput) -> StreamingResponse:
 
 def publish_report_download(inp: SizingInput) -> ReportDownload:
     """Fill the Excel template and publish a short-lived download link."""
+    _report_precheck(inp)
     try:
         buf = report_builder.generate(inp)
     except FileNotFoundError as exc:
