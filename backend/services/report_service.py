@@ -26,6 +26,7 @@ import openpyxl
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.worksheet import Worksheet
 
+from core.methodology_constants import DEFAULT_QUANTIZATION_LABEL
 from models import SizingInput
 from services.gpu_catalog_service import lookup_gpu_bandwidth_gbs, lookup_gpu_name
 
@@ -39,10 +40,9 @@ GPU_CELL = "D25"
 MODEL_CELL = "D35"
 QUANT_CELL = "D53"
 
-# Preferred Reference label for the bytes-per-parameter values the web offers.
-# 2 and 0.5 are ambiguous on the sheet (FP16/BF16, FP4/INT4); these are the
-# conventional inference formats.
-QUANTIZATION_LABELS = {4.0: "FP32", 2.0: "FP16", 1.0: "FP8", 0.5: "INT4"}
+# Preferred Reference label for a bytes-per-parameter value when the request
+# carries no explicit ``quantization`` label (single source: §3.1 constants).
+QUANTIZATION_LABELS = DEFAULT_QUANTIZATION_LABEL
 
 WEB_LABEL_SUFFIX = " (web)"
 WEB_ROW_NOTE = "Web session"
@@ -225,7 +225,7 @@ class ReportGenerator:
     def _select_quantization(wb: openpyxl.Workbook, inp: SizingInput) -> None:
         ws, reference = wb["Inputs"], wb["Reference"]
         first, last = _list_bounds(ws, QUANT_CELL)
-        preferred = QUANTIZATION_LABELS.get(float(inp.bytes_per_param))
+        preferred = inp.quantization or QUANTIZATION_LABELS.get(float(inp.bytes_per_param))
         for row in range(first, last + 1):
             if reference[f"A{row}"].value == preferred and reference[f"B{row}"].value == float(
                 inp.bytes_per_param
