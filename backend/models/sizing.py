@@ -11,6 +11,7 @@ from core.methodology_constants import (
     ETA_PF_DEFAULT,
     K_SPEC_DEFAULT,
     O_FIXED_DEFAULT,
+    QUANTIZATION_LABELS,
     T_OVERHEAD_DEFAULT,
 )
 from pydantic import BaseModel, ConfigDict, Field, confloat, conint, model_validator
@@ -147,7 +148,16 @@ class SizingInput(BaseModel):
         "DeepSeek-V3: 8; Mixtral: 2. None для dense.",
     )
     bytes_per_param: confloat(gt=0) = Field(
-        ..., description="Байт на параметр (Bquant): FP8→1, FP16→2, FP32→4"
+        ...,
+        description="Байт на параметр (Bquant, §3.1): "
+        + ", ".join(f"{k}→{v:g}" for k, v in QUANTIZATION_LABELS.items()),
+    )
+    quantization: Optional[str] = Field(
+        default=None,
+        description="Метка формата весов ("
+        + ", ".join(QUANTIZATION_LABELS)
+        + "). Необязательна; снимает неоднозначность FP16/BF16 и FP4/INT4 в отчёте. "
+        "Должна соответствовать bytes_per_param.",
     )
     safe_margin: confloat(ge=0.0) = Field(
         default=5.0,
@@ -363,6 +373,22 @@ class SizingInput(BaseModel):
         default=None,
         description="Пользовательский каталог GPU (массив или объект). Если задан — цена для Cost Estimate берётся из него.",
     )
+
+    @model_validator(mode="after")
+    def _validate_quantization_label(self) -> "SizingInput":
+        if self.quantization is None:
+            return self
+        expected = QUANTIZATION_LABELS.get(self.quantization)
+        if expected is None:
+            raise ValueError(
+                f"quantization={self.quantization!r} не из списка {list(QUANTIZATION_LABELS)}"
+            )
+        if float(expected) != float(self.bytes_per_param):
+            raise ValueError(
+                f"quantization={self.quantization} соответствует bytes_per_param={expected:g}, "
+                f"получено {self.bytes_per_param:g}"
+            )
+        return self
 
     @model_validator(mode="after")
     def _validate_moe_mla_invariants(self) -> "SizingInput":
