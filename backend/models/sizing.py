@@ -105,6 +105,12 @@ class SizingInput(BaseModel):
         description="Дополнительные токены ответа для tool_call JSON (A_tool, Appendix В.3). "
         "Типично 50-200.",
     )
+    reasoning_in_history: bool = Field(
+        default=False,
+        description="Сохраняются ли рассуждения прошлых ходов в истории диалога "
+        "(h_reason, §2.2). False — шаблон чата вырезает reasoning (типично для "
+        "reasoning-моделей); True — рассуждения остаются в контексте.",
+    )
 
     # ── Section 3.1: Model ──
     model_name: Optional[str] = Field(
@@ -309,8 +315,8 @@ class SizingInput(BaseModel):
     )
     o_fixed: confloat(ge=0.0) = Field(
         default=O_FIXED_DEFAULT,
-        description="Per-forward memory overhead (GB). Dense BF16=0; "
-        "MoE+FP8 на H100/H200 ≈ 8-10 GB. Используется в decode mem-bound (§6.2).",
+        description="Per-forward memory overhead (GiB). Dense BF16=0; "
+        "MoE+FP8 на H100/H200 ≈ 8-10 GiB. Используется в mem-bound decode и prefill (§6.1).",
     )
     eta_cache: confloat(ge=0.0, le=1.0) = Field(
         default=ETA_CACHE_DEFAULT,
@@ -547,15 +553,44 @@ class SizingOutput(BaseModel):
     )
     iteration_count: Optional[int] = Field(
         default=None,
-        description="Число итераций фиксированной точки (§6.4) до сходимости. "
-        "Типично 2-5; максимум 10.",
+        description="Число итераций фиксированной точки (§6.4). Максимум 20.",
+    )
+    iteration_status: Optional[str] = Field(
+        default=None,
+        description="Статус итераций §6.4: converged | oscillating | not_converged.",
+    )
+    servers_trajectory: Optional[List[int]] = Field(
+        default=None,
+        description="Последовательность Servers^(k) итераций §6.4, начиная с Servers_mem.",
+    )
+    rho_pf: Optional[float] = Field(
+        default=None,
+        description="Загрузка prefill ρ_pf = C_model·SL_pf_eff/Th_pf (§6.2). "
+        "> 1 — prefill-запросы стоят в очереди, C_model завышен (диагностика).",
+    )
+    d_attn_prefill: Optional[float] = Field(
+        default=None, description="Ширина attention-члена в prefill d_attn^pf (§6.1)"
+    )
+    d_attn_decode: Optional[float] = Field(
+        default=None, description="Ширина attention-члена в decode d_attn^dec (§6.1)"
+    )
+    SL_pf_raw: Optional[float] = Field(
+        default=None,
+        description="Вход последнего вызова до ограничения окном (SL_pf^raw, §2.2)",
+    )
+    context_truncated: Optional[bool] = Field(
+        default=None, description="История усечена окном TS_max (SL_pf < SL_pf^raw)"
+    )
+    ttft_bs1: Optional[float] = Field(
+        default=None,
+        description="TTFT на ненагруженном экземпляре, BS = 1 (§7.1, справочно)",
     )
     th_dec_compute_per_session_at_bs: Optional[float] = Field(
         default=None,
         description="Th_dec^compute / BS_real — per-session compute-bound throughput "
         "при сошедшемся BS_real. Используется для select_th_decode при v3 итерации.",
     )
-    Tdec_tokens: float = Field(..., description="Токены decode фазы (Tdec = A + MRT)")
+    Tdec_tokens: float = Field(..., description="Токены decode фазы (Tdec = A + A_tool + MRT)")
     th_prefill: float = Field(..., description="Throughput prefill (tokens/sec) — итоговый")
     th_pf_compute: Optional[float] = Field(
         default=None,
@@ -652,33 +687,35 @@ class SizingOutput(BaseModel):
     # ── Section 7: SLA validation ──
     SL_pf_input_length: Optional[float] = Field(
         default=None,
-        description="Длина входной последовательности на prefill "
-        "(SL_pf = SP + N_prp·Prp + (N_prp−1)·MRT, §7.1). "
-        "Отличается от SL — используется в TTFT и Th_pf.",
+        description="Длина входа последнего вызова сессии с учётом окна "
+        "(SL_pf = min(SL_pf^raw, TS_max − T_dec), §2.2). "
+        "Контекст attention в Th_pf / Th_dec; входные токены в квотах.",
     )
     SL_pf_eff_after_cache: Optional[float] = Field(
         default=None,
         description="SL_pf после учёта prefix-cache: SL_pf · (1 − η_cache). "
         "При η_cache = 0 равно SL_pf.",
     )
-    ttft_analyt: Optional[float] = Field(None, description="Расчётный TTFT (сек)")
+    ttft_analyt: Optional[float] = Field(
+        None, description="TTFT при итоговом BS_real (сек, §7.1) — проверяется по SLA"
+    )
     generation_time_analyt: Optional[float] = Field(
         None, description="Расчётное время генерации (сек)"
     )
     e2e_latency_analyt: Optional[float] = Field(
         None,
-        description="Расчётный e2eLatency для одного запроса (сек, §7.2). "
-        "Per-request форма: TTFT + GenerationTime, аккаунтит BS_real через per-session Th_dec.",
+        description="e2eLatency одиночного запроса на ненагруженном экземпляре "
+        "(BS = 1, сек, §7.2) — справочно.",
     )
     e2e_latency_load: Optional[float] = Field(
         default=None,
-        description="e2eLatency под установившейся нагрузкой (сек, §7.2). "
-        "По закону Литтла: BS_real / C_model(BS_real). Захватывает queueing-эффект.",
+        description="e2eLatency под нагрузкой (сек, §7.2): "
+        "max(e2e_analyt, BS_real / C_model(BS_real)) при итоговом BS_real.",
     )
     e2e_latency_for_sla: Optional[float] = Field(
         default=None,
         description="Эффективный e2eLatency для SLA-валидации (сек). "
-        "= max(e2e_latency_analyt, e2e_latency_load). Используется в e2e_latency_sla_pass.",
+        "= e2e_latency_load. Используется в e2e_latency_sla_pass.",
     )
     ttft_sla_target: Optional[float] = Field(None, description="Целевой TTFT по SLA (сек)")
     e2e_latency_sla_target: Optional[float] = Field(
@@ -705,11 +742,11 @@ class SizingOutput(BaseModel):
     )
     peak_tpm_input: float = Field(
         ...,
-        description="Пиковый input-side tpm = (Ssim × R × K_SLA × 60) × SL_pf. "
-        "Без K_calls — токены на пользовательский запрос постоянны независимо от агентного дробления.",
+        description="Пиковый input-side tpm = peak_rpm × SL_pf (§9). Каждый из K_calls "
+        "LLM-вызовов передаёт свой полный контекст; оценка сверху длиной последнего вызова.",
     )
     peak_tpm_output: float = Field(
-        ..., description="Пиковый output-side tpm = (Ssim × R × K_SLA × 60) × T_dec."
+        ..., description="Пиковый output-side tpm = peak_rpm × T_dec (§9)."
     )
     peak_tpm: float = Field(
         ..., description="Суммарный пиковый tpm = peak_tpm_input + peak_tpm_output."
