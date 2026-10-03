@@ -28,7 +28,13 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 from core.methodology_constants import DEFAULT_QUANTIZATION_LABEL
 from models import SizingInput
-from services.gpu_catalog_service import lookup_gpu_bandwidth_gbs, lookup_gpu_name
+from services.gpu_catalog_service import (
+    load_gpu_catalog,
+    lookup_gpu_bandwidth_gbs,
+    lookup_gpu_name,
+)
+from services.llm_catalog_service import load_llm_catalog
+from services.report_reference import capture_styles, write_reference
 
 logger = logging.getLogger("sizing.report")
 
@@ -102,6 +108,13 @@ class ReportGenerator:
         wb = openpyxl.load_workbook(self.template_path)
         ws = wb["Inputs"]
 
+        # Reference lists come from the API catalogs on every download, so a
+        # catalog refresh never leaves the workbook with stale numbers.
+        reference = wb["Reference"]
+        write_reference(
+            reference, load_gpu_catalog(), load_llm_catalog(), capture_styles(reference)
+        )
+
         # ── Workload (4 segments; web sends 2: internal + external) ──
         # Segment columns: D=internal (Внутренние), E=external (Внешние), F/G=spare segments.
         ws["D7"] = inp.internal_users
@@ -126,6 +139,8 @@ class ReportGenerator:
         ws["D17"] = inp.answer_tokens_A
         ws["D18"] = inp.reasoning_tokens_MRT
         ws["D19"] = inp.dialog_turns
+        # h_reason (§2.2): reasoning of past turns kept in history.
+        ws["D23"] = 1 if inp.reasoning_in_history else 0
 
         # ── Hardware (Section 4) ──
         self._select_gpu(wb, inp)
@@ -319,14 +334,20 @@ def _select_reference_row(
 
     The row lands in the first free slot of the list; when the list is full
     the validation range and the INDEX/MATCH lookups are extended by one row.
-    A label that already exists in the list gets a suffix so MATCH resolves
-    to the web row rather than the catalog row.
+    A label that already exists in the list is reused when the catalog row
+    carries the same numbers; otherwise the web row gets a suffix so MATCH
+    resolves to the web row rather than the catalog row.
     """
     ws, reference = wb["Inputs"], wb["Reference"]
     first, last = _list_bounds(ws, cell)
-    existing = {reference[f"A{row}"].value for row in range(first, last + 1)}
-    if label in existing:
+    for existing_row in range(first, last + 1):
+        if reference[f"A{existing_row}"].value != label:
+            continue
+        if _same_numbers(reference, existing_row, values):
+            ws[cell] = label
+            return
         label = f"{label}{WEB_LABEL_SUFFIX}"
+        break
 
     free = [row for row in range(first, last + 1) if reference[f"A{row}"].value is None]
     row = free[0] if free else _extend_list(ws, cell, first, last)
@@ -337,3 +358,18 @@ def _select_reference_row(
         target.value = values.get(column)
     reference[f"A{row}"] = label
     ws[cell] = label
+
+
+def _same_numbers(reference: Worksheet, row: int, values: dict[str, Any]) -> bool:
+    """True when every numeric web value equals the Reference row (rel. 1e-9)."""
+    for column, value in values.items():
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        current = reference[f"{column}{row}"].value
+        if not isinstance(current, (int, float)):
+            current = 0 if current is None else current
+            if not isinstance(current, (int, float)):
+                return False
+        if abs(float(current) - float(value)) > 1e-9 * max(1.0, abs(float(value))):
+            return False
+    return True

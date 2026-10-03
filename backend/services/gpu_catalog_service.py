@@ -147,8 +147,9 @@ def lookup_gpu_name(gpu_id: Optional[str]) -> Optional[str]:
 
     for gpu in gpu_data:
         if gpu.get("id") == gpu_id:
-            name = f"{gpu.get('vendor') or ''} {gpu.get('model_name') or ''}".strip()
-            return name or None
+            from services.report_reference import gpu_display_name
+
+            return gpu_display_name(gpu) or None
     return None
 
 
