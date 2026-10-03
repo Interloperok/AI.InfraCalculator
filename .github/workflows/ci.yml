@@ -167,6 +167,11 @@ jobs:
       - name: Mypy check
         run: uv run mypy .
 
+      - name: Install LibreOffice (Excel <-> API parity test)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libreoffice-calc
+
       - name: Backend tests with coverage gates
         env:
           AI_SC_DISABLE_SCHEDULER: "1"
