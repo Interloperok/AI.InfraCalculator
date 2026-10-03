@@ -326,8 +326,8 @@ def patch_iterations(wb) -> None:
     )
     ws["A4"] = "Итерации"
     ws["A4"]._style = section_style
-    for col, title in enumerate(HEADERS, start=1):
-        cell = ws.cell(5, col)
+    for col_idx, title in enumerate(HEADERS, start=1):
+        cell = ws.cell(5, col_idx)
         cell.value = title
         cell._style = header_style
 
