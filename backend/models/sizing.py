@@ -367,6 +367,12 @@ class SizingInput(BaseModel):
         "request — пользовательский запрос из K_calls последовательных вызовов и времени инструментов "
         "(Прил. В.3). По умолчанию request: при K_calls = 1 и t_tools_request = 0 совпадает с call.",
     )
+    wait_mode: Literal["sync", "async"] = Field(
+        default="sync",
+        description="Тип ожидания получателя (§7.3): sync — получатель (человек или система) блокируется до ответа, "
+        "e2e_latency_sla — допустимая задержка запроса, проверяется q ≤ 1; async — запросы ставятся в очередь, "
+        "e2e_latency_sla — срок готовности результата, q не проверяется (сессия не ждёт ответа).",
+    )
     t_tools_request: confloat(ge=0) = Field(
         default=0.0,
         description="Время вне LLM на пользовательский запрос (сек): работа инструментов, оркестратор, сеть (§7.3). "
@@ -783,7 +789,8 @@ class SizingOutput(BaseModel):
         description="q = R · K_SLA · (K_calls · e2e_latency_load + t_tools_request) (§6.4): доля цикла сессии под запросом. "
         "При q > 1 последовательная сессия не успевает получить ответ до следующего запроса — вход противоречив.",
     )
-    session_consistent: Optional[bool] = Field(None, description="q ≤ 1 в итоговом состоянии (§6.4)")
+    session_consistent: Optional[bool] = Field(None, description="q ≤ 1 в итоговом состоянии (§6.4); при wait_mode = async — не проверяется (True)")
+    wait_mode: Optional[str] = Field(None, description="sync | async (§7.3)")
     servers_before_sla_fit: Optional[int] = Field(None, description="S* итерации §6.4 до подбора под SLA (§8)")
     sla_fit_status: Optional[str] = Field(
         None, description="Подбор под SLA (§8): not_required | fitted | unreachable | disabled"

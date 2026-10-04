@@ -120,3 +120,11 @@ def test_tools_time_blocks_fit():
     r = _run(k_calls=1, e2e_sla_scope="request", sla_fit_servers=True, t_tools_request=90.0)
     assert base.sla_fit_status == "fitted"
     assert r.sla_fit_status == "unreachable" and r.servers_final == r.servers_before_sla_fit
+
+
+def test_async_skips_q_and_uses_deadline():
+    sync = _run(rps_per_session_R=0.002)
+    asy = _run(rps_per_session_R=0.002, wait_mode="async", e2e_sla_scope="request", e2e_latency_sla=900.0,
+               sla_fit_servers=True)
+    assert sync.session_consistent is False
+    assert asy.session_consistent is True and asy.sizing_status == "ok" and asy.sla_passed is True

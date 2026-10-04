@@ -96,7 +96,8 @@
     "sla_fit_status": "not_required",
     "session_load_q": 0.8527,
     "servers_before_sla_fit": 2,
-    "sizing_status": "ok"
+    "sizing_status": "ok",
+    "wait_mode": "sync"
   },
   "input": {
     "answer_tokens_A": 700,
