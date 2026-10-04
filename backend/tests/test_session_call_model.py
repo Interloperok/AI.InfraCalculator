@@ -99,3 +99,17 @@ def test_parallel_branches_scale_sessions():
     base, par = _run(), _run(parallel_branches_P=5)
     assert par.Ssim_concurrent_sessions == pytest.approx(5 * base.Ssim_concurrent_sessions)
     assert par.servers_by_memory >= base.servers_by_memory
+
+
+def test_tools_time_in_request_latency():
+    a, b = _run(e2e_sla_scope="request"), _run(e2e_sla_scope="request", t_tools_request=30.0)
+    assert b.e2e_latency_request == pytest.approx(a.e2e_latency_request + 30.0, abs=1e-3)
+    assert b.servers_final == a.servers_final  # время инструментов не зависит от числа серверов
+
+
+def test_tools_time_blocks_fit():
+    # запрос с SLA 90 с: инструменты 30 с + 1 вызов; без вызовов агентного профиля
+    base = _run(k_calls=1, e2e_sla_scope="request", sla_fit_servers=True)
+    r = _run(k_calls=1, e2e_sla_scope="request", sla_fit_servers=True, t_tools_request=90.0)
+    assert base.sla_fit_status == "fitted"
+    assert r.sla_fit_status == "unreachable" and r.servers_final == r.servers_before_sla_fit

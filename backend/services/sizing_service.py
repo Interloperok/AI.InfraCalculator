@@ -447,7 +447,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     def _latency(st: dict) -> tuple[float, float, float]:
         ttft = calc_ttft(SL_pf_eff, st["th_pf"], st["th_dec"], inp.t_overhead)
         e2e_call = max(e2e_latency_analyt, calc_e2e_latency_load(st["bs_real"], st["cmodel"]))
-        return ttft, e2e_call, e2e_call * k_calls
+        return ttft, e2e_call, e2e_call * k_calls + inp.t_tools_request
 
     def _sla_ok(st: dict) -> bool:
         ttft, e2e_call, e2e_req = _latency(st)
@@ -510,7 +510,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     ttft_analyt = calc_ttft(SL_pf_eff, th_pf, th_dec, inp.t_overhead)
     gen_time_analyt = calc_generation_time(Tdec, th_dec)
     e2e_latency_load = max(e2e_latency_analyt, calc_e2e_latency_load(BS_real, Cmodel))
-    e2e_latency_request = e2e_latency_load * k_calls
+    e2e_latency_request = e2e_latency_load * k_calls + inp.t_tools_request
     e2e_latency_for_sla = e2e_latency_request if inp.e2e_sla_scope == "request" else e2e_latency_load
     # §6.4: самосогласованность нагрузки последовательной сессии
     session_load_q = effective_R * inp.sla_reserve_KSLA * e2e_latency_load

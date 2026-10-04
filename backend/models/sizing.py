@@ -367,6 +367,11 @@ class SizingInput(BaseModel):
         "request — пользовательский запрос из K_calls последовательных вызовов (Прил. В.3). "
         "Для агентных паттернов задаётся request.",
     )
+    t_tools_request: confloat(ge=0) = Field(
+        default=0.0,
+        description="Время вне LLM на пользовательский запрос (сек): работа инструментов, оркестратор, сеть (§7.3). "
+        "Входит в e2eLatency_request; число GPU-серверов на него не влияет.",
+    )
     sla_fit_servers: bool = Field(
         default=False,
         description="§8: при невыполнении SLA увеличивать число серверов (снижая BS_real) до выполнения SLA "
@@ -770,7 +775,7 @@ class SizingOutput(BaseModel):
     sla_passed: Optional[bool] = Field(None, description="Все SLA проверки пройдены?")
     e2e_sla_scope: Optional[str] = Field(None, description="Цель e2eLatency: call | request (§7.3)")
     e2e_latency_request: Optional[float] = Field(
-        None, description="e2eLatency пользовательского запроса = K_calls · e2e_latency_load (Прил. В.3)"
+        None, description="e2eLatency пользовательского запроса = K_calls · e2e_latency_load + t_tools_request (§7.3, Прил. В.3)"
     )
     parallel_branches_P: Optional[int] = Field(None, description="P_par — параллельные ветви (Прил. В.4.3)")
     session_load_q: Optional[float] = Field(
