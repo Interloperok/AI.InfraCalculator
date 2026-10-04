@@ -9,6 +9,7 @@ import openpyxl
 import pytest
 
 from models import SizingInput
+from services.report_reference import QUANT_ROWS
 from services.report_service import ReportGenerator
 
 
@@ -123,9 +124,10 @@ def test_report_selects_web_gpu_in_dropdown_and_reference_row() -> None:
     assert [reference[f"{c}{row}"].value for c in "BCD"] == [80, 989.4, 3352]
     for lookup in ("D26", "D27", "D28"):
         assert _lookup_rows(inputs, lookup) == (first, last)
-    # Catalog rows above the injected one are untouched.
-    assert reference["A11"].value == "H100 SXM 80GB"
-    assert reference["C11"].value == 989
+    # Same numbers as the generated catalog row: the catalog row is reused,
+    # no "(web)" duplicate is added.
+    labels = [reference[f"A{r}"].value for r in range(first, last + 1)]
+    assert not any(str(v).endswith(" (web)") for v in labels if v)
 
 
 def test_report_selects_web_model_in_dropdown_and_reference_row() -> None:
@@ -187,7 +189,8 @@ def test_report_disambiguates_model_label_that_exists_in_reference() -> None:
     first, last = _dropdown_rows(inputs, "D35")
     row = _reference_row(reference, "Qwen3-32B (web)", first, last)
     assert reference[f"E{row}"].value == 4096
-    assert reference["E25"].value == 5120
+    catalog_row = _reference_row(reference, "Qwen3-32B", first, last)
+    assert reference[f"E{catalog_row}"].value == 5120
 
 
 def test_report_maps_standard_bytes_per_param_to_existing_quantization() -> None:
@@ -195,8 +198,21 @@ def test_report_maps_standard_bytes_per_param_to_existing_quantization() -> None
         wb = _workbook_for({"bytes_per_param": bytes_per_param})
         inputs, reference = wb["Inputs"], wb["Reference"]
         assert inputs["D53"].value == label
-        assert _dropdown_rows(inputs, "D53") == (89, 94)
-        assert reference["A95"].value is None
+        assert _dropdown_rows(inputs, "D53") == QUANT_ROWS
+        labels = [reference[f"A{r}"].value for r in range(QUANT_ROWS[0], QUANT_ROWS[1] + 1)]
+        assert not any(str(v).startswith("Custom") for v in labels if v)
+
+
+def test_report_keeps_explicit_quantization_label() -> None:
+    wb = _workbook_for({"bytes_per_param": 2, "quantization": "BF16"})
+    assert wb["Inputs"]["D53"].value == "BF16"
+    wb = _workbook_for({"bytes_per_param": 1, "quantization": "INT8"})
+    assert wb["Inputs"]["D53"].value == "INT8"
+
+
+def test_report_writes_reasoning_in_history_flag() -> None:
+    assert _workbook_for({})["Inputs"]["D23"].value == 0
+    assert _workbook_for({"reasoning_in_history": True})["Inputs"]["D23"].value == 1
 
 
 def test_report_adds_quantization_row_for_custom_bytes_per_param() -> None:
@@ -209,8 +225,10 @@ def test_report_adds_quantization_row_for_custom_bytes_per_param() -> None:
 
 
 def test_report_gpu_label_falls_back_to_catalog_then_generic() -> None:
+    # Catalog name, but the payload numbers (312 TFLOPS) differ from the
+    # catalog row, so the web row is kept apart with a suffix.
     wb = _workbook_for({"gpu_id": "nvidia-h100-gpu-accelerator-sxm-card"})
-    assert wb["Inputs"]["D25"].value == "NVIDIA H100 GPU accelerator (SXM card)"
+    assert wb["Inputs"]["D25"].value == "NVIDIA H100 GPU accelerator (SXM card) (web)"
 
     wb = _workbook_for({"gpu_id": "preset-a100-80", "gpu_mem_gb": 80})
     inputs, reference = wb["Inputs"], wb["Reference"]

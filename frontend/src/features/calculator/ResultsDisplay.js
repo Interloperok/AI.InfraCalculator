@@ -653,7 +653,7 @@ const ResultsDisplay = ({ results, loading, error, inputData }) => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted">{t("results.sla.calculated")}</span>
                   <span className="text-sm font-semibold tabular-nums text-fg">
-                    {fmt(results.e2e_latency_analyt, 2)} {t("results.sla.unit")}
+                    {fmt(results.e2e_latency_for_sla ?? results.e2e_latency_analyt, 2)} {t("results.sla.unit")}
                   </span>
                 </div>
                 {results.e2e_latency_sla_target != null && (
