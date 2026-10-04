@@ -780,7 +780,7 @@ class SizingOutput(BaseModel):
     parallel_branches_P: Optional[int] = Field(None, description="P_par — параллельные ветви (Прил. В.4.3)")
     session_load_q: Optional[float] = Field(
         None,
-        description="q = R · K_calls · K_SLA · e2e_latency_load (§6.4): доля цикла сессии под вызовами. "
+        description="q = R · K_SLA · (K_calls · e2e_latency_load + t_tools_request) (§6.4): доля цикла сессии под запросом. "
         "При q > 1 последовательная сессия не успевает получить ответ до следующего запроса — вход противоречив.",
     )
     session_consistent: Optional[bool] = Field(None, description="q ≤ 1 в итоговом состоянии (§6.4)")

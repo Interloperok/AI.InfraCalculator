@@ -513,7 +513,7 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     e2e_latency_request = e2e_latency_load * k_calls + inp.t_tools_request
     e2e_latency_for_sla = e2e_latency_request if inp.e2e_sla_scope == "request" else e2e_latency_load
     # §6.4: самосогласованность нагрузки последовательной сессии
-    session_load_q = effective_R * inp.sla_reserve_KSLA * e2e_latency_load
+    session_load_q = inp.rps_per_session_R * inp.sla_reserve_KSLA * (k_calls * e2e_latency_load + inp.t_tools_request)
     session_consistent = session_load_q <= 1.0 + 1e-9
 
     ttft_sla_pass = None
