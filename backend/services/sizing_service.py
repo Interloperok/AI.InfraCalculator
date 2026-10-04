@@ -65,6 +65,9 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         inp.concurrency_external,
         inp.sessions_per_user_J,
     )
+    # Прил. В.4.3: параллельные ветви одного запроса учитываются как сессии
+    # (память и batch); K_calls остаётся числом последовательных вызовов.
+    Ssim = Ssim * inp.parallel_branches_P
 
     # ── Section 2.2: T — total request+response length in tokens ──
     T = calc_T(
@@ -433,6 +436,50 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
             servers_star = s
             iteration_status = "not_converged"
 
+    # ── §7.3 / §8: подбор числа серверов под SLA ──
+    # Увеличение Servers снижает BS_real и задержку (§7.3). Перебираются
+    # значения BS_real от текущего вниз до 1; принимается первое состояние,
+    # в котором выполнены SLA и самосогласованность нагрузки (§6.4, q ≤ 1).
+    state_bs1 = _state_at_bs(1)
+    ttft_bs1 = calc_ttft(SL_pf_eff, state_bs1["th_pf"], state_bs1["th_dec"], inp.t_overhead)
+    e2e_latency_analyt = calc_e2e_latency(ttft_bs1, calc_generation_time(Tdec, state_bs1["th_dec"]))
+
+    def _latency(st: dict) -> tuple[float, float, float]:
+        ttft = calc_ttft(SL_pf_eff, st["th_pf"], st["th_dec"], inp.t_overhead)
+        e2e_call = max(e2e_latency_analyt, calc_e2e_latency_load(st["bs_real"], st["cmodel"]))
+        return ttft, e2e_call, e2e_call * k_calls
+
+    def _sla_ok(st: dict) -> bool:
+        ttft, e2e_call, e2e_req = _latency(st)
+        e2e = e2e_req if inp.e2e_sla_scope == "request" else e2e_call
+        ok = True
+        if inp.ttft_sla is not None:
+            ok = ok and inp.ttft_sla >= ttft
+        if inp.e2e_latency_sla is not None:
+            ok = ok and inp.e2e_latency_sla >= e2e
+        return ok
+
+    servers_before_sla_fit = servers_star
+    has_sla = inp.ttft_sla is not None or inp.e2e_latency_sla is not None
+    if not has_sla:
+        sla_fit_status = "not_required"
+    elif not inp.sla_fit_servers:
+        sla_fit_status = "disabled"
+    else:
+        st0 = _iteration_state(servers_star)
+        sla_fit_status = "not_required"
+        if not _sla_ok(st0):
+            sla_fit_status = "unreachable"
+            b = st0["bs_real"] - 1
+            while b >= 1:
+                s_b = max(servers_star, math.ceil(Ssim / (NcountTP * b)))
+                st = _iteration_state(s_b)
+                if st["bs_real"] <= b and _sla_ok(st) and _self_consistent(s_b):
+                    servers_star = s_b
+                    sla_fit_status = "fitted"
+                    break
+                b -= 1
+
     # Final single state at S*.
     state = _iteration_state(servers_star)
 
@@ -450,7 +497,9 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     th_server = state["th_server_comp"]
     # §6.4 Шаг 4: Servers^comp = comp(S*) when converged, S* otherwise, so
     # that max(Servers_mem, Servers_comp) = S*.
-    servers_comp = state["servers_comp"] if iteration_status == "converged" else servers_star
+    servers_comp = (
+        state["servers_comp"] if iteration_status == "converged" and sla_fit_status != "fitted" else servers_star
+    )
 
     # §6.2: prefill utilisation diagnostic ρ_pf = C_model·SL_pf_eff / Th_pf
     rho_pf = Cmodel * SL_pf_eff / th_pf if th_pf > 0 else None
@@ -458,13 +507,14 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     # ── Section 7: TTFT and e2eLatency ──
     # SLA is checked at the final batch BS*; TTFT(1) / e2e_analyt are the
     # unloaded single-request lower bounds (informational).
-    state_bs1 = _state_at_bs(1)
-    ttft_bs1 = calc_ttft(SL_pf_eff, state_bs1["th_pf"], state_bs1["th_dec"], inp.t_overhead)
     ttft_analyt = calc_ttft(SL_pf_eff, th_pf, th_dec, inp.t_overhead)
     gen_time_analyt = calc_generation_time(Tdec, th_dec)
-    e2e_latency_analyt = calc_e2e_latency(ttft_bs1, calc_generation_time(Tdec, state_bs1["th_dec"]))
     e2e_latency_load = max(e2e_latency_analyt, calc_e2e_latency_load(BS_real, Cmodel))
-    e2e_latency_for_sla = e2e_latency_load
+    e2e_latency_request = e2e_latency_load * k_calls
+    e2e_latency_for_sla = e2e_latency_request if inp.e2e_sla_scope == "request" else e2e_latency_load
+    # §6.4: самосогласованность нагрузки последовательной сессии
+    session_load_q = effective_R * inp.sla_reserve_KSLA * e2e_latency_load
+    session_consistent = session_load_q <= 1.0 + 1e-9
 
     ttft_sla_pass = None
     e2e_latency_sla_pass = None
@@ -729,6 +779,16 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         ttft_sla_pass=ttft_sla_pass,
         e2e_latency_sla_pass=e2e_latency_sla_pass,
         sla_passed=sla_passed,
+        e2e_sla_scope=inp.e2e_sla_scope,
+        e2e_latency_request=round(e2e_latency_request, 4),
+        parallel_branches_P=inp.parallel_branches_P,
+        session_load_q=round(session_load_q, 4),
+        session_consistent=session_consistent,
+        servers_before_sla_fit=servers_before_sla_fit,
+        sla_fit_status=sla_fit_status,
+        sizing_status=(
+            "input_inconsistent" if not session_consistent else "sla_unreachable" if sla_fit_status == "unreachable" else "ok"
+        ),
         sla_recommendations=sla_recommendations,
         # Section 8
         servers_final=servers_final,

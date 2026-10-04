@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Literal, Any, Dict, List, Optional, Union
 
 from core.methodology_constants import (
     C_SAT_DEFAULT,
@@ -360,6 +360,24 @@ class SizingInput(BaseModel):
     e2e_latency_sla: Optional[confloat(gt=0)] = Field(
         default=None,
         description="Целевой e2eLatency по SLA (сек). Если задан — выполняется проверка",
+    )
+    e2e_sla_scope: Literal["call", "request"] = Field(
+        default="call",
+        description="К чему относится цель e2eLatency (§7.3): call — один LLM-вызов; "
+        "request — пользовательский запрос из K_calls последовательных вызовов (Прил. В.3). "
+        "Для агентных паттернов задаётся request.",
+    )
+    sla_fit_servers: bool = Field(
+        default=False,
+        description="§8: при невыполнении SLA увеличивать число серверов (снижая BS_real) до выполнения SLA "
+        "при самосогласованной нагрузке или до BS_real = 1 (§7.3). По умолчанию выключено до реализации "
+        "подбора в Excel-отчёте (паритет API ↔ Excel); при выключенном подборе и непройденном SLA результат "
+        "имеет sla_fit_status = disabled.",
+    )
+    parallel_branches_P: conint(ge=1) = Field(
+        default=1,
+        description="P_par — параллельные ветви одного запроса (CoT-SC, параллельные агенты; Прил. В.4.3). "
+        "Каждая ветвь учитывается как сессия: S_sim · P_par в памяти и batch. K_calls — только последовательные вызовы.",
     )
     t_overhead: confloat(ge=0.0) = Field(
         default=T_OVERHEAD_DEFAULT,
@@ -750,6 +768,24 @@ class SizingOutput(BaseModel):
     ttft_sla_pass: Optional[bool] = Field(None, description="TTFT проходит SLA?")
     e2e_latency_sla_pass: Optional[bool] = Field(None, description="e2eLatency проходит SLA?")
     sla_passed: Optional[bool] = Field(None, description="Все SLA проверки пройдены?")
+    e2e_sla_scope: Optional[str] = Field(None, description="Цель e2eLatency: call | request (§7.3)")
+    e2e_latency_request: Optional[float] = Field(
+        None, description="e2eLatency пользовательского запроса = K_calls · e2e_latency_load (Прил. В.3)"
+    )
+    parallel_branches_P: Optional[int] = Field(None, description="P_par — параллельные ветви (Прил. В.4.3)")
+    session_load_q: Optional[float] = Field(
+        None,
+        description="q = R · K_calls · K_SLA · e2e_latency_load (§6.4): доля цикла сессии под вызовами. "
+        "При q > 1 последовательная сессия не успевает получить ответ до следующего запроса — вход противоречив.",
+    )
+    session_consistent: Optional[bool] = Field(None, description="q ≤ 1 в итоговом состоянии (§6.4)")
+    servers_before_sla_fit: Optional[int] = Field(None, description="S* итерации §6.4 до подбора под SLA (§8)")
+    sla_fit_status: Optional[str] = Field(
+        None, description="Подбор под SLA (§8): not_required | fitted | unreachable | disabled"
+    )
+    sizing_status: Optional[str] = Field(
+        None, description="ok | input_inconsistent (q > 1) | sla_unreachable — статус результата для бюджета (AI-MET-04.02 п. 6.1.1)"
+    )
     sla_recommendations: Optional[List[str]] = Field(
         None, description="Рекомендации при невыполнении SLA (Приложение Б)"
     )

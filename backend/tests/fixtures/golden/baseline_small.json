@@ -88,7 +88,15 @@
     "gpu_id": "fixture-gpu",
     "gpu_mem_gb": 80.0,
     "gpus_per_server": 8,
-    "cost_estimate_usd": null
+    "cost_estimate_usd": null,
+    "parallel_branches_P": 1,
+    "e2e_latency_request": 4.1993,
+    "e2e_sla_scope": "call",
+    "session_consistent": true,
+    "sla_fit_status": "not_required",
+    "session_load_q": 0.105,
+    "servers_before_sla_fit": 2,
+    "sizing_status": "ok"
   },
   "input": {
     "answer_tokens_A": 250,
