@@ -271,10 +271,52 @@ class ReportGenerator:
             logger.error("Ошибка при заполнении шаблона: %s", exc)
             raise RuntimeError(f"Ошибка генерации отчёта: {exc}") from exc
 
+        self._write_api_result(wb, inp)
         buf = io.BytesIO()
         wb.save(buf)
         buf.seek(0)
         return buf
+
+    @staticmethod
+    def _write_api_result(wb: openpyxl.Workbook, inp: SizingInput) -> None:
+        """Лист «Итог API»: результат после §7.3 (объект SLA, t_tools) и §8 (подбор под SLA).
+
+        Формулы листов Sizing/Iterations считают §6.4 без подбора под SLA и проверяют
+        SLA вызова. Итог для бюджета (AI-MET-04.02 п. 6.1.1) — значения этого листа.
+        """
+        from services.sizing_service import run_sizing
+
+        try:
+            r = run_sizing(inp)
+        except Exception as exc:  # отчёт формируется и при ошибке расчёта
+            logger.warning("Итог API не рассчитан: %s", exc)
+            return
+        ws = wb["Итог API"] if "Итог API" in wb.sheetnames else wb.create_sheet("Итог API")
+        rows = [
+            ("Итог API после подбора под SLA (§8) — используется для бюджета", None, None),
+            ("Формулы листа Sizing считают §6.4 без подбора под SLA и проверяют SLA одного вызова; "
+             "при расхождении действует этот лист.", None, None),
+            (None, None, None),
+            ("Величина", "Значение", "Пояснение"),
+            ("Servers_final", r.servers_final, "Итоговое число серверов (§8)"),
+            ("Servers^* до подбора", r.servers_before_sla_fit, "Решение итераций §6.4 = Sizing!D67"),
+            ("Подбор под SLA", r.sla_fit_status, "not_required | fitted | unreachable | disabled"),
+            ("BS_real", r.BS_real, "В итоговом состоянии"),
+            ("e2eLatency_load, с", r.e2e_latency_load, "Один LLM-вызов"),
+            ("t_tools, с", inp.t_tools_request, "Время вне LLM на запрос"),
+            ("e2eLatency_request, с", r.e2e_latency_request, "K_calls · e2eLatency_load + t_tools"),
+            ("Объект e2e-SLA", r.e2e_sla_scope, "call | request (§7.3)"),
+            ("SLA выполнен", r.sla_passed, ""),
+            ("q", r.session_load_q, "Самосогласованность нагрузки сессии, допустимо ≤ 1 (§6.4)"),
+            ("Статус результата", r.sizing_status, "ok | input_inconsistent | sla_unreachable"),
+        ]
+        for i, row in enumerate(rows, start=1):
+            for j, v in enumerate(row, start=1):
+                if v is not None:
+                    ws.cell(row=i, column=j, value=v)
+        ws.column_dimensions["A"].width = 34
+        ws.column_dimensions["B"].width = 16
+        ws.column_dimensions["C"].width = 60
 
     @staticmethod
     def make_filename() -> str:

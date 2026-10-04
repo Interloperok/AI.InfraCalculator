@@ -362,10 +362,10 @@ class SizingInput(BaseModel):
         description="Целевой e2eLatency по SLA (сек). Если задан — выполняется проверка",
     )
     e2e_sla_scope: Literal["call", "request"] = Field(
-        default="call",
+        default="request",
         description="К чему относится цель e2eLatency (§7.3): call — один LLM-вызов; "
-        "request — пользовательский запрос из K_calls последовательных вызовов (Прил. В.3). "
-        "Для агентных паттернов задаётся request.",
+        "request — пользовательский запрос из K_calls последовательных вызовов и времени инструментов "
+        "(Прил. В.3). По умолчанию request: при K_calls = 1 и t_tools_request = 0 совпадает с call.",
     )
     t_tools_request: confloat(ge=0) = Field(
         default=0.0,
@@ -373,11 +373,11 @@ class SizingInput(BaseModel):
         "Входит в e2eLatency_request; число GPU-серверов на него не влияет.",
     )
     sla_fit_servers: bool = Field(
-        default=False,
+        default=True,
         description="§8: при невыполнении SLA увеличивать число серверов (снижая BS_real) до выполнения SLA "
-        "при самосогласованной нагрузке или до BS_real = 1 (§7.3). По умолчанию выключено до реализации "
-        "подбора в Excel-отчёте (паритет API ↔ Excel); при выключенном подборе и непройденном SLA результат "
-        "имеет sla_fit_status = disabled.",
+        "при самосогласованной нагрузке или до BS_real = 1 (§7.3). Excel-отчёт считает §6.4 без подбора; "
+        "итог API после подбора выводится в отчёт отдельным листом «Итог API». При выключенном подборе и "
+        "непройденном SLA — sla_fit_status = disabled.",
     )
     parallel_branches_P: conint(ge=1) = Field(
         default=1,

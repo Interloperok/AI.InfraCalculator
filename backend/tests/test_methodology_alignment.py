@@ -130,7 +130,7 @@ class TestPipeline:
         assert agent.peak_tpm_input == pytest.approx(agent.peak_rpm * agent.SL_pf_input_length)
 
     def test_sla_checked_at_final_batch(self):
-        r = run_sizing(SizingInput(**{**EXCEL_INPUT, "ttft_sla": 1.01, "e2e_latency_sla": 100}))
+        r = run_sizing(SizingInput(**{**EXCEL_INPUT, "ttft_sla": 1.01, "e2e_latency_sla": 100, "sla_fit_servers": False}))
         # TTFT(BS*) > 1.01 ≥ TTFT(1): SLA must use the loaded value
         assert r.ttft_bs1 <= 1.01 < r.ttft_analyt
         assert r.ttft_sla_pass is False

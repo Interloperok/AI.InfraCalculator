@@ -91,7 +91,7 @@
     "cost_estimate_usd": null,
     "parallel_branches_P": 1,
     "e2e_latency_request": 26.2378,
-    "e2e_sla_scope": "call",
+    "e2e_sla_scope": "request",
     "session_consistent": true,
     "sla_fit_status": "not_required",
     "session_load_q": 0.8527,

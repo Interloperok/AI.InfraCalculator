@@ -140,8 +140,12 @@ def _cell(wb, ref):
 
 @pytest.mark.parametrize("name", list(SCENARIOS))
 def test_excel_matches_api(recalculated, name):
-    api = run_sizing(SizingInput(**SCENARIOS[name])).model_dump()
+    # Формулы Excel — §6.4 без подбора под SLA, проверка SLA одного вызова
+    api = run_sizing(SizingInput(**{**SCENARIOS[name], "sla_fit_servers": False, "e2e_sla_scope": "call"})).model_dump()
     wb = recalculated[name]
+    final = run_sizing(SizingInput(**SCENARIOS[name]))
+    ws = wb["Итог API"]
+    assert ws["B5"].value == final.servers_final and ws["B15"].value == final.sizing_status
     for key, ref in CELLS.items():
         expected, actual = api.get(key), _cell(wb, ref)
         if expected is None:

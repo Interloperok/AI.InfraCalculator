@@ -56,7 +56,8 @@ AGENT = {
 
 
 def _run(**kw):
-    return run_sizing(SizingInput(**{**AGENT, **kw}))
+    # проверки по отдельности: подбор и объект SLA включаются явно
+    return run_sizing(SizingInput(**{**AGENT, "sla_fit_servers": False, "e2e_sla_scope": "call", **kw}))
 
 
 def test_consistent_profile_q_below_one():
@@ -90,7 +91,13 @@ def test_sla_fit_unreachable_request_scope():
     assert r.servers_final == 5
 
 
-def test_sla_fit_disabled_by_default():
+def test_defaults_fit_and_request_scope():
+    r = run_sizing(SizingInput(**AGENT))
+    assert r.e2e_sla_scope == "request" and r.sla_fit_status == "unreachable"
+    assert r.sizing_status == "sla_unreachable"
+
+
+def test_fit_disabled_flag():
     r = _run()
     assert r.sla_fit_status == "disabled" and r.sla_passed is False
 
