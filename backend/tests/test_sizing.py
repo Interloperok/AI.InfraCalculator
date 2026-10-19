@@ -122,14 +122,17 @@ EXCEL_EXPECTED = dict(
     # (no Z multiplier), understating throughput by Z×.
     Fcount_model_tflops=1248.0,
     # P7+P14: engine_mode='continuous' default; F_count now Z-multiplied.
-    th_prefill=3776.25952779327,
-    th_dec_compute_instance=25610.6317,  # raw compute branch at TP-instance
-    th_decode=449.30932838662955,  # per-session at converged BS=57
+    # Methodology 1.7 (§2.2/§6.1): SL_pf = 1000 + 5·200 + 4·400 = 3600 is the
+    # attention context; d_attn = N_attn·head_dim = 4096; Th_dec^analyt has no
+    # K_batch (instance compute ceiling at BS = 1).
+    th_prefill=3682.7807525413077,  # 1248e12·0.2 / (64e9 + 4·64·4096·3600)
+    th_dec_compute_instance=2753.5865,  # 1248e12·0.15 / (64e9 + 4·64·4096·(3600+199.5))
+    th_decode=48.30853450570151,  # per-session at converged BS=57 (compute-bound)
     BS_real=57,  # min(S_TP_z=57, ceil(2500/(2·22))=57) — memory-tight
-    iteration_count=2,
-    Cmodel=40.1442406216595,
-    th_server_comp=80.288481243319,  # NcountTP=2 × Cmodel
-    Servers_comp=1,  # ceil(2500 × 0.02 × 1.25 / 80.29) = ceil(0.78) = 1
+    iteration_count=1,  # Servers^(1) = max(22, comp(22)=6) = 22 = Servers^(0)
+    Cmodel=6.157081646761894,
+    th_server_comp=12.314163293523787,  # NcountTP=2 × Cmodel
+    Servers_comp=6,  # ceil(2500 × 0.02 × 1.25 / 12.31) = 6
     # Section 8
     Servers_final=22,
 )
@@ -261,16 +264,14 @@ class TestSection6Compute:
         # Per-session (used in C_model post-P4) divides this by BS_real.
         # P14: F_count Z-multiplied per methodology §6.1.
         Fcount_flops = 312 * 1e12 * 4
-        result = calc_th_decode_analyt(
-            Fcount_flops, 0.15, EXCEL_EXPECTED["Kbatch"], 64e9, 64, 4096, 4000, 400
-        )
+        result = calc_th_decode_analyt(Fcount_flops, 0.15, 1.0, 64e9, 64, 4096, 3600, 400)
         assert result == pytest.approx(EXCEL_EXPECTED["th_dec_compute_instance"], rel=1e-4)
 
     def test_Cmodel(self):
         """v3 Cmodel: BS_real / (SL_pf_eff/Th_pf + Tdec/Th_dec_per_session). Uses SL_pf, not SL."""
-        # SL_pf for EXCEL_INPUT (SP=1000, Prp=200, MRT=0, n_prp=5) = 1000 + 5·200 + 4·0 = 2000
+        # SL_pf for EXCEL_INPUT (SP=1000, Prp=200, A=400, MRT=0, n_prp=5) = 1000 + 5·200 + 4·400 = 3600
         result = calc_Cmodel(
-            sl_pf_eff=2000,
+            sl_pf_eff=3600,
             th_pf=EXCEL_EXPECTED["th_prefill"],
             Tdec=400,
             th_dec_per_session=EXCEL_EXPECTED["th_decode"],
@@ -411,8 +412,9 @@ class TestEdgeCases:
         data = {**EXCEL_INPUT, "reasoning_tokens_MRT": 4096}
         inp = SizingInput(**data)
         result = run_sizing(inp)
-        # With reasoning: TS = 1000 + 5*(200+4096+400) = 24480 — much larger
-        assert result.TS_session_context == 24480.0
+        # With reasoning (h_reason = 0, §2.2): SL_pf = 1000 + 5·200 + 4·400 = 3600,
+        # T_dec = 400 + 4096, TS = 8096 (> 4000 without reasoning)
+        assert result.TS_session_context == 8096.0
         assert result.kv_per_session_gb > EXCEL_EXPECTED["MKV_gb"]
         # More memory → more servers
         assert result.servers_by_memory > EXCEL_EXPECTED["Servers_mem"]

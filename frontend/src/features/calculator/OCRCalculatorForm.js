@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useT } from "../../contexts/I18nContext";
+import { QUANTIZATION_OPTIONS } from "../../data/quantizationOptions";
 
 // Matches CalculatorForm InfoTooltip styling.
 const InfoTooltip = ({ text }) => (
@@ -84,11 +85,6 @@ const SECTION_STYLES = {
   },
 };
 
-const QUANTIZATION_OPTIONS = [
-  { label: "FP16 / BF16 (2 B/param)", value: 2 },
-  { label: "FP8 (1 B/param)", value: 1 },
-  { label: "INT4 / AWQ (0.5 B/param)", value: 0.5 },
-];
 
 const DEFAULTS = {
   lambda_online: 1.0,
