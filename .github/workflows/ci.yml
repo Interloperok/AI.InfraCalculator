@@ -116,7 +116,7 @@ jobs:
         run: uv run ruff format .
 
       - name: Ensure backend tree is formatted
-        run: git diff --exit-code -- backend
+        run: git diff --exit-code -- .
 
       - name: Ty check
         run: uv run ty check .
@@ -163,7 +163,7 @@ jobs:
         run: uv run ruff format .
 
       - name: Ensure backend tree is formatted
-        run: git diff --exit-code -- backend
+        run: git diff --exit-code -- .
 
       - name: Ty check
         run: uv run ty check .
@@ -223,7 +223,7 @@ jobs:
         run: npm run format
 
       - name: Ensure frontend tree is formatted
-        run: git diff --exit-code -- frontend
+        run: git diff --exit-code -- .
 
       - name: TypeScript typecheck
         run: npm run typecheck
@@ -266,7 +266,7 @@ jobs:
         run: npm run format
 
       - name: Ensure frontend tree is formatted
-        run: git diff --exit-code -- frontend
+        run: git diff --exit-code -- .
 
       - name: TypeScript typecheck
         run: npm run typecheck
