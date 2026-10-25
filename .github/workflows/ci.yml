@@ -19,6 +19,7 @@ jobs:
   changes:
     name: Detect changed areas
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
@@ -49,6 +50,7 @@ jobs:
   repo-hygiene:
     name: Repo hygiene and secret scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -90,6 +92,7 @@ jobs:
     needs: changes
     if: github.event_name == 'push' && github.ref != 'refs/heads/main' && needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: backend
@@ -136,6 +139,7 @@ jobs:
         needs.changes.outputs.backend == 'true'
       )
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: backend
@@ -194,6 +198,7 @@ jobs:
     needs: changes
     if: github.event_name == 'push' && github.ref != 'refs/heads/main' && needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
@@ -236,6 +241,7 @@ jobs:
         needs.changes.outputs.frontend == 'true'
       )
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: frontend
@@ -288,6 +294,7 @@ jobs:
     needs: changes
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.infra == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v7
