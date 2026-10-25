@@ -15,6 +15,7 @@ jest.mock("axios", () => {
     post: jest.fn(),
     isAxiosError: jest.fn(),
   };
+  mockAxios.create = jest.fn(() => mockAxios);
   return {
     __esModule: true,
     default: mockAxios,
@@ -22,6 +23,8 @@ jest.mock("axios", () => {
 });
 
 const mockedAxios = require("axios").default;
+// Captured before beforeEach clears mocks: the client is created at import time.
+const clientConfig = mockedAxios.create.mock.calls[0]?.[0];
 
 const makeAxiosError = ({ status, data, statusText = "Error", withRequest = false } = {}) => ({
   __isAxiosError: true,
@@ -42,6 +45,11 @@ describe("frontend API client", () => {
     mockedAxios.isAxiosError.mockImplementation((error) => Boolean(error?.__isAxiosError));
     window.URL.createObjectURL = jest.fn(() => "blob:test");
     window.URL.revokeObjectURL = jest.fn();
+  });
+
+  it("creates the API client with a request timeout", () => {
+    expect(clientConfig).toEqual({ timeout: expect.any(Number) });
+    expect(clientConfig.timeout).toBeGreaterThan(0);
   });
 
   it("returns server sizing payload on success", async () => {
