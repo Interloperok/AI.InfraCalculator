@@ -41,7 +41,9 @@ class ReportDownloadStore:
         self._items: dict[str, _StoredReport] = {}
         self._lock = threading.Lock()
 
-    def put(self, content: bytes, filename: str, ttl_seconds: int = TTL_SECONDS) -> tuple[str, datetime]:
+    def put(
+        self, content: bytes, filename: str, ttl_seconds: int = TTL_SECONDS
+    ) -> tuple[str, datetime]:
         """Store a workbook and return its id plus the wall-clock expiry."""
         report_id = secrets.token_urlsafe(18)
         expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)
