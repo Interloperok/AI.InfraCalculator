@@ -8,6 +8,13 @@ const API_BASE_URL =
   process.env.REACT_APP_API_URL ||
   (process.env.NODE_ENV === "production" ? "" : "http://localhost:8000");
 
+// Upper bound for a single backend request. Matches nginx proxy_read_timeout
+// for the heavy endpoints (auto-optimize, report), so a stalled backend ends
+// in a network error instead of a request that never settles.
+const API_TIMEOUT_MS = 5 * 60 * 1000;
+
+const apiClient = axios.create({ timeout: API_TIMEOUT_MS });
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
@@ -83,7 +90,7 @@ const postSizing = async (
   inputData: ApiPayload,
 ): Promise<ApiResult<ApiPayload>> => {
   try {
-    const response = await axios.post<ApiPayload>(`${API_BASE_URL}${path}`, inputData, {
+    const response = await apiClient.post<ApiPayload>(`${API_BASE_URL}${path}`, inputData, {
       headers: { "Content-Type": "application/json" },
     });
     return response.data;
@@ -108,7 +115,7 @@ export const getGPUs = async (
   params: Record<string, string | number | boolean | undefined> = {},
 ): Promise<ApiResult<ApiPayload>> => {
   try {
-    const response = await axios.get<ApiPayload>(`${API_BASE_URL}/v1/gpus`, {
+    const response = await apiClient.get<ApiPayload>(`${API_BASE_URL}/v1/gpus`, {
       params,
       headers: { "Content-Type": "application/json" },
     });
@@ -144,7 +151,7 @@ export const getGPUs = async (
 
 export const getGPUStats = async (): Promise<ApiResult<ApiPayload>> => {
   try {
-    const response = await axios.get<ApiPayload>(`${API_BASE_URL}/v1/gpus/stats`, {
+    const response = await apiClient.get<ApiPayload>(`${API_BASE_URL}/v1/gpus/stats`, {
       headers: { "Content-Type": "application/json" },
     });
     return response.data;
@@ -179,7 +186,7 @@ export const getGPUStats = async (): Promise<ApiResult<ApiPayload>> => {
 
 export const getGpuDetails = async (gpuId: string): Promise<ApiResult<ApiPayload>> => {
   try {
-    const response = await axios.get<ApiPayload>(`${API_BASE_URL}/v1/gpus/${encodeURIComponent(gpuId)}`, {
+    const response = await apiClient.get<ApiPayload>(`${API_BASE_URL}/v1/gpus/${encodeURIComponent(gpuId)}`, {
       headers: { "Content-Type": "application/json" },
     });
     return response.data;
@@ -200,7 +207,7 @@ export const getGpuDetails = async (gpuId: string): Promise<ApiResult<ApiPayload
 
 export const healthCheck = async (): Promise<ApiPayload> => {
   try {
-    const response = await axios.get<ApiPayload>(`${API_BASE_URL}/v1/healthz`);
+    const response = await apiClient.get<ApiPayload>(`${API_BASE_URL}/v1/healthz`);
     return response.data;
   } catch (error) {
     throw new Error(`Health check failed: ${getErrorMessage(error)}`);
@@ -211,7 +218,7 @@ export const downloadReport = async (
   inputData: ApiPayload,
 ): Promise<ApiResult<{ success: true }>> => {
   try {
-    const response = await axios.post<Blob>(`${API_BASE_URL}/v1/report`, inputData, {
+    const response = await apiClient.post<Blob>(`${API_BASE_URL}/v1/report`, inputData, {
       headers: { "Content-Type": "application/json" },
       responseType: "blob",
     });
@@ -267,7 +274,7 @@ export const downloadReport = async (
 
 export const autoOptimize = async (inputData: ApiPayload): Promise<ApiResult<ApiPayload>> => {
   try {
-    const response = await axios.post<ApiPayload>(`${API_BASE_URL}/v1/auto-optimize`, inputData, {
+    const response = await apiClient.post<ApiPayload>(`${API_BASE_URL}/v1/auto-optimize`, inputData, {
       headers: { "Content-Type": "application/json" },
     });
     return response.data;
@@ -300,7 +307,7 @@ export const getLLMs = async (
   params: Record<string, string | number | boolean | undefined> = {},
 ): Promise<ApiResult<ApiPayload>> => {
   try {
-    const response = await axios.get<ApiPayload>(`${API_BASE_URL}/v1/llms`, {
+    const response = await apiClient.get<ApiPayload>(`${API_BASE_URL}/v1/llms`, {
       params,
       headers: { "Content-Type": "application/json" },
     });
@@ -346,7 +353,7 @@ export const probeHuggingFace = async (timeoutMs = 2500): Promise<boolean> => {
 
 export const exportGpuCatalog = async (): Promise<ApiResult<ApiPayload>> => {
   try {
-    const response = await axios.get<ApiPayload>(`${API_BASE_URL}/v1/gpus/export`, {
+    const response = await apiClient.get<ApiPayload>(`${API_BASE_URL}/v1/gpus/export`, {
       headers: { "Content-Type": "application/json" },
     });
     return response.data;
