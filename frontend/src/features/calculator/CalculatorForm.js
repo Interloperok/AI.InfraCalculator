@@ -2106,12 +2106,12 @@ const CalculatorForm = ({
           {renderSliderInput(
             "bytes_per_param",
             "Precision (bytes/param)",
-            1,
+            0.5,
             4,
             0.5,
             formData.bytes_per_param,
             "",
-            "Bytes per parameter after quantization. FP16 = 2, INT8 = 1, FP32 = 4.",
+            "Bytes per parameter after quantization. FP32 = 4, FP16/BF16 = 2, FP8/INT8 = 1, FP4/INT4 = 0.5.",
           )}
           {renderSliderInput(
             "safe_margin",

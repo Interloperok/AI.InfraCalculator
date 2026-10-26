@@ -1,0 +1,44 @@
+[
+  {
+    "label": "FP32",
+    "bytes_per_param": 4.0,
+    "description": "Полная точность — обучение и исследование",
+    "default_for_bytes": true
+  },
+  {
+    "label": "FP16",
+    "bytes_per_param": 2.0,
+    "description": "Стандарт для инференса с высокой точностью",
+    "default_for_bytes": true
+  },
+  {
+    "label": "BF16",
+    "bytes_per_param": 2.0,
+    "description": "Стандарт для Qwen/Llama/DeepSeek native weights",
+    "default_for_bytes": false
+  },
+  {
+    "label": "FP8",
+    "bytes_per_param": 1.0,
+    "description": "Baseline для современных инференс-движков",
+    "default_for_bytes": true
+  },
+  {
+    "label": "INT8",
+    "bytes_per_param": 1.0,
+    "description": "W8A8/W8A16 (SmoothQuant, LLM.int8)",
+    "default_for_bytes": false
+  },
+  {
+    "label": "FP4",
+    "bytes_per_param": 0.5,
+    "description": "NVFP4/MXFP4 на Blackwell (B200/GB200/B300)",
+    "default_for_bytes": false
+  },
+  {
+    "label": "INT4",
+    "bytes_per_param": 0.5,
+    "description": "GPTQ/AWQ — агрессивная квантизация",
+    "default_for_bytes": true
+  }
+]

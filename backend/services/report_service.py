@@ -26,8 +26,15 @@ import openpyxl
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.worksheet import Worksheet
 
+from core.methodology_constants import DEFAULT_QUANTIZATION_LABEL
 from models import SizingInput
-from services.gpu_catalog_service import lookup_gpu_bandwidth_gbs, lookup_gpu_name
+from services.gpu_catalog_service import (
+    load_gpu_catalog,
+    lookup_gpu_bandwidth_gbs,
+    lookup_gpu_name,
+)
+from services.llm_catalog_service import load_llm_catalog
+from services.report_reference import capture_styles, write_reference
 
 logger = logging.getLogger("sizing.report")
 
@@ -39,10 +46,9 @@ GPU_CELL = "D25"
 MODEL_CELL = "D35"
 QUANT_CELL = "D53"
 
-# Preferred Reference label for the bytes-per-parameter values the web offers.
-# 2 and 0.5 are ambiguous on the sheet (FP16/BF16, FP4/INT4); these are the
-# conventional inference formats.
-QUANTIZATION_LABELS = {4.0: "FP32", 2.0: "FP16", 1.0: "FP8", 0.5: "INT4"}
+# Preferred Reference label for a bytes-per-parameter value when the request
+# carries no explicit ``quantization`` label (single source: §3.1 constants).
+QUANTIZATION_LABELS = DEFAULT_QUANTIZATION_LABEL
 
 WEB_LABEL_SUFFIX = " (web)"
 WEB_ROW_NOTE = "Web session"
@@ -102,6 +108,13 @@ class ReportGenerator:
         wb = openpyxl.load_workbook(self.template_path)
         ws = wb["Inputs"]
 
+        # Reference lists come from the API catalogs on every download, so a
+        # catalog refresh never leaves the workbook with stale numbers.
+        reference = wb["Reference"]
+        write_reference(
+            reference, load_gpu_catalog(), load_llm_catalog(), capture_styles(reference)
+        )
+
         # ── Workload (4 segments; web sends 2: internal + external) ──
         # Segment columns: D=internal (Внутренние), E=external (Внешние), F/G=spare segments.
         ws["D7"] = inp.internal_users
@@ -126,6 +139,8 @@ class ReportGenerator:
         ws["D17"] = inp.answer_tokens_A
         ws["D18"] = inp.reasoning_tokens_MRT
         ws["D19"] = inp.dialog_turns
+        # h_reason (§2.2): reasoning of past turns kept in history.
+        ws["D23"] = 1 if inp.reasoning_in_history else 0
 
         # ── Hardware (Section 4) ──
         self._select_gpu(wb, inp)
@@ -225,7 +240,7 @@ class ReportGenerator:
     def _select_quantization(wb: openpyxl.Workbook, inp: SizingInput) -> None:
         ws, reference = wb["Inputs"], wb["Reference"]
         first, last = _list_bounds(ws, QUANT_CELL)
-        preferred = QUANTIZATION_LABELS.get(float(inp.bytes_per_param))
+        preferred = inp.quantization or QUANTIZATION_LABELS.get(float(inp.bytes_per_param))
         for row in range(first, last + 1):
             if reference[f"A{row}"].value == preferred and reference[f"B{row}"].value == float(
                 inp.bytes_per_param
@@ -256,10 +271,52 @@ class ReportGenerator:
             logger.error("Ошибка при заполнении шаблона: %s", exc)
             raise RuntimeError(f"Ошибка генерации отчёта: {exc}") from exc
 
+        self._write_api_result(wb, inp)
         buf = io.BytesIO()
         wb.save(buf)
         buf.seek(0)
         return buf
+
+    @staticmethod
+    def _write_api_result(wb: openpyxl.Workbook, inp: SizingInput) -> None:
+        """Лист «Итог API»: результат после §7.3 (объект SLA, t_tools) и §8 (подбор под SLA).
+
+        Формулы листов Sizing/Iterations считают §6.4 без подбора под SLA и проверяют
+        SLA вызова. Итог для бюджета (AI-MET-04.02 п. 6.1.1) — значения этого листа.
+        """
+        from services.sizing_service import run_sizing
+
+        try:
+            r = run_sizing(inp)
+        except Exception as exc:  # отчёт формируется и при ошибке расчёта
+            logger.warning("Итог API не рассчитан: %s", exc)
+            return
+        ws = wb["Итог API"] if "Итог API" in wb.sheetnames else wb.create_sheet("Итог API")
+        rows = [
+            ("Итог API после подбора под SLA (§8) — используется для бюджета", None, None),
+            ("Формулы листа Sizing считают §6.4 без подбора под SLA и проверяют SLA одного вызова; "
+             "при расхождении действует этот лист.", None, None),
+            (None, None, None),
+            ("Величина", "Значение", "Пояснение"),
+            ("Servers_final", r.servers_final, "Итоговое число серверов (§8)"),
+            ("Servers^* до подбора", r.servers_before_sla_fit, "Решение итераций §6.4 = Sizing!D67"),
+            ("Подбор под SLA", r.sla_fit_status, "not_required | fitted | unreachable | disabled"),
+            ("BS_real", r.BS_real, "В итоговом состоянии"),
+            ("e2eLatency_load, с", r.e2e_latency_load, "Один LLM-вызов"),
+            ("t_tools, с", inp.t_tools_request, "Время вне LLM на запрос"),
+            ("e2eLatency_request, с", r.e2e_latency_request, "K_calls · e2eLatency_load + t_tools"),
+            ("Объект e2e-SLA", r.e2e_sla_scope, "call | request (§7.3)"),
+            ("SLA выполнен", r.sla_passed, ""),
+            ("q", r.session_load_q, "Самосогласованность нагрузки сессии, допустимо ≤ 1 (§6.4)"),
+            ("Статус результата", r.sizing_status, "ok | input_inconsistent | sla_unreachable"),
+        ]
+        for i, row in enumerate(rows, start=1):
+            for j, v in enumerate(row, start=1):
+                if v is not None:
+                    ws.cell(row=i, column=j, value=v)
+        ws.column_dimensions["A"].width = 34
+        ws.column_dimensions["B"].width = 16
+        ws.column_dimensions["C"].width = 60
 
     @staticmethod
     def make_filename() -> str:
@@ -319,14 +376,20 @@ def _select_reference_row(
 
     The row lands in the first free slot of the list; when the list is full
     the validation range and the INDEX/MATCH lookups are extended by one row.
-    A label that already exists in the list gets a suffix so MATCH resolves
-    to the web row rather than the catalog row.
+    A label that already exists in the list is reused when the catalog row
+    carries the same numbers; otherwise the web row gets a suffix so MATCH
+    resolves to the web row rather than the catalog row.
     """
     ws, reference = wb["Inputs"], wb["Reference"]
     first, last = _list_bounds(ws, cell)
-    existing = {reference[f"A{row}"].value for row in range(first, last + 1)}
-    if label in existing:
+    for existing_row in range(first, last + 1):
+        if reference[f"A{existing_row}"].value != label:
+            continue
+        if _same_numbers(reference, existing_row, values):
+            ws[cell] = label
+            return
         label = f"{label}{WEB_LABEL_SUFFIX}"
+        break
 
     free = [row for row in range(first, last + 1) if reference[f"A{row}"].value is None]
     row = free[0] if free else _extend_list(ws, cell, first, last)
@@ -337,3 +400,18 @@ def _select_reference_row(
         target.value = values.get(column)
     reference[f"A{row}"] = label
     ws[cell] = label
+
+
+def _same_numbers(reference: Worksheet, row: int, values: dict[str, Any]) -> bool:
+    """True when every numeric web value equals the Reference row (rel. 1e-9)."""
+    for column, value in values.items():
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        current = reference[f"{column}{row}"].value
+        if not isinstance(current, (int, float)):
+            current = 0 if current is None else current
+            if not isinstance(current, (int, float)):
+                return False
+        if abs(float(current) - float(value)) > 1e-9 * max(1.0, abs(float(value))):
+            return False
+    return True

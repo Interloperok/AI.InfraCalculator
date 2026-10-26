@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Literal, Any, Dict, List, Optional, Union
 
 from core.methodology_constants import (
     C_SAT_DEFAULT,
@@ -11,6 +11,7 @@ from core.methodology_constants import (
     ETA_PF_DEFAULT,
     K_SPEC_DEFAULT,
     O_FIXED_DEFAULT,
+    QUANTIZATION_LABELS,
     T_OVERHEAD_DEFAULT,
 )
 from pydantic import BaseModel, ConfigDict, Field, confloat, conint, model_validator
@@ -105,6 +106,12 @@ class SizingInput(BaseModel):
         description="Дополнительные токены ответа для tool_call JSON (A_tool, Appendix В.3). "
         "Типично 50-200.",
     )
+    reasoning_in_history: bool = Field(
+        default=False,
+        description="Сохраняются ли рассуждения прошлых ходов в истории диалога "
+        "(h_reason, §2.2). False — шаблон чата вырезает reasoning (типично для "
+        "reasoning-моделей); True — рассуждения остаются в контексте.",
+    )
 
     # ── Section 3.1: Model ──
     model_name: Optional[str] = Field(
@@ -141,7 +148,16 @@ class SizingInput(BaseModel):
         "DeepSeek-V3: 8; Mixtral: 2. None для dense.",
     )
     bytes_per_param: confloat(gt=0) = Field(
-        ..., description="Байт на параметр (Bquant): FP8→1, FP16→2, FP32→4"
+        ...,
+        description="Байт на параметр (Bquant, §3.1): "
+        + ", ".join(f"{k}→{v:g}" for k, v in QUANTIZATION_LABELS.items()),
+    )
+    quantization: Optional[str] = Field(
+        default=None,
+        description="Метка формата весов ("
+        + ", ".join(QUANTIZATION_LABELS)
+        + "). Необязательна; снимает неоднозначность FP16/BF16 и FP4/INT4 в отчёте. "
+        "Должна соответствовать bytes_per_param.",
     )
     safe_margin: confloat(ge=0.0) = Field(
         default=5.0,
@@ -309,8 +325,8 @@ class SizingInput(BaseModel):
     )
     o_fixed: confloat(ge=0.0) = Field(
         default=O_FIXED_DEFAULT,
-        description="Per-forward memory overhead (GB). Dense BF16=0; "
-        "MoE+FP8 на H100/H200 ≈ 8-10 GB. Используется в decode mem-bound (§6.2).",
+        description="Per-forward memory overhead (GiB). Dense BF16=0; "
+        "MoE+FP8 на H100/H200 ≈ 8-10 GiB. Используется в mem-bound decode и prefill (§6.1).",
     )
     eta_cache: confloat(ge=0.0, le=1.0) = Field(
         default=ETA_CACHE_DEFAULT,
@@ -345,6 +361,35 @@ class SizingInput(BaseModel):
         default=None,
         description="Целевой e2eLatency по SLA (сек). Если задан — выполняется проверка",
     )
+    e2e_sla_scope: Literal["call", "request"] = Field(
+        default="request",
+        description="К чему относится цель e2eLatency (§7.3): call — один LLM-вызов; "
+        "request — пользовательский запрос из K_calls последовательных вызовов и времени инструментов "
+        "(Прил. В.3). По умолчанию request: при K_calls = 1 и t_tools_request = 0 совпадает с call.",
+    )
+    wait_mode: Literal["sync", "async"] = Field(
+        default="sync",
+        description="Тип ожидания получателя (§7.3): sync — получатель (человек или система) блокируется до ответа, "
+        "e2e_latency_sla — допустимая задержка запроса, проверяется q ≤ 1; async — запросы ставятся в очередь, "
+        "e2e_latency_sla — срок готовности результата, q не проверяется (сессия не ждёт ответа).",
+    )
+    t_tools_request: confloat(ge=0) = Field(
+        default=0.0,
+        description="Время вне LLM на пользовательский запрос (сек): работа инструментов, оркестратор, сеть (§7.3). "
+        "Входит в e2eLatency_request; число GPU-серверов на него не влияет.",
+    )
+    sla_fit_servers: bool = Field(
+        default=True,
+        description="§8: при невыполнении SLA увеличивать число серверов (снижая BS_real) до выполнения SLA "
+        "при самосогласованной нагрузке или до BS_real = 1 (§7.3). Excel-отчёт считает §6.4 без подбора; "
+        "итог API после подбора выводится в отчёт отдельным листом «Итог API». При выключенном подборе и "
+        "непройденном SLA — sla_fit_status = disabled.",
+    )
+    parallel_branches_P: conint(ge=1) = Field(
+        default=1,
+        description="P_par — параллельные ветви одного запроса (CoT-SC, параллельные агенты; Прил. В.4.3). "
+        "Каждая ветвь учитывается как сессия: S_sim · P_par в памяти и batch. K_calls — только последовательные вызовы.",
+    )
     t_overhead: confloat(ge=0.0) = Field(
         default=T_OVERHEAD_DEFAULT,
         description="TTFT per-request overhead (сек, §7.1) — tokenization + proxy + admission. "
@@ -357,6 +402,22 @@ class SizingInput(BaseModel):
         default=None,
         description="Пользовательский каталог GPU (массив или объект). Если задан — цена для Cost Estimate берётся из него.",
     )
+
+    @model_validator(mode="after")
+    def _validate_quantization_label(self) -> "SizingInput":
+        if self.quantization is None:
+            return self
+        expected = QUANTIZATION_LABELS.get(self.quantization)
+        if expected is None:
+            raise ValueError(
+                f"quantization={self.quantization!r} не из списка {list(QUANTIZATION_LABELS)}"
+            )
+        if float(expected) != float(self.bytes_per_param):
+            raise ValueError(
+                f"quantization={self.quantization} соответствует bytes_per_param={expected:g}, "
+                f"получено {self.bytes_per_param:g}"
+            )
+        return self
 
     @model_validator(mode="after")
     def _validate_moe_mla_invariants(self) -> "SizingInput":
@@ -547,15 +608,44 @@ class SizingOutput(BaseModel):
     )
     iteration_count: Optional[int] = Field(
         default=None,
-        description="Число итераций фиксированной точки (§6.4) до сходимости. "
-        "Типично 2-5; максимум 10.",
+        description="Число итераций фиксированной точки (§6.4). Максимум 20.",
+    )
+    iteration_status: Optional[str] = Field(
+        default=None,
+        description="Статус итераций §6.4: converged | oscillating | not_converged.",
+    )
+    servers_trajectory: Optional[List[int]] = Field(
+        default=None,
+        description="Последовательность Servers^(k) итераций §6.4, начиная с Servers_mem.",
+    )
+    rho_pf: Optional[float] = Field(
+        default=None,
+        description="Загрузка prefill ρ_pf = C_model·SL_pf_eff/Th_pf (§6.2). "
+        "> 1 — prefill-запросы стоят в очереди, C_model завышен (диагностика).",
+    )
+    d_attn_prefill: Optional[float] = Field(
+        default=None, description="Ширина attention-члена в prefill d_attn^pf (§6.1)"
+    )
+    d_attn_decode: Optional[float] = Field(
+        default=None, description="Ширина attention-члена в decode d_attn^dec (§6.1)"
+    )
+    SL_pf_raw: Optional[float] = Field(
+        default=None,
+        description="Вход последнего вызова до ограничения окном (SL_pf^raw, §2.2)",
+    )
+    context_truncated: Optional[bool] = Field(
+        default=None, description="История усечена окном TS_max (SL_pf < SL_pf^raw)"
+    )
+    ttft_bs1: Optional[float] = Field(
+        default=None,
+        description="TTFT на ненагруженном экземпляре, BS = 1 (§7.1, справочно)",
     )
     th_dec_compute_per_session_at_bs: Optional[float] = Field(
         default=None,
         description="Th_dec^compute / BS_real — per-session compute-bound throughput "
         "при сошедшемся BS_real. Используется для select_th_decode при v3 итерации.",
     )
-    Tdec_tokens: float = Field(..., description="Токены decode фазы (Tdec = A + MRT)")
+    Tdec_tokens: float = Field(..., description="Токены decode фазы (Tdec = A + A_tool + MRT)")
     th_prefill: float = Field(..., description="Throughput prefill (tokens/sec) — итоговый")
     th_pf_compute: Optional[float] = Field(
         default=None,
@@ -652,33 +742,35 @@ class SizingOutput(BaseModel):
     # ── Section 7: SLA validation ──
     SL_pf_input_length: Optional[float] = Field(
         default=None,
-        description="Длина входной последовательности на prefill "
-        "(SL_pf = SP + N_prp·Prp + (N_prp−1)·MRT, §7.1). "
-        "Отличается от SL — используется в TTFT и Th_pf.",
+        description="Длина входа последнего вызова сессии с учётом окна "
+        "(SL_pf = min(SL_pf^raw, TS_max − T_dec), §2.2). "
+        "Контекст attention в Th_pf / Th_dec; входные токены в квотах.",
     )
     SL_pf_eff_after_cache: Optional[float] = Field(
         default=None,
         description="SL_pf после учёта prefix-cache: SL_pf · (1 − η_cache). "
         "При η_cache = 0 равно SL_pf.",
     )
-    ttft_analyt: Optional[float] = Field(None, description="Расчётный TTFT (сек)")
+    ttft_analyt: Optional[float] = Field(
+        None, description="TTFT при итоговом BS_real (сек, §7.1) — проверяется по SLA"
+    )
     generation_time_analyt: Optional[float] = Field(
         None, description="Расчётное время генерации (сек)"
     )
     e2e_latency_analyt: Optional[float] = Field(
         None,
-        description="Расчётный e2eLatency для одного запроса (сек, §7.2). "
-        "Per-request форма: TTFT + GenerationTime, аккаунтит BS_real через per-session Th_dec.",
+        description="e2eLatency одиночного запроса на ненагруженном экземпляре "
+        "(BS = 1, сек, §7.2) — справочно.",
     )
     e2e_latency_load: Optional[float] = Field(
         default=None,
-        description="e2eLatency под установившейся нагрузкой (сек, §7.2). "
-        "По закону Литтла: BS_real / C_model(BS_real). Захватывает queueing-эффект.",
+        description="e2eLatency под нагрузкой (сек, §7.2): "
+        "max(e2e_analyt, BS_real / C_model(BS_real)) при итоговом BS_real.",
     )
     e2e_latency_for_sla: Optional[float] = Field(
         default=None,
         description="Эффективный e2eLatency для SLA-валидации (сек). "
-        "= max(e2e_latency_analyt, e2e_latency_load). Используется в e2e_latency_sla_pass.",
+        "= e2e_latency_load. Используется в e2e_latency_sla_pass.",
     )
     ttft_sla_target: Optional[float] = Field(None, description="Целевой TTFT по SLA (сек)")
     e2e_latency_sla_target: Optional[float] = Field(
@@ -687,6 +779,25 @@ class SizingOutput(BaseModel):
     ttft_sla_pass: Optional[bool] = Field(None, description="TTFT проходит SLA?")
     e2e_latency_sla_pass: Optional[bool] = Field(None, description="e2eLatency проходит SLA?")
     sla_passed: Optional[bool] = Field(None, description="Все SLA проверки пройдены?")
+    e2e_sla_scope: Optional[str] = Field(None, description="Цель e2eLatency: call | request (§7.3)")
+    e2e_latency_request: Optional[float] = Field(
+        None, description="e2eLatency пользовательского запроса = K_calls · e2e_latency_load + t_tools_request (§7.3, Прил. В.3)"
+    )
+    parallel_branches_P: Optional[int] = Field(None, description="P_par — параллельные ветви (Прил. В.4.3)")
+    session_load_q: Optional[float] = Field(
+        None,
+        description="q = R · K_SLA · (K_calls · e2e_latency_load + t_tools_request) (§6.4): доля цикла сессии под запросом. "
+        "При q > 1 последовательная сессия не успевает получить ответ до следующего запроса — вход противоречив.",
+    )
+    session_consistent: Optional[bool] = Field(None, description="q ≤ 1 в итоговом состоянии (§6.4); при wait_mode = async — не проверяется (True)")
+    wait_mode: Optional[str] = Field(None, description="sync | async (§7.3)")
+    servers_before_sla_fit: Optional[int] = Field(None, description="S* итерации §6.4 до подбора под SLA (§8)")
+    sla_fit_status: Optional[str] = Field(
+        None, description="Подбор под SLA (§8): not_required | fitted | unreachable | disabled"
+    )
+    sizing_status: Optional[str] = Field(
+        None, description="ok | input_inconsistent (q > 1) | sla_unreachable — статус результата для бюджета (AI-MET-04.02 п. 6.1.1)"
+    )
     sla_recommendations: Optional[List[str]] = Field(
         None, description="Рекомендации при невыполнении SLA (Приложение Б)"
     )
@@ -705,11 +816,11 @@ class SizingOutput(BaseModel):
     )
     peak_tpm_input: float = Field(
         ...,
-        description="Пиковый input-side tpm = (Ssim × R × K_SLA × 60) × SL_pf. "
-        "Без K_calls — токены на пользовательский запрос постоянны независимо от агентного дробления.",
+        description="Пиковый input-side tpm = peak_rpm × SL_pf (§9). Каждый из K_calls "
+        "LLM-вызовов передаёт свой полный контекст; оценка сверху длиной последнего вызова.",
     )
     peak_tpm_output: float = Field(
-        ..., description="Пиковый output-side tpm = (Ssim × R × K_SLA × 60) × T_dec."
+        ..., description="Пиковый output-side tpm = peak_rpm × T_dec (§9)."
     )
     peak_tpm: float = Field(
         ..., description="Суммарный пиковый tpm = peak_tpm_input + peak_tpm_output."

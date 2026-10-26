@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Optional
@@ -9,6 +10,57 @@ from models import GPUInfo, GPUListResponse, GPUStats
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 GPU_DATA_PATH = BACKEND_DIR / "gpu_data.json"
+GPU_OVERRIDES_PATH = BACKEND_DIR / "gpu_overrides.json"
+
+logger = logging.getLogger("sizing.gpu_catalog")
+
+# Fields the overlay may carry that are not part of the catalog schema.
+_OVERLAY_META_KEYS = {"sources", "reason", "note"}
+
+
+@lru_cache(maxsize=4)
+def _read_overrides_cached(path_str: str, mtime_ns: int) -> dict[str, Any]:
+    with open(path_str, "r", encoding="utf-8") as file_obj:
+        data = json.load(file_obj)
+    return data if isinstance(data, dict) else {}
+
+
+def load_gpu_overrides(path: Path = GPU_OVERRIDES_PATH) -> dict[str, Any]:
+    """Versioned overlay (patches + additions) applied on top of gpu_data.json."""
+    if not path.exists():
+        return {"patches": [], "additions": []}
+    return _read_overrides_cached(str(path), path.stat().st_mtime_ns)
+
+
+def apply_gpu_overrides(
+    catalog: list[dict[str, Any]], overrides: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Return a new catalog with overlay patches and additions applied.
+
+    Patches update fields of existing ids; additions are appended unless an
+    entry with the same id already exists (then they act as a patch). The
+    overlay is applied at read time, so the scheduled scraper refresh of
+    gpu_data.json never drops it.
+    """
+    by_id = {gpu.get("id"): dict(gpu) for gpu in catalog}
+    order = [gpu.get("id") for gpu in catalog]
+    for patch in overrides.get("patches", []):
+        gpu_id = patch.get("id")
+        if gpu_id in by_id:
+            by_id[gpu_id].update(patch.get("set", {}))
+            by_id[gpu_id]["override_sources"] = patch.get("sources", [])
+        else:
+            logger.warning("gpu_overrides: patch target %s not found in catalog", gpu_id)
+    for addition in overrides.get("additions", []):
+        gpu_id = addition.get("id")
+        entry = {k: v for k, v in addition.items() if k not in _OVERLAY_META_KEYS}
+        entry["override_sources"] = addition.get("sources", [])
+        if gpu_id in by_id:
+            by_id[gpu_id].update(entry)
+        else:
+            by_id[gpu_id] = entry
+            order.append(gpu_id)
+    return [by_id[gpu_id] for gpu_id in order]
 
 
 @lru_cache(maxsize=1)
@@ -29,7 +81,10 @@ def _read_gpu_catalog_cached(path_str: str, mtime_ns: int) -> tuple[dict[str, An
 
 def _read_gpu_catalog(path: Path = GPU_DATA_PATH) -> list[dict[str, Any]]:
     mtime_ns = path.stat().st_mtime_ns
-    return list(_read_gpu_catalog_cached(str(path), mtime_ns))
+    catalog = list(_read_gpu_catalog_cached(str(path), mtime_ns))
+    if path == GPU_DATA_PATH:
+        catalog = apply_gpu_overrides(catalog, load_gpu_overrides())
+    return catalog
 
 
 def load_gpu_catalog() -> list[dict[str, Any]]:
@@ -92,18 +147,20 @@ def lookup_gpu_name(gpu_id: Optional[str]) -> Optional[str]:
 
     for gpu in gpu_data:
         if gpu.get("id") == gpu_id:
-            name = f"{gpu.get('vendor') or ''} {gpu.get('model_name') or ''}".strip()
-            return name or None
+            from services.report_reference import gpu_display_name
+
+            return gpu_display_name(gpu) or None
     return None
 
 
 def lookup_gpu_tflops(gpu_id: Optional[str], gpu_mem_gb: float) -> float:
-    """Look up GPU TFLOPS in the catalog: first by id, then by memory size.
+    """Look up GPU TFLOPS in the catalog: by id; memory-size match only without an id.
 
-    Previously a single loop returned the first match by id OR memory, so a
-    request with an explicit gpu_id could resolve to a different GPU with
-    the same memory listed earlier in the catalog (e.g. AMD MI300X 192 GB
-    shadowed NVIDIA B200 SXM 192 GB). Now the id pass runs first.
+    An explicit ``gpu_id`` that is not in the catalog returns 0.0 instead of
+    borrowing the TFLOPS of an unrelated GPU with the same memory size (e.g.
+    an unknown 141 GB id silently got H200 PCIe's 835 TFLOPS). Callers then
+    fail loudly unless ``gpu_flops_Fcount`` is supplied. The memory-size
+    fallback is kept for requests without ``gpu_id`` and logs a warning.
     """
     try:
         gpu_data = load_gpu_catalog()
@@ -119,13 +176,21 @@ def lookup_gpu_tflops(gpu_id: Optional[str], gpu_mem_gb: float) -> float:
                 target_gpu = gpu
                 break
 
-    # Pass 2: fallback to memory match only when gpu_id wasn't supplied or
-    # didn't resolve.
+        if target_gpu is None:
+            logger.warning("lookup_gpu_tflops: unknown gpu_id %r, no memory fallback", gpu_id)
+            return 0.0
+
+    # Pass 2: memory-size match only when gpu_id wasn't supplied.
     if target_gpu is None:
         for gpu in gpu_data:
             mem = gpu.get("memory_gb", 0)
             if mem and float(mem) == float(gpu_mem_gb):
                 target_gpu = gpu
+                logger.warning(
+                    "lookup_gpu_tflops: no gpu_id, TFLOPS taken from %s by memory size %s GB",
+                    gpu.get("id"),
+                    gpu_mem_gb,
+                )
                 break
 
     if not target_gpu:
