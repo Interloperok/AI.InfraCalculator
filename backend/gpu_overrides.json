@@ -1,0 +1,74 @@
+{
+  "_comment": "Versioned overlay applied on top of gpu_data.json after normalization (services/gpu_catalog_service.py). Survives the scheduled catalog refresh. Every number has a vendor source. tflops_fp16 = dense FP16/BF16 tensor peak (no sparsity), memory_bandwidth_gbs in GB/s, memory_gb in GB as marketed.",
+  "patches": [
+    {
+      "id": "amd-amd-instinct-mi350x",
+      "set": {"memory_gb": 288.0, "memory_type": "HBM3E", "memory_bandwidth_gbs": 8000.0, "tflops_fp16": 2300.0},
+      "reason": "memory_gb parsed as TB (0.28125); tflops_fp16 held the vector FP16 rate, not matrix",
+      "sources": ["https://www.amd.com/en/partner/browse-by-resource/partner-insights-articles/instinct-mi350x-data-center-ai-leadership.html"]
+    },
+    {
+      "id": "amd-amd-instinct-mi355x",
+      "set": {"memory_gb": 288.0, "memory_type": "HBM3E", "memory_bandwidth_gbs": 8000.0, "tflops_fp16": 2516.6},
+      "reason": "memory_gb parsed as TB (0.28125); tflops_fp16 held the vector FP16 rate (157.3), matrix FP16 is 2.5166 PFLOPS",
+      "sources": ["https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/product-briefs/amd-instinct-mi355x-gpu-brochure.pdf"]
+    },
+    {
+      "id": "nvidia-h800-gpu-accelerator-sxm-card",
+      "set": {"tflops_fp16": 989.5},
+      "reason": "missing FP16 tensor rate; datasheet 1979 TFLOPS is with sparsity",
+      "sources": ["https://www.chaoqing-i.com/upload/20231128/NVIDIA%20H800%20GPU%20Datasheet.pdf"]
+    }
+  ],
+  "additions": [
+    {
+      "id": "nvidia-a100-sxm4-80gb",
+      "model_name": "A100 SXM4 80GB",
+      "vendor": "NVIDIA",
+      "memory_gb": 80.0, "memory_type": "HBM2e", "memory_bandwidth_gbs": 2039.0,
+      "tflops_fp16": 312.0, "tflops_fp32": 19.5, "tdp_watts": 400.0,
+      "sources": ["https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf"]
+    },
+    {
+      "id": "nvidia-a100-pcie-40gb",
+      "model_name": "A100 PCIe 40GB",
+      "vendor": "NVIDIA",
+      "memory_gb": 40.0, "memory_type": "HBM2", "memory_bandwidth_gbs": 1555.0,
+      "tflops_fp16": 312.0, "tflops_fp32": 19.5, "tdp_watts": 250.0,
+      "sources": ["https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf"]
+    },
+    {
+      "id": "nvidia-l40s",
+      "model_name": "L40S",
+      "vendor": "NVIDIA",
+      "memory_gb": 48.0, "memory_type": "GDDR6", "memory_bandwidth_gbs": 864.0,
+      "tflops_fp16": 362.05, "tflops_fp32": 91.6, "tdp_watts": 350.0,
+      "sources": ["https://www.nvidia.com/en-us/data-center/l40s/"]
+    },
+    {
+      "id": "nvidia-h20",
+      "model_name": "H20 96GB",
+      "vendor": "NVIDIA",
+      "memory_gb": 96.0, "memory_type": "HBM3", "memory_bandwidth_gbs": 4000.0,
+      "tflops_fp16": 148.0, "tflops_fp32": 44.0, "tdp_watts": 400.0,
+      "sources": ["https://baike.baidu.com/en/item/H20/1510112"],
+      "note": "NVIDIA does not publish a public H20 datasheet; values from partner specifications"
+    },
+    {
+      "id": "amd-instinct-mi325x",
+      "model_name": "AMD Instinct MI325X",
+      "vendor": "AMD",
+      "memory_gb": 256.0, "memory_type": "HBM3E", "memory_bandwidth_gbs": 6000.0,
+      "tflops_fp16": 1307.4, "tflops_fp32": 163.4, "tdp_watts": 1000.0,
+      "sources": ["https://www.amd.com/en/products/accelerators/instinct/mi300/mi325x.html"]
+    },
+    {
+      "id": "nvidia-v100s-pcie-32gb",
+      "model_name": "V100S PCIe 32GB",
+      "vendor": "NVIDIA",
+      "memory_gb": 32.0, "memory_type": "HBM2", "memory_bandwidth_gbs": 1134.0,
+      "tflops_fp16": 130.0, "tflops_fp32": 16.4, "tdp_watts": 250.0,
+      "sources": ["https://images.nvidia.com/content/technologies/volta/pdf/volta-v100-datasheet-update-us-1165301-r5.pdf"]
+    }
+  ]
+}
