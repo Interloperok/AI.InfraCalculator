@@ -12,12 +12,12 @@ weaken the audit threshold, add an override, or upgrade unrelated packages.
 
 Files: frontend/package-lock.json and this plan.
 
-- [ ] Confirm the original runtime audit failure.
-- [ ] Select follow-redirects 1.16.2 with its npm integrity, preserving all
+- [x] Confirm the original runtime audit failure.
+- [x] Select follow-redirects 1.16.2 with its npm integrity, preserving all
   other dependency versions and the root manifest. This is the published
   security fix; its package-only early adoption is approved for this fix.
-- [ ] Repeat npm ci; require the unchanged runtime audit to pass.
-- [ ] Run frontend lint, formatting, type checks, unit coverage and build;
+- [x] Repeat npm ci; require the unchanged runtime audit to pass.
+- [x] Run frontend lint, formatting, type checks, unit coverage and build;
   leave browser smoke and the Linux/container path to the existing CI.
 - [ ] Obtain independent review and green exact-head CI before integration.
   Verify the merged revision and the existing deployment separately.
@@ -27,3 +27,20 @@ backend or Axios updates; their normal release-age gates remain separate.
 
 Sources: https://github.com/advisories/GHSA-mrwp-f3q8-3g9p and npm publication
 metadata (1.16.2 published 2026-10-25T21:32:25.963Z).
+
+## Local results
+
+- Baseline audit: exit1, one high and three low runtime findings. After the
+  targeted update: exit0, no high/critical runtime findings, three prior lows.
+- Exactly one package-lock entry changed (version, resolved, SHA512 integrity).
+  The root package manifest and every other package entry are identical.
+- npm ci succeeded on macOS ARM64, existing Node26.12.0. Its default local npm
+  policy did not run three optional/unapproved install scripts; that policy was
+  not changed. Linux/Node22 installation and browser smoke remain CI evidence.
+- Existing lint, format:check, typecheck, 12 suites/87 tests with coverage,
+  production build and the unchanged runtime audit all passed. No new test
+  mirrors a generated lock, and no threshold or CI workflow was changed.
+- The three low deepmerge/react-floater/react-joyride findings and existing dev
+  dependency findings remain separate debt; this patch does not claim zero
+  vulnerabilities throughout the project. Early use of1.16.2 is restricted
+  to the public high-severity fix, not the unrelated broader bot updates.
