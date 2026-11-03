@@ -85,7 +85,6 @@ const SECTION_STYLES = {
   },
 };
 
-
 const DEFAULTS = {
   lambda_online: 1.0,
   c_peak: 4,

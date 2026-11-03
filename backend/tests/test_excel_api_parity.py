@@ -141,7 +141,9 @@ def _cell(wb, ref):
 @pytest.mark.parametrize("name", list(SCENARIOS))
 def test_excel_matches_api(recalculated, name):
     # Формулы Excel — §6.4 без подбора под SLA, проверка SLA одного вызова
-    api = run_sizing(SizingInput(**{**SCENARIOS[name], "sla_fit_servers": False, "e2e_sla_scope": "call"})).model_dump()
+    api = run_sizing(
+        SizingInput(**{**SCENARIOS[name], "sla_fit_servers": False, "e2e_sla_scope": "call"})
+    ).model_dump()
     wb = recalculated[name]
     final = run_sizing(SizingInput(**SCENARIOS[name]))
     ws = wb["Итог API"]

@@ -498,7 +498,9 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     # §6.4 Шаг 4: Servers^comp = comp(S*) when converged, S* otherwise, so
     # that max(Servers_mem, Servers_comp) = S*.
     servers_comp = (
-        state["servers_comp"] if iteration_status == "converged" and sla_fit_status != "fitted" else servers_star
+        state["servers_comp"]
+        if iteration_status == "converged" and sla_fit_status != "fitted"
+        else servers_star
     )
 
     # §6.2: prefill utilisation diagnostic ρ_pf = C_model·SL_pf_eff / Th_pf
@@ -511,9 +513,15 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
     gen_time_analyt = calc_generation_time(Tdec, th_dec)
     e2e_latency_load = max(e2e_latency_analyt, calc_e2e_latency_load(BS_real, Cmodel))
     e2e_latency_request = e2e_latency_load * k_calls + inp.t_tools_request
-    e2e_latency_for_sla = e2e_latency_request if inp.e2e_sla_scope == "request" else e2e_latency_load
+    e2e_latency_for_sla = (
+        e2e_latency_request if inp.e2e_sla_scope == "request" else e2e_latency_load
+    )
     # §6.4: самосогласованность нагрузки последовательной сессии
-    session_load_q = inp.rps_per_session_R * inp.sla_reserve_KSLA * (k_calls * e2e_latency_load + inp.t_tools_request)
+    session_load_q = (
+        inp.rps_per_session_R
+        * inp.sla_reserve_KSLA
+        * (k_calls * e2e_latency_load + inp.t_tools_request)
+    )
     session_consistent = inp.wait_mode == "async" or session_load_q <= 1.0 + 1e-9
 
     ttft_sla_pass = None
@@ -788,7 +796,11 @@ def run_sizing(inp: SizingInput) -> SizingOutput:
         servers_before_sla_fit=servers_before_sla_fit,
         sla_fit_status=sla_fit_status,
         sizing_status=(
-            "input_inconsistent" if not session_consistent else "sla_unreachable" if sla_fit_status == "unreachable" else "ok"
+            "input_inconsistent"
+            if not session_consistent
+            else "sla_unreachable"
+            if sla_fit_status == "unreachable"
+            else "ok"
         ),
         sla_recommendations=sla_recommendations,
         # Section 8

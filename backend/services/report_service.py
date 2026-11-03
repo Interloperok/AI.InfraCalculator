@@ -294,12 +294,20 @@ class ReportGenerator:
         ws = wb["Итог API"] if "Итог API" in wb.sheetnames else wb.create_sheet("Итог API")
         rows = [
             ("Итог API после подбора под SLA (§8) — используется для бюджета", None, None),
-            ("Формулы листа Sizing считают §6.4 без подбора под SLA и проверяют SLA одного вызова; "
-             "при расхождении действует этот лист.", None, None),
+            (
+                "Формулы листа Sizing считают §6.4 без подбора под SLA и проверяют SLA одного вызова; "
+                "при расхождении действует этот лист.",
+                None,
+                None,
+            ),
             (None, None, None),
             ("Величина", "Значение", "Пояснение"),
             ("Servers_final", r.servers_final, "Итоговое число серверов (§8)"),
-            ("Servers^* до подбора", r.servers_before_sla_fit, "Решение итераций §6.4 = Sizing!D67"),
+            (
+                "Servers^* до подбора",
+                r.servers_before_sla_fit,
+                "Решение итераций §6.4 = Sizing!D67",
+            ),
             ("Подбор под SLA", r.sla_fit_status, "not_required | fitted | unreachable | disabled"),
             ("BS_real", r.BS_real, "В итоговом состоянии"),
             ("e2eLatency_load, с", r.e2e_latency_load, "Один LLM-вызов"),

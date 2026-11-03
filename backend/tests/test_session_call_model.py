@@ -51,13 +51,15 @@ AGENT = {
     "a_tool": 150,
     "eta_cache": 0.5,
     "rps_per_session_R": 0.0006,
-    "e2e_latency_sla": 90.0
+    "e2e_latency_sla": 90.0,
 }
 
 
 def _run(**kw):
     # проверки по отдельности: подбор и объект SLA включаются явно
-    return run_sizing(SizingInput(**{**AGENT, "sla_fit_servers": False, "e2e_sla_scope": "call", **kw}))
+    return run_sizing(
+        SizingInput(**{**AGENT, "sla_fit_servers": False, "e2e_sla_scope": "call", **kw})
+    )
 
 
 def test_consistent_profile_q_below_one():
@@ -124,7 +126,12 @@ def test_tools_time_blocks_fit():
 
 def test_async_skips_q_and_uses_deadline():
     sync = _run(rps_per_session_R=0.002)
-    asy = _run(rps_per_session_R=0.002, wait_mode="async", e2e_sla_scope="request", e2e_latency_sla=900.0,
-               sla_fit_servers=True)
+    asy = _run(
+        rps_per_session_R=0.002,
+        wait_mode="async",
+        e2e_sla_scope="request",
+        e2e_latency_sla=900.0,
+        sla_fit_servers=True,
+    )
     assert sync.session_consistent is False
     assert asy.session_consistent is True and asy.sizing_status == "ok" and asy.sla_passed is True
